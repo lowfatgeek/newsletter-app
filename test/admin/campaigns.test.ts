@@ -1,0 +1,134 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { db } from "../../src/lib/db";
+import { adminAuditLog, campaignRedirects, rewardAssets, rewardCampaigns } from "../../src/lib/schema";
+import { eq } from "drizzle-orm";
+import {
+  createCampaign, validateSlug, upsertCampaignLocale, changeSlug,
+  setCampaignStatus, duplicateCampaign, getCampaignById, updateCampaignMeta,
+} from "../../src/lib/admin/campaigns";
+import { resetDb } from "../helpers";
+
+const AUDIT = { adminUserId: null, ip: "127.0.0.1" };
+
+describe("campaigns lib", () => {
+  beforeEach(resetDb);
+
+  it("validateSlug rules", () => {
+    expect(validateSlug("starter-kit")).toBe(true);
+    expect(validateSlug("starter--kit")).toBe(false);
+    expect(validateSlug("Starter")).toBe(false);
+    expect(validateSlug("-x")).toBe(false);
+  });
+  it("create rejects invalid and duplicate slug", async () => {
+    expect((await createCampaign({ slug: "Bad Slug" })).ok).toBe(false);
+    await createCampaign({ slug: "a" });
+    expect(await createCampaign({ slug: "a" })).toEqual({ ok: false, reason: "slug-taken" });
+  });
+  it("locale upsert", async () => {
+    const { id } = (await createCampaign({ slug: "c1" })) as { ok: true; id: string };
+    await upsertCampaignLocale(id, "id", { title: "T", description: "D", rewardItems: [] });
+    await upsertCampaignLocale(id, "id", { title: "T2", description: "D2", rewardItems: [] });
+    const got = await getCampaignById(id);
+    expect(got!.locales).toHaveLength(1);
+    expect(got!.locales[0].title).toBe("T2");
+  });
+  it("draft slug change is free; published needs confirmation + writes redirect", async () => {
+    const { id } = (await createCampaign({ slug: "draft-camp" })) as { ok: true; id: string };
+    expect((await changeSlug(id, "draft-renamed", false)).ok).toBe(true);
+    await setCampaignStatus(id, "publish");
+    expect(await changeSlug(id, "published-renamed", false))
+      .toEqual({ ok: false, reason: "published-requires-confirmation" });
+    expect((await changeSlug(id, "published-renamed", true)).ok).toBe(true);
+    const redirects = await db.select().from(campaignRedirects);
+    expect(redirects.map((r) => r.oldSlug)).toContain("draft-renamed");
+  });
+  it("status transitions enforce legality", async () => {
+    const { id } = (await createCampaign({ slug: "t1" })) as { ok: true; id: string };
+    expect(await setCampaignStatus(id, "pause")).toMatchObject({ ok: false });
+    await setCampaignStatus(id, "publish");
+    expect(await setCampaignStatus(id, "pause")).toMatchObject({ ok: true });
+    expect(await setCampaignStatus(id, "unpause")).toMatchObject({ ok: true });
+    expect(await setCampaignStatus(id, "archive")).toMatchObject({ ok: true });
+    const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
+    expect(camp.status).toBe("archived");
+  });
+  it("duplicate copies locales/assets/doa as draft with unique slug", async () => {
+    const { id } = (await createCampaign({ slug: "orig" })) as { ok: true; id: string };
+    await upsertCampaignLocale(id, "id", { title: "T", description: "D", rewardItems: [{ name: "A", benefit: "B" }] });
+    const copyId = await duplicateCampaign(id);
+    const copy = await getCampaignById(copyId);
+    expect(copy!.campaign.status).toBe("draft");
+    expect(copy!.locales[0].title).toBe("T");
+    expect(copy!.campaign.slug).toBe("orig-copy");
+  });
+
+  it("create writes audit row", async () => {
+    await createCampaign({ slug: "audited" }, AUDIT);
+    const rows = await db.select().from(adminAuditLog);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].action).toBe("campaign_created");
+  });
+
+  it("changeSlug rejects slug equal to another campaign's current slug", async () => {
+    await createCampaign({ slug: "occupied" });
+    const { id } = (await createCampaign({ slug: "mover" })) as { ok: true; id: string };
+    expect(await changeSlug(id, "occupied", true)).toEqual({ ok: false, reason: "slug-taken" });
+  });
+
+  it("publish sets publishedAt once and does not overwrite", async () => {
+    const { id } = (await createCampaign({ slug: "pub-once" })) as { ok: true; id: string };
+    await setCampaignStatus(id, "publish");
+    const [first] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
+    expect(first.publishedAt).not.toBeNull();
+    expect(first.status).toBe("published");
+    await setCampaignStatus(id, "pause");
+    await setCampaignStatus(id, "unpause");
+    const [second] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
+    expect(second.publishedAt.getTime()).toBe(first.publishedAt!.getTime());
+  });
+
+  it("duplicate falls back to -copy-2 when -copy is taken", async () => {
+    const { id } = (await createCampaign({ slug: "src" })) as { ok: true; id: string };
+    const firstCopy = await duplicateCampaign(id);
+    const secondCopy = await duplicateCampaign(id);
+    const one = await getCampaignById(firstCopy);
+    const two = await getCampaignById(secondCopy);
+    expect(one!.campaign.slug).toBe("src-copy");
+    expect(two!.campaign.slug).toBe("src-copy-2");
+  });
+
+  it("getCampaignById returns assets ordered by sortOrder and null for missing", async () => {
+    expect(await getCampaignById("00000000-0000-0000-0000-000000000000")).toBeNull();
+    const { id } = (await createCampaign({ slug: "ordered" })) as { ok: true; id: string };
+    await db.insert(rewardAssets).values([
+      { campaignId: id, storageKey: "a/second.pdf", nameId: "B", mimeType: "application/pdf", sizeBytes: 2, checksum: "c2", sortOrder: 2 },
+      { campaignId: id, storageKey: "a/first.pdf", nameId: "A", mimeType: "application/pdf", sizeBytes: 1, checksum: "c1", sortOrder: 1 },
+    ]);
+    const got = await getCampaignById(id);
+    expect(got!.assets.map((a) => a.nameId)).toEqual(["A", "B"]);
+    expect(got!.doaSelections).toEqual([]);
+  });
+
+  it("updateCampaignMeta patches featuredImageKey/order/indexable and audits", async () => {
+    const { id } = (await createCampaign({ slug: "meta-camp" })) as { ok: true; id: string };
+    await updateCampaignMeta(id, { featuredImageKey: "k/1.png", order: 7, indexable: true }, AUDIT);
+    const got = await getCampaignById(id);
+    expect(got!.campaign.featuredImageKey).toBe("k/1.png");
+    expect(got!.campaign.sortOrder).toBe(7);
+    expect(got!.campaign.indexable).toBe(true);
+    const rows = await db.select().from(adminAuditLog);
+    expect(rows.map((r) => r.action)).toContain("campaign_updated");
+  });
+
+  it("status machine writes audit actions", async () => {
+    const { id } = (await createCampaign({ slug: "audit-status" })) as { ok: true; id: string };
+    await setCampaignStatus(id, "publish", AUDIT);
+    await setCampaignStatus(id, "pause", AUDIT);
+    await setCampaignStatus(id, "unpause", AUDIT);
+    await setCampaignStatus(id, "archive", AUDIT);
+    const actions = (await db.select().from(adminAuditLog)).map((r) => r.action);
+    expect(actions).toContain("campaign_published");
+    expect(actions).toContain("campaign_paused");
+    expect(actions).toContain("campaign_archived");
+  });
+});
