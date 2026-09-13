@@ -56,9 +56,17 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
   const loc = locales.find((l) => l.locale === input.locale) ?? locales.find((l) => l.locale === "id");
   if (!loc) return { ok: false, reason: "campaign-unavailable" };
 
-  let [contact] = await db.select().from(contacts).where(eq(contacts.emailNormalized, email));
+  // Upsert atomik: insert dengan onConflictDoNothing menghindari race
+  // select-then-insert (dua request konkuren bisa sama-sama gagal select dan
+  // lalu salah satu insert menabrak constraint unik → 500). Bila insert tidak
+  // mengembalikan baris (sudah ada), ambil baris yang sudah ada.
+  let [contact] = await db
+    .insert(contacts)
+    .values({ emailNormalized: email, locale: input.locale })
+    .onConflictDoNothing({ target: contacts.emailNormalized })
+    .returning();
   if (!contact) {
-    [contact] = await db.insert(contacts).values({ emailNormalized: email, locale: input.locale }).returning();
+    [contact] = await db.select().from(contacts).where(eq(contacts.emailNormalized, email));
   }
   const claimId = await upsertClaim(contact.id, input.campaignId);
 

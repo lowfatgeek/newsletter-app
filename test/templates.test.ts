@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { maskedEmail, confirmationEmail, rewardAccessEmail, otpEmail, EMAIL_FROM } from "../src/lib/templates";
+import { maskedEmail, confirmationEmail, rewardAccessEmail, otpEmail, EMAIL_FROM, escapeHtml } from "../src/lib/templates";
 
 describe("maskedEmail", () => {
   it("masks local part", () => {
@@ -30,6 +30,18 @@ describe("rewardAccessEmail", () => {
   });
   it("sets from header constant", () => {
     expect(EMAIL_FROM).toBe("KelasWFA <admin@kelaswfa.my.id>");
+  });
+  it("escapes HTML-dangerous characters in reward title (subject/html/text)", () => {
+    const m = rewardAccessEmail("id", "https://x/akses/t", '<script>x</script> Sticker & "Gift"');
+    expect(m.html).not.toContain("<script>");
+    expect(m.subject).not.toContain("<script>");
+    expect(m.text).not.toContain("<script>");
+    expect(m.html).toContain("&lt;script&gt;");
+    expect(m.html).toContain("&amp;");
+    expect(m.html).toContain("Sticker");
+  });
+  it("escapeHtml escapes all dangerous characters", () => {
+    expect(escapeHtml(`<a href="x">&'`)).toBe("&lt;a href=&quot;x&quot;&gt;&amp;&#39;");
   });
 });
 

@@ -1,6 +1,7 @@
 ---
 import PublicLayout from "../../layouts/PublicLayout.astro";
 import { resolveAccess } from "../../lib/access-page";
+import { humanSize } from "../../lib/admin/format";
 import { db } from "../../lib/db";
 import { rewardAssets } from "../../lib/schema";
 import { eq } from "drizzle-orm";
@@ -15,11 +16,6 @@ const { sessionToken, campaignId, content } = resolved;
 const assets = await db.select().from(rewardAssets)
   .where(eq(rewardAssets.campaignId, campaignId))
   .orderBy(rewardAssets.sortOrder);
-
-function humanSize(bytes: number): string {
-  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
 ---
 <PublicLayout title="Kadonya siap dibuka" lang="id" noindex>
   <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">

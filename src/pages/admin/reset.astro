@@ -1,0 +1,167 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+<AdminLayout title="Reset Kata Sandi">
+  <h1>Reset Kata Sandi</h1>
+  <p class="hint">
+    Masukkan email admin. Jika email tercatat sebagai email admin, kode OTP 6 digit
+    akan dikirim ke alamat tersebut untuk menyetel kata sandi baru.
+  </p>
+
+  <!-- Langkah 1: minta OTP -->
+  <form id="request-form" novalidate>
+    <label for="email">Email admin</label>
+    <input id="email" name="email" type="email" autocomplete="username" required />
+
+    <p id="request-error" class="error" role="alert" hidden></p>
+
+    <button type="submit" id="request-submit">Kirim kode OTP</button>
+  </form>
+
+  <!-- Langkah 2: kode + kata sandi baru -->
+  <form id="confirm-form" hidden novalidate>
+    <label for="code">Kode OTP</label>
+    <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required />
+
+    <label for="new-password">Kata sandi baru</label>
+    <input id="new-password" name="new-password" type="password" autocomplete="new-password" required />
+    <p class="hint">Minimal 12 karakter, mengandung huruf dan angka.</p>
+
+    <p id="confirm-error" class="error" role="alert" hidden></p>
+
+    <button type="submit" id="confirm-submit">Setel kata sandi baru</button>
+  </form>
+
+  <p id="reset-success" class="success" hidden>
+    Kata sandi berhasil diubah. <a href="/admin/login">Masuk dengan kata sandi baru</a>.
+  </p>
+
+  <p class="backlink"><a href="/admin/login">← Kembali ke halaman masuk</a></p>
+</AdminLayout>
+
+<style>
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0 0 var(--space-6); }
+  form { display: flex; flex-direction: column; gap: var(--space-2); }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); margin-top: var(--space-3); }
+  input {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+  }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: var(--space-3) 0 0;
+  }
+  .success {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: var(--space-4) 0 0;
+  }
+  button {
+    margin-top: var(--space-5);
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+  button:hover { background: var(--color-primary-hover); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  .backlink { margin-top: var(--space-6); font-size: var(--text-body-sm); }
+  .backlink a { color: var(--color-primary); }
+</style>
+
+<script>
+  const requestForm = document.getElementById("request-form") as HTMLFormElement;
+  const confirmForm = document.getElementById("confirm-form") as HTMLFormElement;
+  const successMsg = document.getElementById("reset-success") as HTMLParagraphElement;
+  const requestError = document.getElementById("request-error") as HTMLParagraphElement;
+  const confirmError = document.getElementById("confirm-error") as HTMLParagraphElement;
+  const requestSubmit = document.getElementById("request-submit") as HTMLButtonElement;
+  const confirmSubmit = document.getElementById("confirm-submit") as HTMLButtonElement;
+  let challengeId = "";
+
+  function showError(el: HTMLParagraphElement, msg: string) {
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  requestForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    requestError.hidden = true;
+    requestSubmit.disabled = true;
+    try {
+      const res = await fetch("/admin/api/password/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: (document.getElementById("email") as HTMLInputElement).value,
+        }),
+      });
+      const data = await res.json();
+      // Respons selalu ok:true — tanpa membocorkan keberadaan email.
+      if (data.ok) {
+        challengeId = typeof data.challengeId === "string" ? data.challengeId : "";
+        requestForm.hidden = true;
+        confirmForm.hidden = false;
+        (document.getElementById("code") as HTMLInputElement).focus();
+        return;
+      }
+      showError(requestError, "Terjadi kesalahan. Coba lagi.");
+    } catch {
+      showError(requestError, "Terjadi kesalahan. Coba lagi.");
+    } finally {
+      requestSubmit.disabled = false;
+    }
+  });
+
+  confirmForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    confirmError.hidden = true;
+    confirmSubmit.disabled = true;
+    try {
+      const res = await fetch("/admin/api/password/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId,
+          code: (document.getElementById("code") as HTMLInputElement).value.trim(),
+          newPassword: (document.getElementById("new-password") as HTMLInputElement).value,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        confirmForm.hidden = true;
+        successMsg.hidden = false;
+        return;
+      }
+      const messages: Record<string, string> = {
+        invalid: "Kode OTP salah.",
+        expired: "Kode OTP kedaluwarsa. Minta kode baru.",
+        "too-many-attempts": "Terlalu banyak percobaan. Minta kode baru.",
+        "weak-password": "Kata sandi minimal 12 karakter dan mengandung huruf serta angka.",
+      };
+      showError(confirmError, messages[data.reason] ?? "Terjadi kesalahan. Coba lagi.");
+    } catch {
+      showError(confirmError, "Terjadi kesalahan. Coba lagi.");
+    } finally {
+      confirmSubmit.disabled = false;
+    }
+  });
+</script>

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { adminOtpChallenges, adminUsers } from "../schema";
@@ -7,8 +8,14 @@ import { createAdminSession, revokeAllSessions } from "./sessions";
 import { mintTrustedDevice, revokeAllDevices } from "./devices";
 import { audit } from "./audit";
 import { consumeRateLimit, hashIp } from "../ratelimit";
+import { env } from "../env";
 
 const LOGIN_ATTEMPTS_PER_HOUR = 10;
+const RESET_ATTEMPTS_PER_HOUR = 5;
+
+// challengeId adalah uuid — tolak bentuk lain sebelum menyentuh DB supaya
+// input sampah tidak memicu error tipe Postgres (500).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type StartLoginResult =
   | { ok: true; challengeId: string }
@@ -70,4 +77,77 @@ export async function changePassword(adminUserId: string, newPassword: string): 
   await revokeAllSessions(adminUserId);
   await revokeAllDevices(adminUserId);
   await audit("password_changed", { adminUserId });
+}
+
+export type RequestPasswordResetResult = { ok: true; challengeId?: string };
+
+export type CompletePasswordResetResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid" | "expired" | "too-many-attempts" | "weak-password" };
+
+/**
+ * Permintaan reset password. Hanya email === ADMIN_EMAIL yang diproses
+ * (user admin dibuat bila belum ada); email lain tetap mendapat { ok: true }
+ * generik tanpa efek apa pun — mencegah user enumeration. Rate limit per IP
+ * dan per email diterapkan sebelum pengecekan mana pun.
+ */
+export async function requestPasswordReset(email: string, ip: string): Promise<RequestPasswordResetResult> {
+  const normalized = email.trim().toLowerCase();
+  if (!(await consumeRateLimit("admin-reset-ip", hashIp(ip), RESET_ATTEMPTS_PER_HOUR))
+    || !(await consumeRateLimit("admin-reset-email", normalized, RESET_ATTEMPTS_PER_HOUR))) {
+    return { ok: true }; // generik — jangan bocorkan pembatasan
+  }
+  const adminEmail = env("ADMIN_EMAIL", "kelaswfa@gmail.com").toLowerCase();
+  if (normalized !== adminEmail) return { ok: true }; // tanpa efek, tanpa email
+
+  let [user] = await db.select().from(adminUsers).where(eq(adminUsers.email, adminEmail));
+  if (!user) {
+    // Admin belum ada (bootstrap belum jalan) — buat dengan password acak
+    // yang tidak diketahui siapa pun; pemilik email men-set password via OTP.
+    const [created] = await db.insert(adminUsers)
+      .values({ email: adminEmail, passwordHash: await hashPassword(randomBytes(24).toString("base64url")) })
+      .onConflictDoNothing({ target: adminUsers.email })
+      .returning();
+    if (created) {
+      user = created;
+    } else {
+      [user] = await db.select().from(adminUsers).where(eq(adminUsers.email, adminEmail));
+    }
+  }
+  if (!user) return { ok: true };
+
+  const challengeId = await issueOtpChallenge(user.id, user.email);
+  await audit("password_reset_requested", { adminUserId: user.id, detail: { email: adminEmail }, ip });
+  // challengeId ikut dikembalikan agar halaman reset bisa lanjut ke langkah
+  // konfirmasi. Email lain tidak pernah menerima challengeId (tanpa efek).
+  return { ok: true, challengeId };
+}
+
+/**
+ * Konfirmasi reset password: verifikasi OTP → changePassword (mencabut semua
+ * sesi dan perangkat tepercaya) → audit. Password lemah ditolak tanpa
+ * mengubah apa pun.
+ */
+export async function completePasswordReset(
+  challengeId: string,
+  code: string,
+  newPassword: string,
+): Promise<CompletePasswordResetResult> {
+  if (!UUID_RE.test(challengeId)) return { ok: false, reason: "invalid" };
+  const otp = await verifyOtpChallenge(challengeId, code);
+  if (!otp.ok) {
+    await audit("otp_failed", {
+      detail: { challengeId, reason: otp.reason, context: "password_reset" },
+    });
+    return { ok: false, reason: otp.reason };
+  }
+  const [ch] = await db.select().from(adminOtpChallenges).where(eq(adminOtpChallenges.id, challengeId));
+  if (!ch) return { ok: false, reason: "invalid" };
+  try {
+    await changePassword(ch.adminUserId, newPassword);
+  } catch {
+    return { ok: false, reason: "weak-password" };
+  }
+  await audit("password_reset_completed", { adminUserId: ch.adminUserId });
+  return { ok: true };
 }

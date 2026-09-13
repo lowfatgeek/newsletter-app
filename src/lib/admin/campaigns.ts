@@ -152,6 +152,21 @@ export async function changeSlug(
   return { ok: true };
 }
 
+/**
+ * Resolver redirect publik: oldSlug → campaignId → slug campaign TERKINI.
+ * Slug di baris redirect tidak dianggap stabil (campaign bisa di-rename lagi),
+ * jadi slug selalu dibaca dari rewardCampaigns saat ini. Null bila oldSlug
+ * tidak dikenal.
+ */
+export async function resolveSlugRedirect(slug: string): Promise<string | null> {
+  const [row] = await db
+    .select({ currentSlug: rewardCampaigns.slug })
+    .from(campaignRedirects)
+    .innerJoin(rewardCampaigns, eq(rewardCampaigns.id, campaignRedirects.campaignId))
+    .where(eq(campaignRedirects.oldSlug, slug));
+  return row?.currentSlug ?? null;
+}
+
 export async function setCampaignStatus(
   id: string,
   action: "publish" | "pause" | "unpause" | "archive",

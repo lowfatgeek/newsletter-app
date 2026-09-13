@@ -6,6 +6,8 @@ import ReflectionTabs from "../../../components/ReflectionTabs.astro";
 import EmailForm from "../../../components/EmailForm.astro";
 import CampaignPaused from "../../../components/CampaignPaused.astro";
 import { getPublicCampaignState, getPublishedCampaign } from "../../../lib/campaign";
+import { resolveSlugRedirect } from "../../../lib/admin/campaigns";
+import { notFoundHtml } from "../../../lib/notfound";
 import { t, type Locale } from "../../../lib/i18n";
 import type { RewardCampaignLocale } from "../../../lib/schema";
 
@@ -13,28 +15,52 @@ export const prerender = false;
 
 const { slug } = Astro.params;
 
-// Lifecycle publik: draft/archived → 404, paused → halaman ramah, published → normal.
+// Lifecycle publik: draft/archived → 404 (atau 301 ke slug terkini bila
+// campaign pernah di-rename), paused → halaman ramah, published → normal.
 const state = await getPublicCampaignState(slug!);
-if (state.state === "hidden") return new Response(null, { status: 404 });
+if (state.state === "hidden") {
+  const target = await resolveSlugRedirect(slug!);
+  if (target) return Astro.redirect(`/en/r/${target}`, 301);
+  return notFoundResponse();
+}
 const paused = state.state === "paused";
 const data = paused ? null : await getPublishedCampaign(slug!);
-if (!paused && !data) return new Response(null, { status: 404 });
+if (!paused && !data) return notFoundResponse();
 
-// Fallback eksplisit: kalau row EN kosong, konten halaman dirender memakai row ID
-// (fallbackToId=true), tetapi lang atribut tetap "en" sesuai URL yang diminta.
 const localeRow = (paused ? null : data!.localeRow("en").row) as RewardCampaignLocale | null;
-if (!paused && !localeRow) return new Response(null, { status: 404 });
+if (!paused && !localeRow) return notFoundResponse();
 
+// Fallback eksplisit: kalau row EN kosong, konten halaman dirender memakai
+// row ID — dan html lang mengikuti LOCALE KONTEN EFEKTIF (lang="id"),
+// bukan URL yang diminta.
 const fallbackToId = paused ? false : data!.localeRow("en").fallbackToId;
 const locale: Locale = paused ? "en" : fallbackToId ? "id" : "en";
 const isIndexable = !paused && data!.campaign.indexable && !fallbackToId;
 const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
+
+// Link alternatif bilingual: keduanya selalu ada (versi ID di /r/<slug>,
+// versi EN di /en/r/<slug>) — pada fallback EN tetap bisa ditemukan crawler.
+
+// 404 on-demand: render kartu ramah langsung dengan status 404
+// (Astro.rewrite("/404") tidak bisa menarget route prerender).
+function notFoundResponse(): Response {
+  return new Response(notFoundHtml(), {
+    status: 404,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
+const alternates = [
+  { hreflang: "id" as const, href: `/r/${slug}` },
+  { hreflang: "en" as const, href: `/en/r/${slug}` },
+];
 ---
 <PublicLayout
   title={paused ? "This campaign is paused" : localeRow!.metaTitle ?? localeRow!.title}
   description={paused ? undefined : localeRow!.metaDescription ?? localeRow!.description}
-  lang="en"
+  lang={locale}
   noindex={!isIndexable}
+  alternates={alternates}
 >
   {paused ? (
     <CampaignPaused locale="en" />

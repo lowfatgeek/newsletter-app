@@ -17,8 +17,19 @@ test("funnel: timer unlocks, submit shows generic check-email page", async ({ pa
   await expect(page.getByRole("heading", { name: "Cek emailmu" })).toBeVisible();
 });
 
-test("en fallback: /en/r/starter-kit renders Indonesian content with lang=en", async ({ page }) => {
-  await page.goto("/en/r/starter-kit");
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+test("en fallback: /en/r/starter-kit renders ID content with lang=id + bilingual alternate links", async ({ page }) => {
+  const response = await page.goto("/en/r/starter-kit");
+  expect(response?.status()).toBe(200);
+  // Konten memang ID → html lang mengikuti locale konten efektif, bukan URL.
+  await expect(page.locator("html")).toHaveAttribute("lang", "id");
   await expect(page.getByRole("heading", { name: "Starter Kit KelasWFA" })).toBeVisible(); // fallback ID
+  // Kedua varian bahasa tetap bisa ditemukan crawler lewat link alternate.
+  await expect(page.locator('link[rel="alternate"][hreflang="id"]')).toHaveAttribute("href", "/r/starter-kit");
+  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute("href", "/en/r/starter-kit");
+});
+
+test("404: unknown slug returns friendly 404 page with status 404", async ({ page }) => {
+  const response = await page.goto("/r/tidak-ada-campaign-ini");
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Halaman tidak ditemukan" })).toBeVisible();
 });

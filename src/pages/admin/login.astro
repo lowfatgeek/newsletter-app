@@ -15,6 +15,8 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     <p id="login-error" class="error" role="alert" hidden></p>
 
     <button type="submit" id="login-submit">Lanjut</button>
+
+    <p class="reset-link"><a href="/admin/reset">Lupa password?</a></p>
   </form>
 </AdminLayout>
 
@@ -54,6 +56,8 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   }
   button:hover { background: var(--color-primary-hover); }
   button:disabled { opacity: 0.6; cursor: wait; }
+  .reset-link { margin-top: var(--space-4); font-size: var(--text-body-sm); text-align: center; }
+  .reset-link a { color: var(--color-primary); }
 </style>
 
 <script>

@@ -90,6 +90,14 @@ describe("processSubscribe", () => {
     expect(await db.select().from(emailOutbox)).toHaveLength(0);
   });
 
+  it("rejects timer token minted for another campaign as bad-request", async () => {
+    // Token untuk campaign A disubmit ke campaign B → bad-request (bukan 500).
+    const other = await insertCampaign("other-camp", "published");
+    const r = await processSubscribe(input({ timerToken: agedToken(other.id) }));
+    expect(r).toEqual({ ok: false, reason: "bad-request" });
+    expect(await db.select().from(contacts)).toHaveLength(0);
+  });
+
   it("rate-limits per ip after 10 submits", async () => {
     const token = agedToken(camp.id);
     for (let i = 0; i < 10; i++) {

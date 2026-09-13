@@ -20,7 +20,7 @@ const tab2 = t(locale, "tabUniversal");
       id="tab-muslim"
       aria-selected="true"
       aria-controls="panel-muslim"
-      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; background: var(--color-primary-subtle); color: var(--color-primary); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
+      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; border-bottom: 2px solid var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
     >{tab1}</button>
     <button
       type="button"
@@ -29,7 +29,7 @@ const tab2 = t(locale, "tabUniversal");
       aria-selected="false"
       aria-controls="panel-universal"
       tabindex="-1"
-      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; background: transparent; color: var(--color-text); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
+      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--color-text); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
     >{tab2}</button>
   </div>
   <div
@@ -60,6 +60,11 @@ const tab2 = t(locale, "tabUniversal");
         b.tabIndex = selected ? 0 : -1;
         b.style.background = selected ? "var(--color-primary-subtle)" : "transparent";
         b.style.color = selected ? "var(--color-primary)" : "var(--color-text)";
+        // Indikator tab aktif: garis bawah 2px Forest Action (transparan agar
+        // tinggi tombol tidak berubah saat berpindah tab).
+        b.style.borderBottom = selected
+          ? "2px solid var(--color-primary)"
+          : "2px solid transparent";
         const panel = root.getElementById(b.getAttribute("aria-controls") || "");
         if (panel) panel.hidden = !selected;
       });

@@ -5,8 +5,14 @@ import "@fontsource/plus-jakarta-sans/latin-400.css";
 import "@fontsource/plus-jakarta-sans/latin-600.css";
 import "@fontsource/plus-jakarta-sans/latin-700.css";
 import "../styles/tokens.css";
-interface Props { title: string; description?: string; lang?: "id" | "en"; noindex?: boolean; }
-const { title, description = "", lang = "id", noindex = false } = Astro.props;
+interface Props {
+  title: string;
+  description?: string;
+  lang?: "id" | "en";
+  noindex?: boolean;
+  alternates?: Array<{ hreflang: "id" | "en"; href: string }>;
+}
+const { title, description = "", lang = "id", noindex = false, alternates = [] } = Astro.props;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -16,6 +22,7 @@ const { title, description = "", lang = "id", noindex = false } = Astro.props;
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
+    {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
   </head>
   <body>
     <slot />

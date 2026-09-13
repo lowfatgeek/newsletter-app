@@ -6,6 +6,13 @@ export function maskedEmail(email: string): string {
   return `${local.slice(0, 2)}**@${domain}`;
 }
 
+/** Escape karakter HTML berbahaya (&<>"') untuk konten email. */
+export function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === '"' ? "&quot;" : "&#39;",
+  );
+}
+
 function layout(lang: "id" | "en", title: string, bodyHtml: string, linkLabel: string, url: string): string {
   const replyNote = lang === "id"
     ? "Balas email ini jika butuh bantuan."
@@ -41,7 +48,10 @@ export function confirmationEmail(locale: "id" | "en", confirmUrl: string) {
   };
 }
 
-export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, rewardTitle: string) {
+export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, rawRewardTitle: string) {
+  // rewardTitle berasal dari input admin (nama reward) — selalu di-escape
+  // supaya tidak bisa menyuntikkan HTML/script ke subject, body, atau text.
+  const rewardTitle = escapeHtml(rawRewardTitle);
   if (locale === "en") {
     return {
       subject: `Your KelasWFA gift: ${rewardTitle}`,

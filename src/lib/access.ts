@@ -6,6 +6,9 @@ import { generateOpaqueToken, hashToken } from "./crypto";
 const SEVEN_DAYS_MS = 7 * 24 * 3600_000;
 const ONE_HOUR_MS = 3_600_000;
 
+// Executor DB: koneksi biasa atau transaksi (tipe transaksi drizzle).
+type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export async function upsertClaim(contactId: string, campaignId: string): Promise<string> {
   const inserted = await db.insert(rewardClaims)
     .values({ contactId, campaignId })
@@ -39,11 +42,12 @@ export function issueSessionToken(claimId: string): Promise<string> {
 export async function consumeToken(
   rawToken: string,
   type: "confirm" | "access" | "session",
+  exec: DbExecutor = db,
 ): Promise<{ ok: true; claimId: string } | { ok: false }> {
   const tokenHash = hashToken(rawToken);
   if (type === "session") {
     // session tokens are reusable until expiry
-    const [row] = await db.select().from(accessTokens)
+    const [row] = await exec.select().from(accessTokens)
       .where(and(
         eq(accessTokens.tokenHash, tokenHash),
         eq(accessTokens.type, type),
@@ -52,7 +56,7 @@ export async function consumeToken(
     return row ? { ok: true, claimId: row.claimId } : { ok: false };
   }
   // confirm/access tokens are one-time: atomic UPDATE ... WHERE unused AND unexpired RETURNING
-  const rows = await db.update(accessTokens)
+  const rows = await exec.update(accessTokens)
     .set({ usedAt: new Date() })
     .where(and(
       eq(accessTokens.tokenHash, tokenHash),
@@ -67,22 +71,27 @@ export async function consumeToken(
 export async function confirmContactByToken(
   rawToken: string,
 ): Promise<{ ok: true; claimId: string } | { ok: false }> {
-  const result = await consumeToken(rawToken, "confirm");
-  if (!result.ok) return { ok: false };
-  const [claim] = await db.select().from(rewardClaims).where(eq(rewardClaims.id, result.claimId));
-  await db.update(contacts)
-    .set({ confirmationStatus: "confirmed", confirmedAt: sql`coalesce(${contacts.confirmedAt}, now())` })
-    .where(eq(contacts.id, claim.contactId));
-  await db.update(rewardClaims).set({ status: "accessed" }).where(eq(rewardClaims.id, result.claimId));
-  const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, claim.contactId));
-  if (!sub || sub.status !== "active") {
-    await db.insert(marketingSubscriptions)
-      .values({ contactId: claim.contactId, status: "active", subscribedAt: new Date(), source: "reward_claim" })
-      .onConflictDoUpdate({
-        target: marketingSubscriptions.contactId,
-        set: { status: "active", subscribedAt: new Date(), unsubscribedAt: null },
-      });
-    await db.insert(consentEvents).values({ contactId: claim.contactId, event: "subscribed" });
-  }
-  return { ok: true, claimId: result.claimId };
+  // Seluruh sekuen — konsumsi token, update contact, update claim, upsert
+  // subscription, event consent — atomik dalam satu transaksi: gagal di tengah
+  // tidak meninggalkan setengah konfirmasi.
+  return db.transaction(async (tx) => {
+    const result = await consumeToken(rawToken, "confirm", tx);
+    if (!result.ok) return { ok: false } as const;
+    const [claim] = await tx.select().from(rewardClaims).where(eq(rewardClaims.id, result.claimId));
+    await tx.update(contacts)
+      .set({ confirmationStatus: "confirmed", confirmedAt: sql`coalesce(${contacts.confirmedAt}, now())` })
+      .where(eq(contacts.id, claim.contactId));
+    await tx.update(rewardClaims).set({ status: "accessed" }).where(eq(rewardClaims.id, result.claimId));
+    const [sub] = await tx.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, claim.contactId));
+    if (!sub || sub.status !== "active") {
+      await tx.insert(marketingSubscriptions)
+        .values({ contactId: claim.contactId, status: "active", subscribedAt: new Date(), source: "reward_claim" })
+        .onConflictDoUpdate({
+          target: marketingSubscriptions.contactId,
+          set: { status: "active", subscribedAt: new Date(), unsubscribedAt: null },
+        });
+      await tx.insert(consentEvents).values({ contactId: claim.contactId, event: "subscribed" });
+    }
+    return { ok: true, claimId: result.claimId } as const;
+  });
 }
