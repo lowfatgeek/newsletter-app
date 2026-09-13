@@ -1,0 +1,317 @@
+---
+import { requireAdminOrRedirect } from "../../lib/admin/guard";
+import { listDomains } from "../../lib/admin/domains";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data tabel per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const domains = await listDomains();
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" });
+function fmtDate(d: Date): string {
+  return dateFmt.format(d);
+}
+---
+<AdminLayout title="Domain Email" admin={admin}>
+  <div class="page-head">
+    <div>
+      <p class="overline">Allowlist</p>
+      <h1>Domain Email</h1>
+      <p class="helper">
+        Hanya email dengan domain pada daftar ini yang bisa menerima reward access.
+        Domain dinormalisasi menjadi huruf kecil.
+      </p>
+    </div>
+  </div>
+
+  <p id="domain-error" class="field-error" hidden role="alert"></p>
+  <p id="domain-status" class="hint" role="status" aria-live="polite"></p>
+
+  <form id="domain-add-form" class="card add-form" onsubmit="return false;">
+    <div class="add-row">
+      <input
+        id="domain-input"
+        type="text"
+        placeholder="contoh.com"
+        spellcheck="false"
+        autocomplete="off"
+        aria-label="Domain baru"
+        aria-describedby="domain-add-hint"
+      />
+      <button type="button" id="domain-add-btn" class="btn-primary">Tambah domain</button>
+    </div>
+    <p id="domain-add-hint" class="hint">Masukkan domain tanpa @, misalnya perusahaan.co.id</p>
+  </form>
+
+  {domains.length === 0 ? (
+    <div class="card empty">
+      <p>Belum ada domain pada allowlist. Tambahkan domain pertama agar email bisa dikirim.</p>
+    </div>
+  ) : (
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Domain</th>
+              <th scope="col">Status</th>
+              <th scope="col">Ditambahkan</th>
+              <th scope="col">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {domains.map((d) => (
+              <tr data-domain={d.domain}>
+                <td><strong>{d.domain}</strong></td>
+                <td>
+                  <span class={`badge ${d.active ? "badge-active" : "badge-inactive"}`}>
+                    {d.active ? "Aktif" : "Nonaktif"}
+                  </span>
+                </td>
+                <td>{fmtDate(d.createdAt)}</td>
+                <td class="actions">
+                  <button type="button" class="btn-secondary btn-small domain-toggle">
+                    {d.active ? "Nonaktifkan" : "Aktifkan"}
+                  </button>
+                  <button type="button" class="btn-ghost-danger domain-remove">Hapus</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+</AdminLayout>
+
+<style>
+  .page-head { margin-bottom: var(--space-6); }
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-primary); color: var(--color-canvas);
+    border: none; border-radius: var(--radius-control);
+    padding: 12px 16px; min-height: 44px;
+    font-family: inherit; font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm); cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+  .btn-primary:disabled { background: var(--color-surface-subtle); color: var(--color-text-muted); cursor: not-allowed; }
+  .btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-surface-raised); border: var(--border-default);
+    color: var(--color-ink); border-radius: var(--radius-control);
+    padding: 8px 12px; min-height: 36px;
+    font-family: inherit; font-size: var(--text-body-sm); cursor: pointer;
+  }
+  .btn-ghost-danger {
+    background: none; border: none; color: var(--color-danger);
+    text-decoration: underline; cursor: pointer; font-family: inherit;
+    font-size: var(--text-body-sm); min-height: 44px;
+  }
+
+  .add-row { display: flex; gap: var(--space-3); }
+  .add-row input {
+    flex: 1;
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    min-height: 44px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+  }
+  .add-row input:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: var(--space-2) 0 0; }
+  .field-error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: 0 0 var(--space-4);
+  }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-body-sm); }
+  th, td { text-align: left; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
+  th {
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-body-sm);
+  }
+  td strong { color: var(--color-ink); }
+  td { color: var(--color-text); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  .actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+    font-weight: var(--font-weight-semibold);
+  }
+  .badge-active { background: var(--color-success-subtle); color: var(--color-success); }
+  .badge-inactive { background: var(--color-surface-subtle); color: var(--color-text-muted); }
+  .empty p { color: var(--color-text-muted); margin: 0; }
+
+  @media (max-width: 640px) {
+    .add-row { flex-direction: column; }
+  }
+</style>
+
+<script>
+  const $ = <T extends HTMLElement>(sel: string): T | null => document.querySelector<T>(sel);
+
+  const domainInput = $<HTMLInputElement>("#domain-input");
+  const addBtn = $<HTMLButtonElement>("#domain-add-btn");
+  const errorEl = $<HTMLElement>("#domain-error");
+  const statusEl = $<HTMLElement>("#domain-status");
+
+  function showError(msg: string) {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+
+  function clearMessages() {
+    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+    if (statusEl) statusEl.textContent = "";
+  }
+
+  const reasonCopy: Record<string, string> = {
+    "invalid-domain": "Domain tidak valid: wajib mengandung titik, tanpa @ dan tanpa spasi.",
+    "already-exists": "Domain sudah ada pada allowlist.",
+    "unauthorized": "Sesi berakhir. Muat ulang halaman untuk masuk kembali.",
+  };
+
+  function handleResult(data: { ok?: boolean; reason?: string; domain?: string }, verb: string): boolean {
+    if (data.ok) {
+      if (statusEl) statusEl.textContent = `Domain ${data.domain ?? ""} ${verb}.`;
+      return true;
+    }
+    showError(reasonCopy[data.reason ?? ""] ?? "Terjadi kesalahan. Coba lagi.");
+    return false;
+  }
+
+  function renderRows(domains: Array<{ domain: string; active: boolean }>) {
+    const tbody = document.querySelector<HTMLTableSectionElement>("tbody");
+    if (!tbody) return;
+    tbody.replaceChildren(
+      ...domains.map((d) => {
+        const tr = document.createElement("tr");
+        tr.dataset.domain = d.domain;
+        tr.innerHTML = `
+          <td><strong></strong></td>
+          <td><span class="badge ${d.active ? "badge-active" : "badge-inactive"}">${d.active ? "Aktif" : "Nonaktif"}</span></td>
+          <td>—</td>
+          <td class="actions">
+            <button type="button" class="btn-secondary btn-small domain-toggle">${d.active ? "Nonaktifkan" : "Aktifkan"}</button>
+            <button type="button" class="btn-ghost-danger domain-remove">Hapus</button>
+          </td>`;
+        (tr.querySelector("strong") as HTMLElement).textContent = d.domain;
+        return tr;
+      }),
+    );
+  }
+
+  async function refreshDomains() {
+    const res = await fetch("/admin/api/domains");
+    const data = await res.json();
+    if (data.ok) renderRows(data.domains);
+  }
+
+  addBtn?.addEventListener("click", async () => {
+    clearMessages();
+    const domain = domainInput?.value.trim() ?? "";
+    if (addBtn) addBtn.disabled = true;
+    try {
+      const res = await fetch("/admin/api/domains", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      if (handleResult(data, "ditambahkan")) {
+        if (domainInput) domainInput.value = "";
+        await refreshDomains();
+      }
+    } catch {
+      showError("Terjadi kesalahan jaringan. Coba lagi.");
+    } finally {
+      if (addBtn) addBtn.disabled = false;
+    }
+  });
+
+  document.querySelector("table")?.addEventListener("click", async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button");
+    if (!btn) return;
+    const row = btn.closest<HTMLElement>("tr");
+    const domain = row?.dataset.domain ?? "";
+    if (!domain) return;
+
+    if (btn.classList.contains("domain-toggle")) {
+      clearMessages();
+      const active = !btn.textContent?.includes("Nonaktifkan"); // tombol berlawanan dengan status kini
+      btn.disabled = true;
+      try {
+        const res = await fetch("/admin/api/domains", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain, active }),
+        });
+        const data = await res.json();
+        if (handleResult(data, active ? "diaktifkan" : "dinonaktifkan")) await refreshDomains();
+      } catch {
+        showError("Terjadi kesalahan jaringan. Coba lagi.");
+      } finally {
+        btn.disabled = false;
+      }
+      return;
+    }
+
+    if (btn.classList.contains("domain-remove")) {
+      clearMessages();
+      if (!window.confirm(`Hapus domain ${domain} dari allowlist?`)) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch("/admin/api/domains", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain }),
+        });
+        const data = await res.json();
+        if (handleResult(data, "dihapus")) await refreshDomains();
+        else btn.disabled = false;
+      } catch {
+        showError("Terjadi kesalahan jaringan. Coba lagi.");
+        btn.disabled = false;
+      }
+    }
+  });
+</script>
