@@ -51,9 +51,8 @@ export async function updateCampaignMeta(
   if ("featuredImageKey" in patch) values.featuredImageKey = patch.featuredImageKey ?? null;
   if ("order" in patch) values.sortOrder = patch.order;
   if ("indexable" in patch) values.indexable = patch.indexable;
-  if (Object.keys(values).length > 0) {
-    await db.update(rewardCampaigns).set(values).where(eq(rewardCampaigns.id, id));
-  }
+  if (Object.keys(values).length === 0) return; // tidak ada perubahan → tidak ada update/audit
+  await db.update(rewardCampaigns).set(values).where(eq(rewardCampaigns.id, id));
   await audit("campaign_updated", {
     ...auditArgs(auditOpts),
     detail: { campaignId: id, patch: values },
@@ -130,12 +129,12 @@ export async function changeSlug(
   const oldSlug = camp.slug;
   await db.transaction(async (tx) => {
     await tx.update(rewardCampaigns).set({ slug: newSlug }).where(eq(rewardCampaigns.id, id));
-    // Redirect dari slug lama. Kalau oldSlug sebelumnya redirect milik campaign
-    // lain (slug diklaim kembali), baris tersebut dipindah ke campaign ini.
-    // Redirect yang menunjuk ke slug yang barusan dipakai lagi dihapus agar
-    // tidak terjadi loop.
+    // Kalau slug baru adalah slug lama campaign ini sendiri (rename balik),
+    // hapus redirect lama yang menunjuk ke diri sendiri agar resolver publik
+    // tidak loop. Redirect milik campaign lain (slug diklaim kembali) dipindah
+    // ke campaign ini lewat onConflictDoUpdate di bawah.
     await tx.delete(campaignRedirects).where(
-      and(eq(campaignRedirects.oldSlug, oldSlug), eq(campaignRedirects.campaignId, id)),
+      and(eq(campaignRedirects.oldSlug, newSlug), eq(campaignRedirects.campaignId, id)),
     );
     await tx
       .insert(campaignRedirects)
@@ -209,7 +208,9 @@ export async function duplicateCampaign(id: string, auditOpts?: AuditOpts): Prom
     let n = 1;
     let newSlug = "";
     for (;;) {
-      const base = src.slug.slice(0, 120 - suffix.length);
+      // Pangkas dasar slug agar muat varchar(120) DAN buang dash di ekor yang
+      // muncul karena pemotongan, supaya hasilnya tidak jadi "slug---copy".
+      const base = src.slug.slice(0, 120 - suffix.length).replace(/-+$/, "");
       newSlug = `${base}${suffix}`;
       const [clash] = await tx
         .select({ id: rewardCampaigns.id })

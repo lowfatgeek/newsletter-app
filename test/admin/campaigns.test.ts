@@ -131,4 +131,33 @@ describe("campaigns lib", () => {
     expect(actions).toContain("campaign_paused");
     expect(actions).toContain("campaign_archived");
   });
+
+  it("rename-back to own former slug removes the self-redirect", async () => {
+    const { id } = (await createCampaign({ slug: "a" })) as { ok: true; id: string };
+    await setCampaignStatus(id, "publish");
+    expect((await changeSlug(id, "b", true)).ok).toBe(true);
+    expect((await changeSlug(id, "a", true)).ok).toBe(true);
+    const redirects = await db.select().from(campaignRedirects);
+    expect(redirects.map((r) => r.oldSlug)).not.toContain("a"); // tidak ada self-redirect → tidak loop
+    expect(redirects.map((r) => r.oldSlug)).toContain("b");
+  });
+
+  it("duplicate copy slug trims trailing dashes left by truncation", async () => {
+    // Slug valid 120 char; slice(0, 115) memotong tepat setelah dash.
+    const longSlug = "a".repeat(114) + "-bcd";
+    const { id } = (await createCampaign({ slug: longSlug })) as { ok: true; id: string };
+    const copyId = await duplicateCampaign(id);
+    const copy = await getCampaignById(copyId);
+    expect(copy!.campaign.slug).toBe("a".repeat(114) + "-copy"); // bukan "aaa...--copy"
+  });
+
+  it("updateCampaignMeta with empty patch writes no audit row", async () => {
+    const { id } = (await createCampaign({ slug: "no-op" })) as { ok: true; id: string };
+    const updatedRows = () =>
+      db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_updated"));
+    await updateCampaignMeta(id, {}, AUDIT);
+    expect(await updatedRows()).toHaveLength(0);
+    await updateCampaignMeta(id, { order: 3 }, AUDIT);
+    expect(await updatedRows()).toHaveLength(1);
+  });
 });
