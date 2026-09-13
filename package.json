@@ -11,16 +11,21 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",
-    "astro": "^7.3.2"
+    "astro": "^7.3.2",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
   },
   "allowScripts": {
     "esbuild": true
   },
   "devDependencies": {
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.13",
     "vitest": "^5.0.0"
   }
