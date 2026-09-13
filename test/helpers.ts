@@ -6,7 +6,9 @@ export function setEnv(values: Record<string, string>) {
 
 export async function resetDb() {
   await sqlClient.unsafe(`
-    TRUNCATE admin_session, admin_otp_challenge, trusted_device, admin_audit_log,
+    TRUNCATE email_provider_events, email_links, email_deliveries,
+    email_campaign_recipients, email_campaigns, email_suppressions,
+    admin_session, admin_otp_challenge, trusted_device, admin_audit_log,
     campaign_redirect, admin_user,
     rate_limit, email_outbox, doa_selection, doa_template, access_token,
     reward_claim, reward_asset, reward_campaign_locale, reward_campaign,

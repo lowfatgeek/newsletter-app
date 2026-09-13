@@ -6,6 +6,7 @@ export const contacts = pgTable("contact", {
   locale: varchar("locale", { length: 2 }).notNull().default("id"),
   confirmationStatus: varchar("confirmation_status", { length: 20 }).notNull().default("pending"), // pending | confirmed
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  unsubscribeTokenHash: varchar("unsubscribe_token_hash", { length: 64 }).unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -195,3 +196,77 @@ export type AdminOtpChallenge = typeof adminOtpChallenges.$inferSelect;
 export type TrustedDevice = typeof trustedDevices.$inferSelect;
 export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
 export type CampaignRedirect = typeof campaignRedirects.$inferSelect;
+
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | scheduled | queued | sending | completed | paused | cancelled | failed
+  subjectId: varchar("subject_id", { length: 300 }).notNull(),
+  subjectEn: varchar("subject_en", { length: 300 }),
+  preheaderId: varchar("preheader_id", { length: 300 }),
+  preheaderEn: varchar("preheader_en", { length: 300 }),
+  bodyHtmlId: text("body_html_id").notNull(),
+  bodyHtmlEn: text("body_html_en"),
+  audienceFilter: jsonb("audience_filter").notNull().default({}),
+  maxPerMinute: integer("max_per_minute").notNull(),
+  maxPerHour: integer("max_per_hour").notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  snapshotAt: timestamp("snapshot_at", { withTimezone: true }),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  campaignId: uuid("campaign_id").notNull().references(() => emailCampaigns.id, { onDelete: "cascade" }),
+  contactId: uuid("contact_id").notNull().references(() => contacts.id),
+  localeSelected: varchar("locale_selected", { length: 2 }).notNull(), // id | en
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | sent | failed | cancelled
+  lastRenderedHtml: text("last_rendered_html"),
+  clickTokenHash: varchar("click_token_hash", { length: 64 }).notNull().unique(),
+  clickedAt: timestamp("clicked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("campaign_recipient_uq").on(t.campaignId, t.contactId)]);
+
+export const emailDeliveries = pgTable("email_deliveries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  contactId: uuid("contact_id").notNull().references(() => contacts.id),
+  campaignRecipientId: uuid("campaign_recipient_id").references(() => emailCampaignRecipients.id),
+  providerMessageId: varchar("provider_message_id", { length: 200 }).unique(),
+  emailType: varchar("email_type", { length: 30 }).notNull(), // broadcast | broadcast_test
+  status: varchar("status", { length: 20 }).notNull(), // accepted | sent | delivered | bounced | failed | suppressed
+  error: text("error"),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+  bouncedAt: timestamp("bounced_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const emailSuppressions = pgTable("email_suppressions", {
+  emailNormalized: varchar("email_normalized", { length: 254 }).primaryKey(),
+  reason: varchar("reason", { length: 30 }).notNull(), // unsubscribe | hard_bounce | complaint
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const emailProviderEvents = pgTable("email_provider_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  providerMessageId: varchar("provider_message_id", { length: 200 }).notNull(),
+  eventType: varchar("event_type", { length: 40 }).notNull(),
+  payload: jsonb("payload").notNull().default({}),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("provider_event_uq").on(t.providerMessageId, t.eventType)]);
+
+export const emailLinks = pgTable("email_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  campaignId: uuid("campaign_id").notNull().references(() => emailCampaigns.id, { onDelete: "cascade" }),
+  urlHash: varchar("url_hash", { length: 64 }).notNull().unique(),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type EmailCampaignRecipient = typeof emailCampaignRecipients.$inferSelect;
+export type EmailDelivery = typeof emailDeliveries.$inferSelect;
+export type EmailSuppression = typeof emailSuppressions.$inferSelect;
+export type EmailProviderEvent = typeof emailProviderEvents.$inferSelect;
+export type EmailLink = typeof emailLinks.$inferSelect;
