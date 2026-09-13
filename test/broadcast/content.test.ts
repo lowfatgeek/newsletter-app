@@ -37,22 +37,51 @@ describe("sanitizeBody", () => {
     expect(out).not.toContain("<table");
     expect(out).toContain("<p>A</p>");
   });
+  it("strips protocol-relative hrefs", () => {
+    const out = sanitizeBody('<p><a href="//evil.com">x</a></p>');
+    expect(out).not.toContain("href");
+    expect(out).toContain("x");
+  });
 });
 
 describe("validateContent", () => {
   const id = { subjectId: "s", preheaderId: "p", bodyHtmlId: "<p>b</p>" };
-  it("ok with id only, missing en flagged", () => {
-    expect(validateContent(id)).toEqual({ ok: true, missing: ["en"] });
+  it("ok with id only, missing en flagged, sanitized id body returned", () => {
+    expect(validateContent(id)).toEqual({
+      ok: true,
+      missing: ["en"],
+      sanitized: { bodyHtmlId: "<p>b</p>", bodyHtmlEn: null },
+    });
   });
   it("ok complete when en filled", () => {
     expect(validateContent({ ...id, subjectEn: "s", preheaderEn: "p", bodyHtmlEn: "<p>b</p>" }))
-      .toEqual({ ok: true, missing: [] });
+      .toEqual({
+        ok: true,
+        missing: [],
+        sanitized: { bodyHtmlId: "<p>b</p>", bodyHtmlEn: "<p>b</p>" },
+      });
   });
   it("rejects incomplete id", () => {
     expect(validateContent({ subjectId: "s", preheaderId: "", bodyHtmlId: "" }).ok).toBe(false);
   });
   it("flags en missing when only some en fields are filled", () => {
-    expect(validateContent({ ...id, subjectEn: "s" })).toEqual({ ok: true, missing: ["en"] });
+    expect(validateContent({ ...id, subjectEn: "s" })).toEqual({
+      ok: true,
+      missing: ["en"],
+      sanitized: { bodyHtmlId: "<p>b</p>", bodyHtmlEn: null },
+    });
+  });
+  it("returns sanitized bodies with scripts, handlers, and styles stripped", () => {
+    const r = validateContent({
+      subjectId: "s",
+      preheaderId: "p",
+      bodyHtmlId: '<p onclick="x()">b</p><script>alert(1)</script>',
+      bodyHtmlEn: "<p>ok</p><style>a{color:red}</style>",
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.sanitized.bodyHtmlId).toBe("<p>b</p>");
+    expect(r.sanitized.bodyHtmlEn).toBe("<p>ok</p>");
   });
 });
 
@@ -63,7 +92,7 @@ describe("renderForRecipient", () => {
   };
   it("uses en locale and rewrites links + unsubscribe footer", () => {
     const r = renderForRecipient({
-      campaign, locale: "en", email: "a@b.c", siteUrl: "https://kado.test",
+      campaign, locale: "en", email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
       linkRewrite: (u) => `https://kado.test/api/click/L1/tok`,
     });
@@ -76,14 +105,14 @@ describe("renderForRecipient", () => {
   it("falls back to id when en empty for that field", () => {
     const r = renderForRecipient({
       campaign: { ...campaign, subjectEn: "" }, locale: "en", email: "a@b.c",
-      siteUrl: "https://kado.test", unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
     expect(r.subject).toBe("Halo a@b.c");
   });
   it("renders id locale with id footer and replaced variables", () => {
     const r = renderForRecipient({
-      campaign, locale: "id", email: "a@b.c", siteUrl: "https://kado.test",
+      campaign, locale: "id", email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
       linkRewrite: (u) => `https://kado.test/api/click/L1/${u.includes("a.b") ? "tok" : "x"}`,
     });
@@ -95,7 +124,7 @@ describe("renderForRecipient", () => {
   it("text version strips tags, decodes entities, and includes unsubscribe url", () => {
     const r = renderForRecipient({
       campaign: { subjectId: "s", preheaderId: "p", bodyHtmlId: "<p>Tips &amp; trik &lt;b&gt;</p>" },
-      locale: "id", email: "a@b.c", siteUrl: "https://kado.test",
+      locale: "id", email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
       linkRewrite: (u) => u,
     });
@@ -106,10 +135,63 @@ describe("renderForRecipient", () => {
   it("replaces {{email}} safely even with $-patterns in the email", () => {
     const r = renderForRecipient({
       campaign: { subjectId: "Hai $& $1 {{email}}", preheaderId: "p", bodyHtmlId: "<p>x</p>" },
-      locale: "id", email: "a$&b@c.d", siteUrl: "https://kado.test",
+      locale: "id", email: "a$&b@c.d",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
     expect(r.subject).toBe("Hai $& $1 a$&b@c.d");
+  });
+  it("replaces {{locale}} via the safe split/join helper (no regex expansion)", () => {
+    const r = renderForRecipient({
+      campaign: { subjectId: "Bahasa {{locale}} {{email}}", preheaderId: "p", bodyHtmlId: "<p>{{locale}}</p>" },
+      locale: "id", email: "a$&b@c.d",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      linkRewrite: (u) => u,
+    });
+    expect(r.subject).toBe("Bahasa id a$&b@c.d"); // literal, NOT regex replacement expansion
+  });
+  it("escapes the preheader after variable replacement (id and en)", () => {
+    const escapeCampaign = {
+      subjectId: "s",
+      preheaderId: 'Hai <script>x()</script> "q"',
+      bodyHtmlId: "<p>b</p>",
+      preheaderEn: 'En <b>bold</b> & "q"',
+    };
+    for (const locale of ["id", "en"] as const) {
+      const r = renderForRecipient({
+        campaign: escapeCampaign, locale, email: "a@b.c",
+        unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+        linkRewrite: (u) => u,
+      });
+      expect(r.html).not.toContain("<script>");
+      expect(r.html).not.toContain("<b>bold");
+      expect(r.html).toContain("&quot;q&quot;");
+    }
+    const id = renderForRecipient({
+      campaign: escapeCampaign, locale: "id", email: "a@b.c",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      linkRewrite: (u) => u,
+    });
+    expect(id.html).toContain("&lt;script&gt;x()&lt;/script&gt;");
+    const en = renderForRecipient({
+      campaign: escapeCampaign, locale: "en", email: "a@b.c",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      linkRewrite: (u) => u,
+    });
+    expect(en.html).toContain("En &lt;b&gt;bold&lt;/b&gt; &amp; &quot;q&quot;");
+  });
+  it("passes the entity-decoded url to linkRewrite (attribute &amp; in stored html)", () => {
+    const seen: string[] = [];
+    const r = renderForRecipient({
+      campaign: { subjectId: "s", preheaderId: "p", bodyHtmlId: '<p><a href="https://a.b/?x=1&amp;y=2">q</a></p>' },
+      locale: "id", email: "a@b.c",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      linkRewrite: (u) => {
+        seen.push(u);
+        return "https://kado.test/api/click/L9/t";
+      },
+    });
+    expect(seen).toEqual(["https://a.b/?x=1&y=2"]);
+    expect(r.html).toContain("https://kado.test/api/click/L9/t");
   });
 });

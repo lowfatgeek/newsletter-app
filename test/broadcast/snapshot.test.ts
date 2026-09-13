@@ -65,6 +65,35 @@ describe("prepareLinks", () => {
     const rows = await db.select().from(emailLinks).where(eq(emailLinks.campaignId, campaign.id));
     expect(rows).toHaveLength(3);
   });
+
+  it("decodes entity-encoded hrefs before hashing/storing and renders the click route", async () => {
+    await seedAudience();
+    // body seperti keluaran sanitize-html: & di atribut di-escape jadi &amp;
+    const [c] = await db.insert(emailCampaigns).values({
+      subjectId: "s",
+      preheaderId: "p",
+      bodyHtmlId: '<p><a href="https://a.b/?x=1&amp;y=2">q</a></p>',
+      bodyHtmlEn: null,
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+    }).returning();
+    const map = await prepareLinks(c.id, c.bodyHtmlId, c.bodyHtmlEn);
+    expect([...map.keys()]).toEqual(["https://a.b/?x=1&y=2"]);
+    const linkRows = await db.select().from(emailLinks).where(eq(emailLinks.campaignId, c.id));
+    expect(linkRows).toHaveLength(1);
+    expect(linkRows[0].url).toBe("https://a.b/?x=1&y=2"); // tanpa &amp;
+    expect(linkRows[0].urlHash).toBe(hashToken("https://a.b/?x=1&y=2"));
+
+    const { recipients } = await snapshotRecipients(c.id);
+    const linkId = map.get("https://a.b/?x=1&y=2");
+    const rows = await db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, c.id));
+    const tokenByContact = new Map(recipients.map((r) => [r.contactId, r.clickToken]));
+    for (const row of rows) {
+      expect(row.lastRenderedHtml).toContain(`${SITE}/api/click/${linkId}/${tokenByContact.get(row.contactId)}`);
+      expect(row.lastRenderedHtml).not.toContain("&amp;");
+    }
+  });
 });
 
 describe("snapshotRecipients", () => {

@@ -4,7 +4,7 @@ import { env } from "../env";
 import { generateOpaqueToken, hashToken } from "../crypto";
 import { emailCampaigns, emailCampaignRecipients, emailLinks, contacts } from "../schema";
 import { resolveAudience, type AudienceFilter, type AudienceLocale } from "./audience";
-import { renderForRecipient, type CampaignContent } from "./content";
+import { renderForRecipient, decodeEntities, type CampaignContent } from "./content";
 
 const HTTPS_HREF_RE = /href="(https:\/\/[^"]+)"/g;
 
@@ -21,7 +21,11 @@ export async function prepareLinks(
   const urls = new Set<string>();
   for (const body of [bodyHtmlId, bodyHtmlEn]) {
     if (!body) continue;
-    for (const m of body.matchAll(HTTPS_HREF_RE)) urls.add(m[1]);
+    for (const m of body.matchAll(HTTPS_HREF_RE)) {
+      // href di atribut html di-escape oleh sanitize-html (&amp;) —
+      // simpan URL asli (decoded) supaya redirect click tidak rusak.
+      urls.add(decodeEntities(m[1]));
+    }
   }
 
   const map = new Map<string, string>();
@@ -94,6 +98,19 @@ export async function snapshotRecipients(
   const recipients: SnapshotRecipient[] = [];
   for (const { contactId, locale } of audience) {
     const rawToken = generateOpaqueToken();
+
+    // Render SEKALIGUS sebelum insert supaya INSERT bersifat atomik
+    // (row tidak mungkin tersimpan tanpa lastRenderedHtml — crash di
+    // tengah snapshot tidak meninggalkan baris yang tak pernah
+    // di-render ulang oleh snapshot berikutnya).
+    const rendered = renderForRecipient({
+      campaign: content,
+      locale,
+      email: emailById.get(contactId) ?? "",
+      unsubscribeUrl: `${siteUrl}/api/unsubscribe/${rawToken}`,
+      linkRewrite: (url) => `${siteUrl}/api/click/${links.get(url)}/${rawToken}`,
+    });
+
     const inserted = await db
       .insert(emailCampaignRecipients)
       .values({
@@ -101,25 +118,13 @@ export async function snapshotRecipients(
         contactId,
         localeSelected: locale,
         clickTokenHash: hashToken(rawToken),
+        lastRenderedHtml: rendered.html,
       })
       .onConflictDoNothing({
         target: [emailCampaignRecipients.campaignId, emailCampaignRecipients.contactId],
       })
       .returning({ id: emailCampaignRecipients.id });
     if (inserted.length === 0) continue; // sudah di-snapshot: token & html lama dipertahankan
-
-    const rendered = renderForRecipient({
-      campaign: content,
-      locale,
-      email: emailById.get(contactId) ?? "",
-      siteUrl,
-      unsubscribeUrl: `${siteUrl}/api/unsubscribe/${rawToken}`,
-      linkRewrite: (url) => `${siteUrl}/api/click/${links.get(url)}/${rawToken}`,
-    });
-    await db
-      .update(emailCampaignRecipients)
-      .set({ lastRenderedHtml: rendered.html })
-      .where(eq(emailCampaignRecipients.id, inserted[0].id));
 
     recipients.push({ recipientId: inserted[0].id, contactId, clickToken: rawToken, locale });
   }
