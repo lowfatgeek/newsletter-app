@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { and, eq } from "drizzle-orm";
+import { and, eq, like, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { AwsV4Signer } from "aws4fetch";
 import { db, sqlClient } from "../src/lib/db";
@@ -7,11 +7,13 @@ import {
   doaSelections,
   doaTemplates,
   emailDomains,
+  rateLimits,
   rewardAssets,
   rewardCampaignLocales,
   rewardCampaigns,
 } from "../src/lib/schema";
 import { DEFAULT_DOMAINS } from "../src/lib/allowlist";
+import { ensureAdmin } from "../src/lib/admin/bootstrap";
 
 const DOA = [
   { variant: "muslim", locale: "id", name: "Doa Muslim v1", content: "Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin." },
@@ -160,6 +162,23 @@ async function main() {
 
   // 5. Asset contoh ke R2 bila kredensial tersedia; kalau tidak, lewati.
   await uploadSampleAsset(camp.id);
+
+  // 6. Admin e2e/dev — idempoten. Bila ADMIN_PASSWORD terpasang (fixture test,
+  //    bukan secret produksi), hash admin di-reset agar login e2e repeatable
+  //    walau admin sudah ada dari run sebelumnya. Try/catch supaya seed tetap
+  //    sukses tanpa password (ensureAdmin membuat password acak sendiri).
+  try {
+    const { created, email } = await ensureAdmin({ resetPassword: process.env.ADMIN_PASSWORD });
+    console.log(created ? `seeded admin ${email}` : `admin ${email} ok`);
+  } catch (err) {
+    console.error("admin bootstrap gagal (seed lanjut):", err);
+  }
+
+  // 7. Bersihkan rate limit login admin supaya e2e repeatable di satu jam yang
+  //    sama (hanya scope admin-login — jalur publik tidak disentuh).
+  await db
+    .delete(rateLimits)
+    .where(or(like(rateLimits.key, "admin-login-ip:%"), like(rateLimits.key, "admin-login-email:%")));
 
   console.log("seed done");
   await sqlClient.end();

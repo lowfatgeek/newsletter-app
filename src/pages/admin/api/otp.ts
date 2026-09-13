@@ -6,6 +6,11 @@ import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs } from "../
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
 
+// challengeId adalah uuid — tolak bentuk lain sebelum menyentuh DB supaya
+// input sampah tidak memicu error tipe Postgres (500). Sama seperti jalur
+// reset di src/lib/admin/login.ts.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * POST /admin/api/otp — body JSON { challengeId, code, trustDevice }.
  * Sukses → Set-Cookie sesi (+ perangkat tepercaya bila diminta) + { ok: true }.
@@ -25,6 +30,10 @@ export const POST: APIRoute = async ({ request }) => {
   const trustDevice = body.trustDevice === true;
   if (!challengeId || !code) {
     return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 400, headers: noStore });
+  }
+  if (!UUID_RE.test(challengeId)) {
+    // 401 generik — sama seperti challengeId yang tidak dikenal DB.
+    return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 401, headers: noStore });
   }
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
