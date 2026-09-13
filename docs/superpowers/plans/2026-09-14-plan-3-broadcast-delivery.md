@@ -42,7 +42,7 @@ src/lib/broadcast/
                                          # emailSuppressions, emailProviderEvents, emailLinks + kolom contacts
   audience.ts        # validateFilter, countAudience, resolveAudience (ANY/ALL, locale, exclusion)
   content.ts         # sanitizeBody, validateContent (missing translation), renderForRecipient (vars, links, footer)
-  snapshot.ts        # ensureContactTokens, snapshotRecipients, extractAndStoreLinks
+  snapshot.ts        # snapshotRecipients, prepareLinks
   machine.ts         # status transitions, schedule/send-now validation (limits vs provider capacity)
   worker.ts          # processBroadcast: claim single sending, limits minute/hour/day, send, record
   webhooks.ts        # verifyEmailitSignature, processEmailitEvent (idempoten, suppression)
