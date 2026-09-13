@@ -4,45 +4,55 @@ import RewardHero from "../../../components/RewardHero.astro";
 import RewardItemList from "../../../components/RewardItemList.astro";
 import ReflectionTabs from "../../../components/ReflectionTabs.astro";
 import EmailForm from "../../../components/EmailForm.astro";
-import { getPublishedCampaign } from "../../../lib/campaign";
+import CampaignPaused from "../../../components/CampaignPaused.astro";
+import { getPublicCampaignState, getPublishedCampaign } from "../../../lib/campaign";
 import { t, type Locale } from "../../../lib/i18n";
 import type { RewardCampaignLocale } from "../../../lib/schema";
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const data = await getPublishedCampaign(slug!);
-if (!data) return Astro.redirect("/404");
+
+// Lifecycle publik: draft/archived → 404, paused → halaman ramah, published → normal.
+const state = await getPublicCampaignState(slug!);
+if (state.state === "hidden") return new Response(null, { status: 404 });
+const paused = state.state === "paused";
+const data = paused ? null : await getPublishedCampaign(slug!);
+if (!paused && !data) return new Response(null, { status: 404 });
 
 // Fallback eksplisit: kalau row EN kosong, seluruh halaman dirender memakai row ID
 // (fallbackToId=true) — konten, copy, dan lang mengikuti locale efektif.
-const { row, fallbackToId } = data.localeRow("en");
-if (!row) return Astro.redirect("/404");
+const localeRow = (paused ? null : data!.localeRow("en").row) as RewardCampaignLocale | null;
+if (!paused && !localeRow) return new Response(null, { status: 404 });
 
-const locale: Locale = fallbackToId ? "id" : "en";
-const isIndexable = data.campaign.indexable && !fallbackToId;
-const localeRow = row as RewardCampaignLocale;
-const items = Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
+const fallbackToId = paused ? false : data!.localeRow("en").fallbackToId;
+const locale: Locale = paused ? "en" : fallbackToId ? "id" : "en";
+const isIndexable = !paused && data!.campaign.indexable && !fallbackToId;
+const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
 ---
 <PublicLayout
-  title={localeRow.metaTitle ?? localeRow.title}
-  description={localeRow.metaDescription ?? localeRow.description}
+  title={paused ? "This campaign is paused" : localeRow!.metaTitle ?? localeRow!.title}
+  description={paused ? undefined : localeRow!.metaDescription ?? localeRow!.description}
   lang={locale}
   noindex={!isIndexable}
 >
-  <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
-    <RewardHero
-      overline={t(locale, "overline")}
-      title={localeRow.title}
-      description={localeRow.description}
-      imageKey={data.campaign.featuredImageKey}
-    />
-    <RewardItemList items={items} locale={locale} />
-    <ReflectionTabs
-      muslimText={await data.doaText("muslim", locale)}
-      universalText={await data.doaText("universal", locale)}
-      locale={locale}
-    />
-    <EmailForm slug={slug!} locale={locale} campaignId={data.campaign.id} />
-  </main>
+  {paused ? (
+    <CampaignPaused locale="en" />
+  ) : (
+    <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
+      <RewardHero
+        overline={t(locale, "overline")}
+        title={localeRow!.title}
+        description={localeRow!.description}
+        imageKey={data!.campaign.featuredImageKey}
+      />
+      <RewardItemList items={items} locale={locale} />
+      <ReflectionTabs
+        muslimText={await data!.doaText("muslim", locale)}
+        universalText={await data!.doaText("universal", locale)}
+        locale={locale}
+      />
+      <EmailForm slug={slug!} locale={locale} campaignId={data!.campaign.id} />
+    </main>
+  )}
 </PublicLayout>

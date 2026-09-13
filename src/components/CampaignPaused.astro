@@ -1,0 +1,32 @@
+---
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+const copy = {
+  id: {
+    title: "Campaign sedang dijeda",
+    body: "Campaign ini sedang dijeda sementara, jadi pengajuan klaim baru belum bisa diproses. Tenang saja — akses klaim lama kamu lewat tautan di email tetap berlaku. Silakan kembali lagi nanti untuk mengklaim ulang.",
+    cta: "Kembali ke beranda",
+  },
+  en: {
+    title: "This campaign is paused",
+    body: "New claims are temporarily unavailable while this campaign is paused. No worries — your existing claim access link from email still works. Please check back later to claim again.",
+    cta: "Back to home",
+  },
+}[locale];
+---
+<main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+  <div style="background: var(--color-warning-subtle); color: var(--color-ink); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-8) var(--space-6); box-shadow: var(--shadow-card);">
+    <p style="display: inline-block; background: var(--color-warning); color: #ffffff; border-radius: var(--radius-pill); padding: var(--space-1) var(--space-3); font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-4);">{locale === "id" ? "Dijeda" : "Paused"}</p>
+    <h1 style="color: var(--color-warning); margin: 0 0 var(--space-4);">{copy.title}</h1>
+    <p style="color: var(--color-ink); line-height: 1.6; margin: 0 0 var(--space-6);">{copy.body}</p>
+    <a
+      href="/"
+      style="display: inline-flex; align-items: center; min-height: 44px; padding: 10px 20px; border: var(--border-default); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-primary); font-weight: var(--font-weight-semibold); text-decoration: none;"
+    >{copy.cta}</a>
+  </div>
+</main>

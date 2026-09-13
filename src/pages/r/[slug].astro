@@ -4,42 +4,51 @@ import RewardHero from "../../components/RewardHero.astro";
 import RewardItemList from "../../components/RewardItemList.astro";
 import ReflectionTabs from "../../components/ReflectionTabs.astro";
 import EmailForm from "../../components/EmailForm.astro";
-import { getPublishedCampaign } from "../../lib/campaign";
+import CampaignPaused from "../../components/CampaignPaused.astro";
+import { getPublicCampaignState, getPublishedCampaign } from "../../lib/campaign";
 import { t } from "../../lib/i18n";
 import type { RewardCampaignLocale } from "../../lib/schema";
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const data = await getPublishedCampaign(slug!);
-if (!data) return Astro.redirect("/404");
 
-const { row, fallbackToId } = data.localeRow("id");
-if (!row) return Astro.redirect("/404");
+// Lifecycle publik: draft/archived → 404, paused → halaman ramah, published → normal.
+const state = await getPublicCampaignState(slug!);
+if (state.state === "hidden") return new Response(null, { status: 404 });
+const paused = state.state === "paused";
+const data = paused ? null : await getPublishedCampaign(slug!);
+if (!paused && !data) return new Response(null, { status: 404 });
 
-const isIndexable = data.campaign.indexable;
-const localeRow = row as RewardCampaignLocale;
-const items = Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
+const localeRow = (paused ? null : data!.localeRow("id").row) as RewardCampaignLocale | null;
+if (!paused && !localeRow) return new Response(null, { status: 404 });
+
+const isIndexable = !paused && data!.campaign.indexable;
+const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
 ---
 <PublicLayout
-  title={localeRow.metaTitle ?? localeRow.title}
-  description={localeRow.metaDescription ?? localeRow.description}
+  title={paused ? "Campaign sedang dijeda" : localeRow!.metaTitle ?? localeRow!.title}
+  description={paused ? undefined : localeRow!.metaDescription ?? localeRow!.description}
   lang="id"
   noindex={!isIndexable}
 >
-  <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
-    <RewardHero
-      overline={t("id", "overline")}
-      title={localeRow.title}
-      description={localeRow.description}
-      imageKey={data.campaign.featuredImageKey}
-    />
-    <RewardItemList items={items} locale="id" />
-    <ReflectionTabs
-      muslimText={await data.doaText("muslim", "id")}
-      universalText={await data.doaText("universal", "id")}
-      locale="id"
-    />
-    <EmailForm slug={slug!} locale="id" campaignId={data.campaign.id} />
-  </main>
+  {paused ? (
+    <CampaignPaused locale="id" />
+  ) : (
+    <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
+      <RewardHero
+        overline={t("id", "overline")}
+        title={localeRow!.title}
+        description={localeRow!.description}
+        imageKey={data!.campaign.featuredImageKey}
+      />
+      <RewardItemList items={items} locale="id" />
+      <ReflectionTabs
+        muslimText={await data!.doaText("muslim", "id")}
+        universalText={await data!.doaText("universal", "id")}
+        locale="id"
+      />
+      <EmailForm slug={slug!} locale="id" campaignId={data!.campaign.id} />
+    </main>
+  )}
 </PublicLayout>

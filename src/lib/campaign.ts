@@ -5,6 +5,19 @@ import type { Locale } from "./i18n";
 
 export type PublishedCampaign = NonNullable<Awaited<ReturnType<typeof getPublishedCampaign>>>;
 
+// Status publik campaign untuk halaman funnel:
+// - hidden    → draft/archived/slug tidak ada → 404
+// - paused    → halaman ramah "campaign dijeda" (klaim baru ditolak, klaim lama tetap valid)
+// - published → render normal
+export async function getPublicCampaignState(
+  slug: string,
+): Promise<{ state: "hidden" | "paused" | "published" }> {
+  const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.slug, slug));
+  if (!camp || camp.status === "draft" || camp.status === "archived") return { state: "hidden" };
+  if (camp.status === "paused") return { state: "paused" };
+  return { state: "published" };
+}
+
 export async function getPublishedCampaign(slug: string) {
   const [campaign] = await db
     .select()

@@ -16,7 +16,7 @@ import { resetDb, setEnv } from "./helpers";
 // token instead of sleeping (issueTimerToken accepts an explicit issuedAt).
 const agedToken = (campaignId: string) => issueTimerToken(campaignId, Date.now() - 31_000);
 
-async function insertCampaign(slug: string, status: "published" | "draft") {
+async function insertCampaign(slug: string, status: "published" | "draft" | "paused") {
   const [camp] = await db.insert(rewardCampaigns).values({ slug, status }).returning();
   await db.insert(rewardCampaignLocales).values({
     campaignId: camp.id,
@@ -80,6 +80,14 @@ describe("processSubscribe", () => {
     const r = await processSubscribe(input({ timerToken: agedToken(draft.id), campaignId: draft.id }));
     expect(r).toEqual({ ok: false, reason: "campaign-unavailable" });
     expect(await db.select().from(contacts)).toHaveLength(0);
+  });
+
+  it("rejects paused campaign as campaign-unavailable", async () => {
+    const paused = await insertCampaign("paused-camp", "paused");
+    const r = await processSubscribe(input({ timerToken: agedToken(paused.id), campaignId: paused.id }));
+    expect(r).toEqual({ ok: false, reason: "campaign-unavailable" });
+    expect(await db.select().from(contacts)).toHaveLength(0);
+    expect(await db.select().from(emailOutbox)).toHaveLength(0);
   });
 
   it("rate-limits per ip after 10 submits", async () => {
