@@ -1,4 +1,5 @@
 import { env } from "./env";
+import { EMAIL_REPLY_TO } from "./templates";
 
 export type ProviderMessage = {
   from: string;
@@ -17,7 +18,14 @@ export async function sendViaEmailit(msg: ProviderMessage, fetchImpl: typeof fet
       "Content-Type": "application/json",
       ...(msg.idempotencyKey ? { "Idempotency-Key": msg.idempotencyKey } : {}),
     },
-    body: JSON.stringify({ from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html, text: msg.text }),
+    body: JSON.stringify({
+      from: msg.from,
+      to: [msg.to],
+      reply_to: EMAIL_REPLY_TO,
+      subject: msg.subject,
+      html: msg.html,
+      text: msg.text,
+    }),
   });
   if (!res.ok) {
     const body = await res.text();
