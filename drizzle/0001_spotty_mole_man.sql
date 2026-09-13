@@ -1,0 +1,1 @@
+ALTER TABLE "reward_campaign" ADD COLUMN "indexable" boolean DEFAULT false NOT NULL;

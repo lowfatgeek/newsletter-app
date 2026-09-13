@@ -1,0 +1,148 @@
+---
+import { issueTimerToken } from "../lib/timer";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+  slug: string;
+  locale: Locale;
+  campaignId: string;
+}
+const { slug, locale, campaignId } = Astro.props;
+
+// Server-rendered token: fallback tanpa JS (PRD 7.1) — tetap valid meski script gagal jalan.
+// JS hanya menyegarkan token via POST /api/timer-token di awal timer.
+const serverToken = issueTimerToken(campaignId);
+const timerMs = import.meta.env.TEST_TIMER_MS ?? "30000";
+
+const copy = {
+  initial: t(locale, "timerInitial"),
+  done: t(locale, "timerDone"),
+  ten: t(locale, "timerTenLeft"),
+  tooFast: t(locale, "timerTooFast"),
+  label: t(locale, "emailLabel"),
+  consent: t(locale, "consentCopy"),
+  privacy: t(locale, "privacyLink"),
+  cta: t(locale, "submitCta"),
+};
+const action = "/api/subscribe";
+const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
+---
+<form
+  id="claim-form"
+  method="post"
+  action={action}
+  data-copy={JSON.stringify(copy)}
+  data-timer-ms={timerMs}
+  style="margin-top: var(--space-8); background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card); position: relative;"
+>
+  <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position: absolute; left: -9999px;" />
+  <input type="hidden" name="slug" value={slug} />
+  <input type="hidden" name="locale" value={locale} />
+  <input type="hidden" name="timer_token" id="timer-token" value={serverToken} />
+
+  <p
+    id="timer-status"
+    role="status"
+    aria-live="polite"
+    style="color: var(--color-ink); background: var(--color-gold-subtle); border-radius: var(--radius-control); padding: var(--space-3) var(--space-4); font-variant-numeric: tabular-nums; margin: 0;"
+  >{copy.initial}</p>
+
+  <div style="height: 4px; background: var(--color-border); border-radius: var(--radius-pill); margin: var(--space-4) 0;" aria-hidden="true">
+    <div id="timer-bar" style="height: 100%; width: 0%; background: var(--color-primary); border-radius: var(--radius-pill); transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);"></div>
+  </div>
+
+  <label for="email" style="display: block; font-weight: var(--font-weight-semibold); color: var(--color-ink); margin-bottom: var(--space-2);">{copy.label}</label>
+  <input
+    id="email"
+    name="email"
+    type="email"
+    required
+    autocomplete="email"
+    inputmode="email"
+    style="width: 100%; min-height: 48px; border: var(--border-default); border-radius: var(--radius-control); padding: 0 var(--space-4); font-size: 16px; background: var(--color-surface-raised); color: var(--color-ink); font-family: inherit;"
+  />
+
+  <p id="form-error" hidden style="background: var(--color-danger-subtle); color: var(--color-danger); border-radius: var(--radius-control); padding: var(--space-3); margin-top: var(--space-3); font-size: var(--text-body-sm);"></p>
+
+  <p style="font-size: var(--text-body-sm); color: var(--color-text-muted); margin-top: var(--space-3); line-height: 1.58;">
+    {copy.consent}<a href={privacyHref} style="text-decoration: underline; color: var(--color-info);">{copy.privacy}</a>.
+  </p>
+
+  <!--
+    Tombol dirender AKTIF di server: tanpa JS, user tetap bisa submit setelah
+    menunggu (server menolak lewat verifyTimerToken jika terlalu cepat).
+    Script menonaktifkan tombol saat timer berjalan, lalu mengaktifkannya lagi.
+  -->
+  <button
+    id="submit-btn"
+    type="submit"
+    style="width: 100%; min-height: 48px; margin-top: var(--space-4); border: none; border-radius: var(--radius-control); background: var(--color-primary); color: #ffffff; font-weight: var(--font-weight-semibold); font-size: 16px; cursor: pointer; font-family: inherit;"
+  >{copy.cta}</button>
+</form>
+
+<script>
+  const form = document.getElementById("claim-form") as HTMLFormElement;
+  const status = document.getElementById("timer-status") as HTMLParagraphElement;
+  const bar = document.getElementById("timer-bar") as HTMLDivElement;
+  const tokenInput = document.getElementById("timer-token") as HTMLInputElement;
+  const btn = document.getElementById("submit-btn") as HTMLButtonElement;
+  const copy = JSON.parse(form.dataset.copy as string) as {
+    initial: string;
+    done: string;
+    ten: string;
+    cta: string;
+  };
+  const TOTAL = Number(form.dataset.timerMs) || 30_000;
+  const TEN_LEFT = Math.max(0, TOTAL - 10_000);
+
+  // Satu CTA per state: nonaktif (abu) selama timer, aktif (primary) setelah selesai.
+  btn.disabled = true;
+  btn.setAttribute("aria-disabled", "true");
+  btn.style.background = "var(--color-surface-subtle)";
+  btn.style.color = "var(--color-text-muted)";
+  btn.style.cursor = "not-allowed";
+
+  let announcedTen = false;
+  const start = Date.now();
+
+  // Segarkan token (best-effort). Kalau gagal, token server-rendered tetap dipakai.
+  fetch("/api/timer-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slug: (form.querySelector('input[name="slug"]') as HTMLInputElement).value }),
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data: { token?: string } | null) => {
+      if (data && typeof data.token === "string" && data.token) tokenInput.value = data.token;
+    })
+    .catch(() => {});
+
+  const unlock = () => {
+    btn.disabled = false;
+    btn.removeAttribute("aria-disabled");
+    btn.style.background = "var(--color-primary)";
+    btn.style.color = "#ffffff";
+    btn.style.cursor = "pointer";
+  };
+
+  const tick = () => {
+    const elapsed = Date.now() - start;
+    bar.style.width = `${Math.min(100, (elapsed / TOTAL) * 100)}%`;
+    // aria-live polite: umumkan hanya 10 detik terakhir dan selesai (bukan tiap detik).
+    if (!announcedTen && elapsed >= TEN_LEFT && elapsed < TOTAL) {
+      announcedTen = true;
+      status.textContent = copy.ten;
+    }
+    if (elapsed >= TOTAL) {
+      status.textContent = copy.done;
+      unlock();
+      return;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+
+  form.addEventListener("submit", (e) => {
+    if (!tokenInput.value) e.preventDefault();
+  });
+</script>

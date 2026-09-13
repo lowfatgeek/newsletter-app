@@ -1,0 +1,24 @@
+---
+interface Props {
+  overline: string;
+  title: string;
+  description: string;
+  imageKey?: string | null;
+}
+const { overline, title, description, imageKey = null } = Astro.props;
+---
+<header style="padding-top: var(--space-12);">
+  <p style="color: var(--color-text-muted); font-size: var(--text-body-sm); letter-spacing: 0.075em; font-weight: var(--font-weight-semibold); text-transform: uppercase; margin: 0 0 var(--space-4);">{overline}</p>
+  <h1 style="color: var(--color-ink); font-size: var(--text-h1); line-height: 1.12; letter-spacing: -0.032em; margin: 0 0 var(--space-4); font-weight: var(--font-weight-bold);">{title}</h1>
+  <p style="font-size: var(--text-body-lg); line-height: 1.58; margin: 0;">{description}</p>
+  {imageKey && (
+    <img
+      src={`/api/image/${imageKey}`}
+      alt={title}
+      width="1200"
+      height="630"
+      style="border-radius: var(--radius-image); width: 100%; height: auto; margin-top: var(--space-5); display: block;"
+      loading="eager"
+    />
+  )}
+</header>

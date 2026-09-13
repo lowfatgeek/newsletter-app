@@ -8,6 +8,13 @@
       "when": 1789315132929,
       "tag": "0000_rare_risque",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789317728486,
+      "tag": "0001_spotty_mole_man",
+      "breakpoints": true
     }
   ]
 }

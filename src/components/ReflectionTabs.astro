@@ -1,0 +1,79 @@
+---
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+  muslimText: string;
+  universalText: string;
+  locale: Locale;
+}
+const { muslimText, universalText, locale } = Astro.props;
+const heading = t(locale, "reflectionHeading");
+const tab1 = t(locale, "tabMuslim");
+const tab2 = t(locale, "tabUniversal");
+---
+<section style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); margin-top: var(--space-8); box-shadow: var(--shadow-card);">
+  <h2 style="color: var(--color-ink); font-size: var(--text-h3); margin: 0; line-height: 1.3; font-weight: var(--font-weight-semibold);">{heading}</h2>
+  <div role="tablist" aria-label={heading} style="display: flex; gap: var(--space-2); margin: var(--space-5) 0;">
+    <button
+      type="button"
+      role="tab"
+      id="tab-muslim"
+      aria-selected="true"
+      aria-controls="panel-muslim"
+      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; background: var(--color-primary-subtle); color: var(--color-primary); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
+    >{tab1}</button>
+    <button
+      type="button"
+      role="tab"
+      id="tab-universal"
+      aria-selected="false"
+      aria-controls="panel-universal"
+      tabindex="-1"
+      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; background: transparent; color: var(--color-text); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
+    >{tab2}</button>
+  </div>
+  <div
+    role="tabpanel"
+    id="panel-muslim"
+    aria-labelledby="tab-muslim"
+    tabindex="0"
+    style="font-size: var(--text-body-lg); line-height: 1.7; color: var(--color-text);"
+  >{muslimText}</div>
+  <div
+    role="tabpanel"
+    id="panel-universal"
+    aria-labelledby="tab-universal"
+    tabindex="0"
+    hidden
+    style="font-size: var(--text-body-lg); line-height: 1.7; color: var(--color-text);"
+  >{universalText}</div>
+</section>
+
+<script>
+  function setupTabs(root: Document) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"][id^="tab-muslim"], [role="tab"][id^="tab-universal"]')];
+    if (tabs.length === 0) return;
+    const select = (tab: HTMLButtonElement, focus = true) => {
+      tabs.forEach((b) => {
+        const selected = b === tab;
+        b.setAttribute("aria-selected", String(selected));
+        b.tabIndex = selected ? 0 : -1;
+        b.style.background = selected ? "var(--color-primary-subtle)" : "transparent";
+        b.style.color = selected ? "var(--color-primary)" : "var(--color-text)";
+        const panel = root.getElementById(b.getAttribute("aria-controls") || "");
+        if (panel) panel.hidden = !selected;
+      });
+      if (focus) tab.focus();
+    };
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => select(tab, false));
+      tab.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        const next = tabs[(tabs.indexOf(tab) + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+        select(next);
+      });
+    });
+  }
+  setupTabs(document);
+</script>

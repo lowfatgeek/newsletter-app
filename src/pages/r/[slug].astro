@@ -1,0 +1,45 @@
+---
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import RewardHero from "../../components/RewardHero.astro";
+import RewardItemList from "../../components/RewardItemList.astro";
+import ReflectionTabs from "../../components/ReflectionTabs.astro";
+import EmailForm from "../../components/EmailForm.astro";
+import { getPublishedCampaign } from "../../lib/campaign";
+import { t } from "../../lib/i18n";
+import type { RewardCampaignLocale } from "../../lib/schema";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const data = await getPublishedCampaign(slug!);
+if (!data) return Astro.redirect("/404");
+
+const { row, fallbackToId } = data.localeRow("id");
+if (!row) return Astro.redirect("/404");
+
+const isIndexable = data.campaign.indexable;
+const localeRow = row as RewardCampaignLocale;
+const items = Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
+---
+<PublicLayout
+  title={localeRow.metaTitle ?? localeRow.title}
+  description={localeRow.metaDescription ?? localeRow.description}
+  lang="id"
+  noindex={!isIndexable}
+>
+  <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
+    <RewardHero
+      overline={t("id", "overline")}
+      title={localeRow.title}
+      description={localeRow.description}
+      imageKey={data.campaign.featuredImageKey}
+    />
+    <RewardItemList items={items} locale="id" />
+    <ReflectionTabs
+      muslimText={await data.doaText("muslim", "id")}
+      universalText={await data.doaText("universal", "id")}
+      locale="id"
+    />
+    <EmailForm slug={slug!} locale="id" campaignId={data.campaign.id} />
+  </main>
+</PublicLayout>

@@ -28,6 +28,7 @@ export const rewardCampaigns = pgTable("reward_campaign", {
   id: uuid("id").defaultRandom().primaryKey(),
   slug: varchar("slug", { length: 120 }).notNull().unique(),
   status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | published | paused | archived
+  indexable: boolean("indexable").notNull().default(false),
   featuredImageKey: text("featured_image_key"),
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
