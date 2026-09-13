@@ -1,0 +1,25 @@
+---
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { confirmContactByToken, issueSessionToken } from "../../lib/access";
+
+export const prerender = false;
+
+const { token } = Astro.params;
+const result = await confirmContactByToken(token!);
+if (result.ok) {
+  const session = await issueSessionToken(result.claimId);
+  return Astro.redirect(`/akses/${session}`, 303);
+}
+---
+<PublicLayout title="Tautan kedaluwarsa" lang="id" noindex>
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    <div style="background: var(--color-warning-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+      <h1 style="color: var(--color-ink);">Tautan sudah kedaluwarsa</h1>
+      <p style="color: var(--color-text-muted); line-height: 1.6;">
+        Tautan konfirmasi berlaku 7 hari. Silakan klaim ulang hadiah dari halaman awal
+        dengan email yang sama — kami akan mengirim tautan baru.
+      </p>
+      <a href="/" style="color: var(--color-primary); font-weight: 600;">Kembali ke halaman hadiah</a>
+    </div>
+  </main>
+</PublicLayout>

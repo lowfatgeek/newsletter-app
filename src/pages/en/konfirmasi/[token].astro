@@ -1,0 +1,25 @@
+---
+import PublicLayout from "../../../layouts/PublicLayout.astro";
+import { confirmContactByToken, issueSessionToken } from "../../../lib/access";
+
+export const prerender = false;
+
+const { token } = Astro.params;
+const result = await confirmContactByToken(token!);
+if (result.ok) {
+  const session = await issueSessionToken(result.claimId);
+  return Astro.redirect(`/en/akses/${session}`, 303);
+}
+---
+<PublicLayout title="Link expired" lang="en" noindex>
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    <div style="background: var(--color-warning-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+      <h1 style="color: var(--color-ink);">This link has expired</h1>
+      <p style="color: var(--color-text-muted); line-height: 1.6;">
+        Confirmation links are valid for 7 days. Please claim your gift again from the
+        landing page using the same email — we will send you a fresh link.
+      </p>
+      <a href="/" style="color: var(--color-primary); font-weight: 600;">Back to the gift page</a>
+    </div>
+  </main>
+</PublicLayout>

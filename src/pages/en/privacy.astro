@@ -1,0 +1,36 @@
+---
+import PublicLayout from "../../layouts/PublicLayout.astro";
+
+export const prerender = false;
+---
+<PublicLayout title="Privacy Policy" lang="en">
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    <h1 style="color: var(--color-ink);">Privacy Policy</h1>
+    <div style="color: var(--color-text-muted); line-height: 1.7; display: grid; gap: var(--space-4);">
+      <section>
+        <h2 style="color: var(--color-ink); font-size: var(--text-body-lg);">Data we collect</h2>
+        <ul style="padding-left: 20px; margin: var(--space-2) 0 0;">
+          <li><strong style="color: var(--color-ink);">Email</strong> — to send your gift link and the newsletter you subscribed to.</li>
+          <li><strong style="color: var(--color-ink);">Language preference</strong> (Indonesian/English) — so content is shown in the language you choose.</li>
+          <li><strong style="color: var(--color-ink);">Gift claim history</strong> — when you claimed and opened a reward, so your download links keep working.</li>
+          <li><strong style="color: var(--color-ink);">IP address (hashed only)</strong> — stored as a hash for abuse prevention, not for tracking your identity.</li>
+        </ul>
+      </section>
+      <section>
+        <h2 style="color: var(--color-ink); font-size: var(--text-body-lg);">How to unsubscribe</h2>
+        <p style="margin: var(--space-2) 0 0;">
+          Every newsletter email contains an unsubscribe link at the bottom. Click that link,
+          or send a request to the contact address below — we will stop your subscription and
+          delete data we no longer need.
+        </p>
+      </section>
+      <section>
+        <h2 style="color: var(--color-ink); font-size: var(--text-body-lg);">Contact</h2>
+        <p style="margin: var(--space-2) 0 0;">
+          Questions about your data? Reach us at
+          <a href="mailto:admin@kelaswfa.my.id" style="color: var(--color-primary); font-weight: 600;">admin@kelaswfa.my.id</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+</PublicLayout>

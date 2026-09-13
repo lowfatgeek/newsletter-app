@@ -1,0 +1,36 @@
+---
+import PublicLayout from "../layouts/PublicLayout.astro";
+
+export const prerender = false;
+---
+<PublicLayout title="Kebijakan Privasi" lang="id">
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    <h1 style="color: var(--color-ink);">Kebijakan Privasi</h1>
+    <div style="color: var(--color-text-muted); line-height: 1.7; display: grid; gap: var(--space-4);">
+      <section>
+        <h2 style="color: var(--color-ink); font-size: var(--text-body-lg);">Data yang kami kumpulkan</h2>
+        <ul style="padding-left: 20px; margin: var(--space-2) 0 0;">
+          <li><strong style="color: var(--color-ink);">Email</strong> — untuk mengirim tautan hadiah dan newsletter yang kamu daftari.</li>
+          <li><strong style="color: var(--color-ink);">Preferensi bahasa</strong> (Indonesia/Inggris) — agar konten ditampilkan dalam bahasa yang kamu pilih.</li>
+          <li><strong style="color: var(--color-ink);">Riwayat klaim hadiah</strong> — kapan kamu mengklaim dan membuka hadiah, supaya tautan unduhan tetap bisa diakses.</li>
+          <li><strong style="color: var(--color-ink);">Alamat IP (hanya hash)</strong> — disimpan sebagai hash untuk pencegahan penyalahgunaan (spam/abuse), bukan untuk melacak identitasmu.</li>
+        </ul>
+      </section>
+      <section>
+        <h2 style="color: var(--color-ink); font-size: var(--text-body-lg);">Cara berhenti berlangganan</h2>
+        <p style="margin: var(--space-2) 0 0;">
+          Setiap email newsletter memiliki tautan unsubscribe di bagian bawah. Klik tautan tersebut,
+          atau kirim permintaan lewat email ke alamat kontak di bawah — kami akan menghentikan
+          langgananmu dan menghapus data yang tidak lagi kami perlukan.
+        </p>
+      </section>
+      <section>
+        <h2 style="color: var(--color-ink); font-size: var(--text-body-lg);">Kontak</h2>
+        <p style="margin: var(--space-2) 0 0;">
+          Ada pertanyaan soal datamu? Hubungi kami di
+          <a href="mailto:admin@kelaswfa.my.id" style="color: var(--color-primary); font-weight: 600;">admin@kelaswfa.my.id</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+</PublicLayout>
