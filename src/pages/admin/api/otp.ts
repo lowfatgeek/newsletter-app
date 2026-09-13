@@ -1,0 +1,41 @@
+import type { APIRoute } from "astro";
+import { completeLogin } from "../../../lib/admin/login";
+import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs } from "../../../lib/admin/sessions";
+
+const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
+
+/**
+ * POST /admin/api/otp — body JSON { challengeId, code, trustDevice }.
+ * Sukses → Set-Cookie sesi (+ perangkat tepercaya bila diminta) + { ok: true }.
+ * Gagal → { ok: false, reason } tanpa cookie.
+ */
+export const POST: APIRoute = async ({ request }) => {
+  let body: { challengeId?: unknown; code?: unknown; trustDevice?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 400, headers: noStore });
+  }
+  const challengeId = typeof body.challengeId === "string" ? body.challengeId : "";
+  const code = typeof body.code === "string" ? body.code : "";
+  const trustDevice = body.trustDevice === true;
+  if (!challengeId || !code) {
+    return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 400, headers: noStore });
+  }
+
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const userAgent = request.headers.get("user-agent") ?? undefined;
+  const result = await completeLogin({ challengeId, code, trustDevice, ip, userAgent });
+
+  if (!result.ok) {
+    return new Response(JSON.stringify({ ok: false, reason: result.reason }), { status: 401, headers: noStore });
+  }
+
+  const secure = new URL(request.url).protocol === "https:";
+  const headers = new Headers(noStore);
+  headers.append("Set-Cookie", `${ADMIN_SESSION_COOKIE}=${result.session.raw}${adminCookieAttrs(secure)}`);
+  if (result.device) {
+    headers.append("Set-Cookie", `${ADMIN_DEVICE_COOKIE}=${result.device.raw}${adminCookieAttrs(secure)}; Max-Age=${30 * 86_400}`);
+  }
+  return new Response(JSON.stringify({ ok: true }), { headers });
+};

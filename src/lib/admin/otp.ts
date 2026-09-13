@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import { db } from "../db";
 import { adminOtpChallenges } from "../schema";
 import { hashToken } from "../crypto";
@@ -35,16 +35,30 @@ export async function verifyOtpChallenge(challengeId: string, code: string): Pro
   const [ch] = await db.select().from(adminOtpChallenges).where(eq(adminOtpChallenges.id, challengeId));
   if (!ch) return { ok: false, reason: "invalid" };
   if (ch.consumedAt) return { ok: false, reason: "invalid" };
-  if (ch.attempts >= MAX_ATTEMPTS) return { ok: false, reason: "too-many-attempts" };
   if (ch.expiresAt <= new Date()) return { ok: false, reason: "expired" };
-  if (ch.codeHash !== hashToken(code)) {
-    await db.update(adminOtpChallenges)
-      .set({ attempts: ch.attempts + 1 })
-      .where(eq(adminOtpChallenges.id, ch.id));
-    return { ok: false, reason: "invalid" };
+  if (ch.codeHash === hashToken(code)) {
+    // Consume atomically — the attempt cap is enforced in the WHERE clause so a
+    // correct code can never slip through a stale read once the cap is reached.
+    const consumed = await db.update(adminOtpChallenges)
+      .set({ consumedAt: new Date() })
+      .where(and(
+        eq(adminOtpChallenges.id, ch.id),
+        isNull(adminOtpChallenges.consumedAt),
+        lt(adminOtpChallenges.attempts, MAX_ATTEMPTS),
+      ))
+      .returning({ id: adminOtpChallenges.id });
+    return consumed.length > 0 ? { ok: true } : { ok: false, reason: "too-many-attempts" };
   }
-  await db.update(adminOtpChallenges)
-    .set({ consumedAt: new Date() })
-    .where(eq(adminOtpChallenges.id, ch.id));
-  return { ok: true };
+  // Wrong code: increment attempts atomically (no stale-read write). The cap
+  // gate lives in the WHERE clause, so once attempts reaches MAX_ATTEMPTS no
+  // further increment happens and verification is blocked.
+  const [row] = await db.update(adminOtpChallenges)
+    .set({ attempts: sql`${adminOtpChallenges.attempts} + 1` })
+    .where(and(
+      eq(adminOtpChallenges.id, ch.id),
+      isNull(adminOtpChallenges.consumedAt),
+      lt(adminOtpChallenges.attempts, MAX_ATTEMPTS),
+    ))
+    .returning({ attempts: adminOtpChallenges.attempts });
+  return row ? { ok: false, reason: "invalid" } : { ok: false, reason: "too-many-attempts" };
 }
