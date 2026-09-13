@@ -31,6 +31,7 @@ export const rewardCampaigns = pgTable("reward_campaign", {
   indexable: boolean("indexable").notNull().default(false),
   featuredImageKey: text("featured_image_key"),
   publishedAt: timestamp("published_at", { withTimezone: true }),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -122,6 +123,59 @@ export const rateLimits = pgTable("rate_limit", {
   count: integer("count").notNull().default(0),
 });
 
+export const adminUsers = pgTable("admin_user", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: varchar("email", { length: 254 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+});
+
+export const adminSessions = pgTable("admin_session", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  adminUserId: uuid("admin_user_id").notNull().references(() => adminUsers.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const adminOtpChallenges = pgTable("admin_otp_challenge", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  adminUserId: uuid("admin_user_id").notNull().references(() => adminUsers.id, { onDelete: "cascade" }),
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const trustedDevices = pgTable("trusted_device", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  adminUserId: uuid("admin_user_id").notNull().references(() => adminUsers.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  userAgent: varchar("user_agent", { length: 300 }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  adminUserId: uuid("admin_user_id").references(() => adminUsers.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 50 }).notNull(),
+  detail: jsonb("detail").notNull().default({}),
+  ipHash: varchar("ip_hash", { length: 64 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const campaignRedirects = pgTable("campaign_redirect", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  campaignId: uuid("campaign_id").notNull().references(() => rewardCampaigns.id, { onDelete: "cascade" }),
+  oldSlug: varchar("old_slug", { length: 120 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Contact = typeof contacts.$inferSelect;
 export type MarketingSubscription = typeof marketingSubscriptions.$inferSelect;
 export type ConsentEvent = typeof consentEvents.$inferSelect;
@@ -135,3 +189,9 @@ export type DoaSelection = typeof doaSelections.$inferSelect;
 export type EmailDomain = typeof emailDomains.$inferSelect;
 export type EmailOutbox = typeof emailOutbox.$inferSelect;
 export type RateLimit = typeof rateLimits.$inferSelect;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type AdminSession = typeof adminSessions.$inferSelect;
+export type AdminOtpChallenge = typeof adminOtpChallenges.$inferSelect;
+export type TrustedDevice = typeof trustedDevices.$inferSelect;
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type CampaignRedirect = typeof campaignRedirects.$inferSelect;
