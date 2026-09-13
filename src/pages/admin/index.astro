@@ -1,0 +1,9 @@
+---
+import { getAdmin } from "../../lib/admin/guard";
+
+// /admin → /admin/campaigns bila sudah login, /admin/login bila belum.
+// Task 10 mengganti dashboard; target redirect sudah final sekarang.
+const secure = Astro.url.protocol === "https:";
+const admin = await getAdmin(Astro.cookies, secure);
+return Astro.redirect(admin ? "/admin/campaigns" : "/admin/login", 303);
+---

@@ -1,0 +1,119 @@
+---
+// Plus Jakarta Sans — bobot yang benar-benar dipakai tokens.css (400/600/700).
+import "@fontsource/plus-jakarta-sans/latin-400.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
+import "../styles/tokens.css";
+
+interface Props { title: string; admin?: { email: string } | null; }
+const { title, admin = null } = Astro.props;
+---
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{title} — KelasWFA Admin</title>
+  </head>
+  <body>
+    {admin && (
+      <aside class="admin-sidebar">
+        <strong class="admin-brand">KelasWFA Admin</strong>
+        <nav class="admin-nav" aria-label="Navigasi admin">
+          <a href="/admin/campaigns">Reward Campaign</a>
+          <a href="/admin/contacts">Kontak</a>
+        </nav>
+        <form method="post" action="/admin/api/logout" class="admin-logout">
+          <button type="submit">Keluar</button>
+        </form>
+      </aside>
+    )}
+    <main class={admin ? "admin-main" : "admin-auth"}>
+      {admin && (
+        <header class="admin-mobile-bar">
+          <span>{admin.email}</span>
+          <form method="post" action="/admin/api/logout">
+            <button type="submit">Keluar</button>
+          </form>
+        </header>
+      )}
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--color-canvas);
+    color: var(--color-text);
+  }
+  .admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 240px;
+    background: var(--color-ink);
+    color: var(--color-canvas);
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .admin-brand { margin-bottom: var(--space-5); color: var(--color-canvas); }
+  .admin-nav { display: flex; flex-direction: column; gap: var(--space-2); }
+  .admin-nav a {
+    color: var(--color-canvas);
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: var(--radius-control);
+    min-height: 24px;
+  }
+  .admin-nav a:hover { background: rgba(255, 252, 245, 0.1); }
+  .admin-logout { margin-top: auto; }
+  .admin-sidebar button,
+  .admin-mobile-bar button {
+    background: none;
+    border: 1px solid rgba(255, 252, 245, 0.3);
+    color: var(--color-canvas);
+    border-radius: var(--radius-control);
+    padding: 10px 12px;
+    min-height: 44px;
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .admin-main {
+    margin-left: 240px;
+    padding: var(--space-8);
+    max-width: calc(var(--admin-content) - 240px);
+  }
+  .admin-mobile-bar { display: none; }
+  .admin-auth {
+    padding: var(--space-8);
+    max-width: var(--auth-content);
+    margin: 0 auto;
+  }
+  /* Mobile: sidebar disembunyikan; logout tersedia di header konten. */
+  @media (max-width: 1023px) {
+    .admin-sidebar { display: none; }
+    .admin-main { margin-left: 0; max-width: none; padding: var(--space-4); }
+    .admin-mobile-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+    }
+    .admin-mobile-bar form { width: auto; }
+    .admin-mobile-bar button {
+      width: auto;
+      color: var(--color-danger);
+      border-color: var(--color-danger);
+      background: var(--color-canvas);
+    }
+  }
+</style>

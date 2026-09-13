@@ -1,0 +1,129 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+<AdminLayout title="Kode OTP">
+  <h1>Verifikasi OTP</h1>
+  <p class="hint">Masukkan kode 6 digit yang dikirim ke email admin Anda.</p>
+
+  <form id="otp-form" novalidate>
+    <label for="code">Kode OTP</label>
+    <input
+      id="code"
+      name="code"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      pattern="[0-9]{6}"
+      maxlength="6"
+      required
+    />
+
+    <label class="trust">
+      <input id="trust-device" type="checkbox" />
+      Percayai perangkat ini selama 30 hari
+    </label>
+
+    <p id="otp-error" class="error" role="alert" hidden></p>
+
+    <button type="submit" id="otp-submit">Masuk</button>
+  </form>
+</AdminLayout>
+
+<style>
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0 0 var(--space-6); }
+  form { display: flex; flex-direction: column; gap: var(--space-2); }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); }
+  input[type="text"] {
+    font-family: inherit;
+    font-size: var(--text-h3);
+    letter-spacing: 0.4em;
+    text-align: center;
+    padding: 12px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+  }
+  .trust {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: var(--font-weight-regular);
+    font-size: var(--text-body-sm);
+    margin-top: var(--space-3);
+    cursor: pointer;
+  }
+  .trust input { width: 18px; height: 18px; }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: var(--space-3) 0 0;
+  }
+  button {
+    margin-top: var(--space-5);
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+  button:hover { background: var(--color-primary-hover); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+</style>
+
+<script>
+  // Baca challengeId dari query param, lalu bersihkan dari URL agar tidak
+  // tertinggal di address bar (challengeId tidak pernah dicatat di mana pun).
+  const params = new URLSearchParams(window.location.search);
+  const challengeId = params.get("c") ?? "";
+  if (params.has("c")) {
+    params.delete("c");
+    const qs = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  }
+
+  const form = document.getElementById("otp-form") as HTMLFormElement;
+  const error = document.getElementById("otp-error") as HTMLParagraphElement;
+  const submit = document.getElementById("otp-submit") as HTMLButtonElement;
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.hidden = true;
+    submit.disabled = true;
+    try {
+      const res = await fetch("/admin/api/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId,
+          code: (document.getElementById("code") as HTMLInputElement).value.trim(),
+          trustDevice: (document.getElementById("trust-device") as HTMLInputElement).checked,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        window.location.assign("/admin");
+        return;
+      }
+      error.textContent = data.reason === "too-many-attempts"
+        ? "Terlalu banyak percobaan. Silakan masuk kembali untuk meminta kode baru."
+        : data.reason === "expired"
+          ? "Kode sudah kedaluwarsa. Silakan masuk kembali untuk meminta kode baru."
+          : "Kode OTP salah.";
+      error.hidden = false;
+    } catch {
+      error.textContent = "Terjadi kesalahan. Coba lagi.";
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>

@@ -1,0 +1,93 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+<AdminLayout title="Masuk">
+  <h1>Masuk Admin</h1>
+  <p class="hint">Masukkan email dan kata sandi admin. Kode OTP 6 digit akan dikirim ke email.</p>
+
+  <form id="login-form" novalidate>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="username" required />
+
+    <label for="password">Kata sandi</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+    <p id="login-error" class="error" role="alert" hidden></p>
+
+    <button type="submit" id="login-submit">Lanjut</button>
+  </form>
+</AdminLayout>
+
+<style>
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0 0 var(--space-6); }
+  form { display: flex; flex-direction: column; gap: var(--space-2); }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); margin-top: var(--space-3); }
+  input {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+  }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: var(--space-3) 0 0;
+  }
+  button {
+    margin-top: var(--space-5);
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+  button:hover { background: var(--color-primary-hover); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+</style>
+
+<script>
+  const form = document.getElementById("login-form") as HTMLFormElement;
+  const error = document.getElementById("login-error") as HTMLParagraphElement;
+  const submit = document.getElementById("login-submit") as HTMLButtonElement;
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.hidden = true;
+    submit.disabled = true;
+    try {
+      const res = await fetch("/admin/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: (document.getElementById("email") as HTMLInputElement).value,
+          password: (document.getElementById("password") as HTMLInputElement).value,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.challengeId) {
+        window.location.assign(`/admin/otp?c=${encodeURIComponent(data.challengeId)}`);
+        return;
+      }
+      error.textContent = data.reason === "rate-limited"
+        ? "Terlalu banyak percobaan masuk. Coba lagi dalam satu jam."
+        : "Email atau kata sandi salah.";
+      error.hidden = false;
+    } catch {
+      error.textContent = "Terjadi kesalahan. Coba lagi.";
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
