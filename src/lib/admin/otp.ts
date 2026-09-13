@@ -1,0 +1,50 @@
+import { randomInt } from "node:crypto";
+import { and, eq, lt } from "drizzle-orm";
+import { db } from "../db";
+import { adminOtpChallenges } from "../schema";
+import { hashToken } from "../crypto";
+import { enqueueTransactionalEmail } from "../outbox";
+import { otpEmail } from "../templates";
+
+const TEN_MIN_MS = 10 * 60_000;
+const MAX_ATTEMPTS = 5;
+
+export type OtpVerifyResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid" | "expired" | "too-many-attempts" };
+
+export async function issueOtpChallenge(adminUserId: string, email: string): Promise<string> {
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const [row] = await db.insert(adminOtpChallenges)
+    .values({ adminUserId, codeHash: hashToken(code), expiresAt: new Date(Date.now() + TEN_MIN_MS) })
+    .returning();
+  const m = otpEmail(code);
+  await enqueueTransactionalEmail({
+    emailType: "otp_admin",
+    to: email,
+    ...m,
+    idempotencyKey: `otp-${row.id}`,
+  });
+  // cheap housekeeping: drop this admin's long-expired challenges
+  await db.delete(adminOtpChallenges)
+    .where(and(eq(adminOtpChallenges.adminUserId, adminUserId), lt(adminOtpChallenges.expiresAt, new Date())));
+  return row.id;
+}
+
+export async function verifyOtpChallenge(challengeId: string, code: string): Promise<OtpVerifyResult> {
+  const [ch] = await db.select().from(adminOtpChallenges).where(eq(adminOtpChallenges.id, challengeId));
+  if (!ch) return { ok: false, reason: "invalid" };
+  if (ch.consumedAt) return { ok: false, reason: "invalid" };
+  if (ch.attempts >= MAX_ATTEMPTS) return { ok: false, reason: "too-many-attempts" };
+  if (ch.expiresAt <= new Date()) return { ok: false, reason: "expired" };
+  if (ch.codeHash !== hashToken(code)) {
+    await db.update(adminOtpChallenges)
+      .set({ attempts: ch.attempts + 1 })
+      .where(eq(adminOtpChallenges.id, ch.id));
+    return { ok: false, reason: "invalid" };
+  }
+  await db.update(adminOtpChallenges)
+    .set({ consumedAt: new Date() })
+    .where(eq(adminOtpChallenges.id, ch.id));
+  return { ok: true };
+}

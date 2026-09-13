@@ -10,11 +10,14 @@ function layout(lang: "id" | "en", title: string, bodyHtml: string, linkLabel: s
   const replyNote = lang === "id"
     ? "Balas email ini jika butuh bantuan."
     : "Reply to this email if you need help.";
+  const cta = url
+    ? `<p style="margin:24px 0;"><a href="${url}" style="background:#176B5B;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:12px;display:inline-block;">${linkLabel}</a></p>`
+    : "";
   return `<!doctype html><html lang="${lang}"><body style="font-family:Arial,Helvetica,sans-serif;color:#36514B;background:#FFFCF5;padding:24px;">
 <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E7DED0;border-radius:20px;padding:32px;">
 <h1 style="color:#153B35;font-size:22px;margin:0 0 16px;">${title}</h1>
 <div style="font-size:16px;line-height:1.6;">${bodyHtml}</div>
-<p style="margin:24px 0;"><a href="${url}" style="background:#176B5B;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:12px;display:inline-block;">${linkLabel}</a></p>
+${cta}
 <p style="color:#6C7E79;font-size:13px;">${replyNote} (${EMAIL_REPLY_TO})</p>
 </div></body></html>`;
 }
@@ -54,5 +57,15 @@ export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, reward
       `<p>Hadiah <strong>${rewardTitle}</strong> sudah siap diunduh.</p><p>Tautan akses berlaku 7 hari. Link unduhan berlaku 1 jam.</p>`,
       "Buka hadiahku", accessUrl),
     text: `Hadiah KelasWFA "${rewardTitle}" sudah siap: ${accessUrl} (berlaku 7 hari)`,
+  };
+}
+
+export function otpEmail(code: string) {
+  return {
+    subject: "Kode login KelasWFA Admin",
+    html: layout("id", "Kode login Anda",
+      `<p>Kode OTP Anda:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px;color:#153B35;">${code}</p><p>Berlaku 10 menit. Jangan bagikan kode ini.</p>`,
+      "", ""),
+    text: `Kode OTP KelasWFA Admin: ${code} (berlaku 10 menit)`,
   };
 }

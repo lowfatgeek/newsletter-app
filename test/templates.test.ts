@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { maskedEmail, confirmationEmail, rewardAccessEmail, EMAIL_FROM } from "../src/lib/templates";
+import { maskedEmail, confirmationEmail, rewardAccessEmail, otpEmail, EMAIL_FROM } from "../src/lib/templates";
 
 describe("maskedEmail", () => {
   it("masks local part", () => {
@@ -30,5 +30,19 @@ describe("rewardAccessEmail", () => {
   });
   it("sets from header constant", () => {
     expect(EMAIL_FROM).toBe("KelasWFA <admin@kelaswfa.my.id>");
+  });
+});
+
+describe("otpEmail", () => {
+  it("includes code in html and text, renders no empty link", () => {
+    const m = otpEmail("123456");
+    expect(m.subject).toContain("Kode login");
+    expect(m.html).toContain("123456");
+    expect(m.text).toContain("123456");
+    expect(m.html).not.toContain('<a href=""');
+  });
+  it("still renders CTA for url-bearing templates", () => {
+    const m = confirmationEmail("id", "https://x/konfirmasi/t");
+    expect(m.html).toContain('<a href="https://x/konfirmasi/t"');
   });
 });
