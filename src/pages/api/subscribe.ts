@@ -17,7 +17,13 @@ function cekEmailPath(locale: "id" | "en", errorSuffix: string): string {
  */
 export const POST: APIRoute = async ({ request }) => {
   const siteUrl = env("PUBLIC_SITE_URL", new URL(request.url).origin);
-  const redirect = (path: string) => Response.redirect(`${siteUrl}${path}`, 303);
+  // Redirect dibangun manual (bukan Response.redirect) supaya bisa menambah
+  // Cache-Control: no-store — respons POST ini jangan pernah di-cache.
+  const redirect = (path: string) =>
+    new Response(null, {
+      status: 303,
+      headers: { Location: `${siteUrl}${path}`, "Cache-Control": "no-store" },
+    });
 
   let form: FormData;
   try {

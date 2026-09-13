@@ -1,4 +1,9 @@
 ---
+// Plus Jakarta Sans — bobot yang benar-benar dipakai tokens.css (400/600/700),
+// subset latin, font-display: swap (default @fontsource).
+import "@fontsource/plus-jakarta-sans/latin-400.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
 import "../styles/tokens.css";
 interface Props { title: string; description?: string; lang?: "id" | "en"; noindex?: boolean; }
 const { title, description = "", lang = "id", noindex = false } = Astro.props;
