@@ -98,8 +98,12 @@ function replaceVar(template: string, key: string, value: string): string {
   return template.split(`{{${key}}}`).join(value);
 }
 
-/** Strip tag html, decode entity dasar, collapse whitespace. */
-function htmlToText(html: string): string {
+/**
+ * Strip tag html, decode entity dasar, collapse whitespace.
+ * Diekspor untuk worker broadcast (text part dari lastRenderedHtml
+ * hasil snapshot — worker tidak merender ulang).
+ */
+export function htmlToText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|h2|h3|li|blockquote)>/gi, "\n")

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeBody, validateContent, renderForRecipient } from "../../src/lib/broadcast/content";
+import { sanitizeBody, validateContent, renderForRecipient, htmlToText } from "../../src/lib/broadcast/content";
 
 describe("sanitizeBody", () => {
   it("strips scripts, handlers, and non-https hrefs, forces rel/target", () => {
@@ -193,5 +193,19 @@ describe("renderForRecipient", () => {
     });
     expect(seen).toEqual(["https://a.b/?x=1&y=2"]);
     expect(r.html).toContain("https://kado.test/api/click/L9/t");
+  });
+});
+
+describe("htmlToText", () => {
+  it("strips tags, converts block ends and br to newlines, decodes entities, collapses whitespace", () => {
+    const out = htmlToText(
+      "<h2>Judul</h2><p>Hai <strong>budi</strong> &amp; <a href=\"https://a.b\">klik</a><br>baris dua</p><p>Paragraf dua</p>",
+    );
+    expect(out).toBe("Judul\nHai budi & klik\nbaris dua\nParagraf dua");
+    expect(out).not.toContain("<");
+  });
+
+  it("decodes quotes and nbsp", () => {
+    expect(htmlToText("<p>&quot;a&quot;&#39;s&nbsp;x</p>")).toBe('"a"\'s x');
   });
 });
