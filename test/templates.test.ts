@@ -31,14 +31,19 @@ describe("rewardAccessEmail", () => {
   it("sets from header constant", () => {
     expect(EMAIL_FROM).toBe("KelasWFA <admin@kelaswfa.my.id>");
   });
-  it("escapes HTML-dangerous characters in reward title (subject/html/text)", () => {
+  it("escapes HTML-dangerous characters in html body only; subject/text keep raw title", () => {
     const m = rewardAccessEmail("id", "https://x/akses/t", '<script>x</script> Sticker & "Gift"');
+    // HTML di-escape penuh — tidak ada raw tag atau raw & di html.
     expect(m.html).not.toContain("<script>");
-    expect(m.subject).not.toContain("<script>");
-    expect(m.text).not.toContain("<script>");
     expect(m.html).toContain("&lt;script&gt;");
     expect(m.html).toContain("&amp;");
     expect(m.html).toContain("Sticker");
+    // Subject/text plain-text memakai judul MENTAH: "&" tampil apa adanya
+    // (bukan "&amp;") — escaping di plain-text justru merusak tampilan.
+    expect(m.subject).toContain('Sticker & "Gift"');
+    expect(m.subject).not.toContain("&amp;");
+    expect(m.text).toContain('Sticker & "Gift"');
+    expect(m.text).not.toContain("&amp;");
   });
   it("escapeHtml escapes all dangerous characters", () => {
     expect(escapeHtml(`<a href="x">&'`)).toBe("&lt;a href=&quot;x&quot;&gt;&amp;&#39;");

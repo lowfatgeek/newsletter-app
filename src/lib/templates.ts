@@ -49,24 +49,26 @@ export function confirmationEmail(locale: "id" | "en", confirmUrl: string) {
 }
 
 export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, rawRewardTitle: string) {
-  // rewardTitle berasal dari input admin (nama reward) — selalu di-escape
-  // supaya tidak bisa menyuntikkan HTML/script ke subject, body, atau text.
+  // rewardTitle berasal dari input admin (nama reward) — di-escape HANYA untuk
+  // interpolasi HTML supaya tidak bisa menyuntikkan HTML/script. Subject dan
+  // text plain-text memakai judul mentah (escapeHtml di plain-text membuat
+  // judul dengan "&" tampil literal "&amp;").
   const rewardTitle = escapeHtml(rawRewardTitle);
   if (locale === "en") {
     return {
-      subject: `Your KelasWFA gift: ${rewardTitle}`,
+      subject: `Your KelasWFA gift: ${rawRewardTitle}`,
       html: layout("en", "Your gift is ready",
         `<p>Your reward <strong>${rewardTitle}</strong> is ready to download.</p><p>This access link is valid for 7 days. The download link itself is valid for 1 hour.</p>`,
         "Open my gift", accessUrl),
-      text: `Your KelasWFA gift "${rewardTitle}" is ready: ${accessUrl} (valid 7 days)`,
+      text: `Your KelasWFA gift "${rawRewardTitle}" is ready: ${accessUrl} (valid 7 days)`,
     };
   }
   return {
-    subject: `Hadiah KelasWFA-mu: ${rewardTitle}`,
+    subject: `Hadiah KelasWFA-mu: ${rawRewardTitle}`,
     html: layout("id", "Kadonya siap dibuka",
       `<p>Hadiah <strong>${rewardTitle}</strong> sudah siap diunduh.</p><p>Tautan akses berlaku 7 hari. Link unduhan berlaku 1 jam.</p>`,
       "Buka hadiahku", accessUrl),
-    text: `Hadiah KelasWFA "${rewardTitle}" sudah siap: ${accessUrl} (berlaku 7 hari)`,
+    text: `Hadiah KelasWFA "${rawRewardTitle}" sudah siap: ${accessUrl} (berlaku 7 hari)`,
   };
 }
 

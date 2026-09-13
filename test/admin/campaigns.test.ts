@@ -46,9 +46,19 @@ describe("campaigns lib", () => {
   it("status transitions enforce legality", async () => {
     const { id } = (await createCampaign({ slug: "t1" })) as { ok: true; id: string };
     expect(await setCampaignStatus(id, "pause")).toMatchObject({ ok: false });
+    // Archive dari draft tetap ditolak (hanya published|paused → archived).
+    expect(await setCampaignStatus(id, "archive")).toEqual({ ok: false, reason: "invalid-transition" });
     await setCampaignStatus(id, "publish");
     expect(await setCampaignStatus(id, "pause")).toMatchObject({ ok: true });
     expect(await setCampaignStatus(id, "unpause")).toMatchObject({ ok: true });
+    expect(await setCampaignStatus(id, "archive")).toMatchObject({ ok: true });
+    const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
+    expect(camp.status).toBe("archived");
+  });
+  it("paused campaign can be archived (matches editor UI)", async () => {
+    const { id } = (await createCampaign({ slug: "t2" })) as { ok: true; id: string };
+    await setCampaignStatus(id, "publish");
+    await setCampaignStatus(id, "pause");
     expect(await setCampaignStatus(id, "archive")).toMatchObject({ ok: true });
     const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
     expect(camp.status).toBe("archived");

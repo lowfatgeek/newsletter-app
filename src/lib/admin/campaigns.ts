@@ -175,14 +175,16 @@ export async function setCampaignStatus(
   const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
   if (!camp) return { ok: false, reason: "not-found" };
 
-  // Mesin status: draft→published; published↔paused; published→archived.
-  const allowed: Record<typeof action, string> = {
-    publish: "draft",
-    pause: "published",
-    unpause: "paused",
-    archive: "published",
+  // Mesin status: draft→published; published↔paused; published|paused→archived.
+  // Paused→archived diizinkan: tombol "Arsipkan" memang dirender untuk campaign
+  // paused di editor (PRD tidak melarang pause-then-archive).
+  const allowed: Record<typeof action, string[]> = {
+    publish: ["draft"],
+    pause: ["published"],
+    unpause: ["paused"],
+    archive: ["published", "paused"],
   };
-  if (camp.status !== allowed[action]) return { ok: false, reason: "invalid-transition" };
+  if (!allowed[action].includes(camp.status)) return { ok: false, reason: "invalid-transition" };
 
   const nextStatus =
     action === "publish" || action === "unpause"

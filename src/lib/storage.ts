@@ -32,6 +32,10 @@ export async function putObject(key: string, body: ArrayBuffer, contentType: str
     accessKeyId: env("R2_ACCESS_KEY_ID"),
     secretAccessKey: env("R2_SECRET_ACCESS_KEY"),
     method: "PUT",
+    // Content-Type ikut ditandatangani (aws4fetch memasukkan semua header ke
+    // signableHeaders) supaya objek tersimpan dengan MIME benar dan unduhan
+    // bertanda tangan bisa preview inline (bukan application/octet-stream).
+    headers: { "Content-Type": contentType },
   });
   const signed = await signer.sign();
   const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body });
