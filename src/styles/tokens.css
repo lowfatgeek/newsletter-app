@@ -1,0 +1,75 @@
+:root {
+  --color-canvas: #FFFCF5;
+  --color-surface-subtle: #F7F1E6;
+  --color-surface-raised: #FFFFFF;
+  --color-ink: #153B35;
+  --color-text: #36514B;
+  --color-text-muted: #6C7E79;
+  --color-border: #E7DED0;
+  --color-primary: #176B5B;
+  --color-primary-hover: #105447;
+  --color-primary-subtle: #E5F2EE;
+  --color-gold: #D99020;
+  --color-gold-subtle: #FFF2D6;
+  --color-info: #2D87B8;
+  --color-info-subtle: #E6F3FA;
+  --color-accent: #B95943;
+  --color-danger: #B53C4A;
+  --color-danger-subtle: #FCECEE;
+  --color-success: #237A55;
+  --color-success-subtle: #E8F6EE;
+  --color-warning: #9A6514;
+  --color-warning-subtle: #FFF4DC;
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --text-display: clamp(2.5rem, 5vw, 3.5rem);
+  --text-h1: clamp(2rem, 4vw, 2.5rem);
+  --text-h2: clamp(1.625rem, 3vw, 1.875rem);
+  --text-h3: 1.375rem;
+  --text-body-lg: 1.125rem;
+  --text-body: 1rem;
+  --text-body-sm: 0.875rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  --radius-control: 12px;
+  --radius-image: 16px;
+  --radius-card: 20px;
+  --radius-modal: 24px;
+  --radius-pill: 999px;
+  --border-default: 1px solid var(--color-border);
+  --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04),
+    0 8px 24px rgba(21, 59, 53, 0.05);
+  --shadow-float: 0 16px 40px rgba(21, 59, 53, 0.12);
+  --focus-ring: 0 0 0 3px rgba(23, 107, 91, 0.24);
+
+  --page-shell: 1200px;
+  --funnel-content: 680px;
+  --download-content: 760px;
+  --auth-content: 440px;
+  --admin-content: 1440px;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sans); color: var(--color-text); background: var(--color-canvas); }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
