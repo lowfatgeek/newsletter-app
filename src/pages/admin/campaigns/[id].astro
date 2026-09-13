@@ -1,0 +1,606 @@
+---
+import { asc } from "drizzle-orm";
+import { db } from "../../../lib/db";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { getCampaignById } from "../../../lib/admin/campaigns";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const id = Astro.params.id ?? "";
+const data = await getCampaignById(id);
+if (!data) return new Response(null, { status: 404 });
+
+const { campaign } = data;
+const idRow = data.locales.find((l) => l.locale === "id") ?? null;
+const enRow = data.locales.find((l) => l.locale === "en") ?? null;
+
+const statusLabel: Record<string, string> = {
+  draft: "Draft",
+  published: "Published",
+  paused: "Paused",
+  archived: "Archived",
+};
+
+function fmtDateTime(d: Date | null): string {
+  if (!d) return "—";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  }).format(d);
+}
+
+function fmtBytes(n: number): string {
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${n} B`;
+}
+
+type Item = { name: string; benefit: string; format?: string | null; size?: string | null };
+function itemsOf(row: typeof idRow): Item[] {
+  if (!row || !Array.isArray(row.rewardItems)) return [];
+  return row.rewardItems as Item[];
+}
+const idItems = itemsOf(idRow);
+const enItems = itemsOf(enRow);
+
+const assetCount = data.assets.length;
+const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount >= 1;
+---
+<AdminLayout title={`Edit ${campaign.slug}`} admin={admin}>
+  <div class="page-head">
+    <div>
+      <p class="overline">Reward Campaign</p>
+      <h1>{idRow?.title || campaign.slug}</h1>
+      <p class="helper">
+        Status: <strong>{statusLabel[campaign.status] ?? campaign.status}</strong> ·
+        /{campaign.slug} · Dibuat {fmtDateTime(campaign.createdAt)}
+      </p>
+    </div>
+    <div class="save-area">
+      <span id="save-status" role="status" aria-live="polite"></span>
+      <button type="button" id="save-btn" class="btn-primary">Simpan</button>
+      <a href={`/admin/preview/${campaign.id}`} class="btn-secondary">Preview</a>
+    </div>
+  </div>
+
+  <p id="global-error" class="error" role="alert" hidden></p>
+
+  <form id="editor-form" data-campaign={campaign.id} onsubmit="return false;">
+    <!-- SECTION: Detail -->
+    <section class="card" aria-labelledby="h-detail">
+      <h2 id="h-detail">Detail</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="f-slug">Slug <span class="wajib">Wajib</span></label>
+          <input id="f-slug" type="text" value={campaign.slug} spellcheck="false" autocomplete="off" aria-describedby="slug-error slug-hint" />
+          <p id="slug-hint" class="hint">Alamat publik: /r/{campaign.slug}</p>
+          <p id="slug-error" class="field-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="f-order">Urutan tampil</label>
+          <input id="f-order" type="number" value={campaign.sortOrder} min="0" step="1" />
+        </div>
+        <div class="field">
+          <label for="f-image">Featured image (storage key)</label>
+          <input id="f-image" type="text" value={campaign.featuredImageKey ?? ""} placeholder="k/contoh.png" spellcheck="false" />
+          <p class="hint">Kunci objek storage; unggah file tersedia pada bagian Reward files.</p>
+        </div>
+        <div class="field field-check">
+          <input id="f-indexable" type="checkbox" checked={campaign.indexable} />
+          <label for="f-indexable">Izinkan mesin pencari mengindeks halaman (indexable)</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Konten ID -->
+    <section class="card" aria-labelledby="h-id">
+      <h2 id="h-id">Konten ID</h2>
+      <div class="field">
+        <label for="f-title-id">Judul <span class="wajib">Wajib</span></label>
+        <input id="f-title-id" type="text" value={idRow?.title ?? ""} lang="id" aria-describedby="title-id-error" />
+        <p id="title-id-error" class="field-error" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-desc-id">Deskripsi <span class="wajib">Wajib</span></label>
+        <textarea id="f-desc-id" rows="4" lang="id">{idRow?.description ?? ""}</textarea>
+      </div>
+
+      <fieldset class="items">
+        <legend>Daftar item reward</legend>
+        <p class="hint">Nama dan manfaat singkat setiap item yang diterima subscriber.</p>
+        <div id="items-id" class="items-list" data-locale="id">
+          {idItems.map((it) => (
+            <div class="item-row">
+              <input type="text" class="it-name" value={it.name} placeholder="Nama item" aria-label="Nama item (ID)" lang="id" />
+              <input type="text" class="it-benefit" value={it.benefit} placeholder="Manfaat singkat" aria-label="Manfaat item (ID)" lang="id" />
+              <input type="text" class="it-format" value={it.format ?? ""} placeholder="Format (opsional)" aria-label="Format item (ID)" />
+              <input type="text" class="it-size" value={it.size ?? ""} placeholder="Ukuran (opsional)" aria-label="Ukuran item (ID)" />
+              <button type="button" class="item-remove btn-ghost-danger" aria-label="Hapus item">Hapus</button>
+            </div>
+          ))}
+        </div>
+        <button type="button" id="add-item-id" class="btn-secondary btn-small">Tambah item</button>
+      </fieldset>
+    </section>
+
+    <!-- SECTION: Content EN -->
+    <section class="card" aria-labelledby="h-en">
+      <div class="card-head">
+        <h2 id="h-en">Content EN</h2>
+        <span id="en-fallback" class="fallback-badge" hidden>EN kosong — fallback ID</span>
+      </div>
+      <div class="field">
+        <label for="f-title-en">Title</label>
+        <input id="f-title-en" type="text" value={enRow?.title ?? ""} lang="en" />
+      </div>
+      <div class="field">
+        <label for="f-desc-en">Description</label>
+        <textarea id="f-desc-en" rows="4" lang="en">{enRow?.description ?? ""}</textarea>
+      </div>
+
+      <fieldset class="items">
+        <legend>Reward items</legend>
+        <div id="items-en" class="items-list" data-locale="en">
+          {enItems.map((it) => (
+            <div class="item-row">
+              <input type="text" class="it-name" value={it.name} placeholder="Item name" aria-label="Item name (EN)" lang="en" />
+              <input type="text" class="it-benefit" value={it.benefit} placeholder="Short benefit" aria-label="Item benefit (EN)" lang="en" />
+              <input type="text" class="it-format" value={it.format ?? ""} placeholder="Format (optional)" aria-label="Item format (EN)" />
+              <input type="text" class="it-size" value={it.size ?? ""} placeholder="Size (optional)" aria-label="Item size (EN)" />
+              <button type="button" class="item-remove btn-ghost-danger" aria-label="Remove item">Hapus</button>
+            </div>
+          ))}
+        </div>
+        <button type="button" id="add-item-en" class="btn-secondary btn-small">Tambah item</button>
+      </fieldset>
+    </section>
+
+    <!-- SECTION: Reward files (placeholder — unggah asset datang pada tugas berikutnya) -->
+    <section class="card" aria-labelledby="h-files">
+      <h2 id="h-files">Reward files</h2>
+      {data.assets.length === 0 ? (
+        <p class="placeholder">
+          Belum ada file reward. Pengunggahan file reward (maks. 100 MB per file) akan tersedia pada
+          langkah pengembangan berikutnya. Kamu sudah bisa melengkapi konten dan doa terlebih dahulu.
+        </p>
+      ) : (
+        <ul class="asset-list">
+          {data.assets.map((a) => (
+            <li>
+              <strong>{a.nameId}</strong>
+              <span>{a.mimeType} · {fmtBytes(a.sizeBytes)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <!-- SECTION: Doa (diisi tugas preset doa) -->
+    <section class="card" aria-labelledby="h-doa">
+      <h2 id="h-doa">Doa</h2>
+      <p class="placeholder">
+        Pilihan preset doa (Doa Muslim dan Harapan Baik) akan tersedia pada langkah pengembangan berikutnya.
+      </p>
+    </section>
+
+    <!-- SECTION: SEO -->
+    <section class="card" aria-labelledby="h-seo">
+      <h2 id="h-seo">SEO</h2>
+      <p class="hint">Kosongkan untuk memakai judul dan deskripsi konten.</p>
+      <div class="grid-2">
+        <div class="field">
+          <label for="f-meta-title-id">Meta title (ID)</label>
+          <input id="f-meta-title-id" type="text" value={idRow?.metaTitle ?? ""} lang="id" />
+        </div>
+        <div class="field">
+          <label for="f-meta-title-en">Meta title (EN)</label>
+          <input id="f-meta-title-en" type="text" value={enRow?.metaTitle ?? ""} lang="en" />
+        </div>
+        <div class="field">
+          <label for="f-meta-desc-id">Meta description (ID)</label>
+          <textarea id="f-meta-desc-id" rows="2" lang="id">{idRow?.metaDescription ?? ""}</textarea>
+        </div>
+        <div class="field">
+          <label for="f-meta-desc-en">Meta description (EN)</label>
+          <textarea id="f-meta-desc-en" rows="2" lang="en">{enRow?.metaDescription ?? ""}</textarea>
+        </div>
+      </div>
+    </section>
+  </form>
+
+  <!-- SECTION: Publish -->
+  <section class="card" aria-labelledby="h-publish">
+    <h2 id="h-publish">Publish</h2>
+    <p class="status-line">
+      Status sekarang: <strong>{statusLabel[campaign.status] ?? campaign.status}</strong>
+      {campaign.publishedAt && <span> · Dipublikasikan {fmtDateTime(campaign.publishedAt)}</span>}
+    </p>
+    <p id="publish-hint" class="hint" hidden>
+      Untuk mempublikasikan, lengkapi judul dan deskripsi ID, serta unggah minimal 1 reward file.
+    </p>
+    <div class="status-actions">
+      {campaign.status === "draft" && (
+        <button type="button" class="btn-primary" data-status-action="publish" data-can-publish={canPublishBase ? "1" : "0"} data-asset-count={assetCount} disabled={!canPublishBase}>Publikasikan</button>
+      )}
+      {campaign.status === "published" && (
+        <>
+          <button type="button" class="btn-warning" data-status-action="pause">Jeda</button>
+          <button type="button" class="btn-danger" data-status-action="archive">Arsipkan</button>
+        </>
+      )}
+      {campaign.status === "paused" && (
+        <>
+          <button type="button" class="btn-primary" data-status-action="unpause">Aktifkan kembali</button>
+          <button type="button" class="btn-danger" data-status-action="archive">Arsipkan</button>
+        </>
+      )}
+      {campaign.status === "archived" && (
+        <p class="hint">Campaign ini sudah diarsipkan dan tidak bisa ditayangkan kembali.</p>
+      )}
+      {campaign.status !== "archived" && (
+        <button type="button" class="btn-secondary" data-status-action="duplicate" data-slug={campaign.slug}>Gandakan</button>
+      )}
+    </div>
+  </section>
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+  }
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .save-area { display: flex; align-items: center; gap: var(--space-3); flex: none; flex-wrap: wrap; justify-content: flex-end; }
+  #save-status { color: var(--color-text-muted); font-size: var(--text-body-sm); }
+
+  .btn-primary, .btn-secondary, .btn-warning, .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--color-primary); color: var(--color-canvas); border: none; }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+  .btn-primary:disabled { background: var(--color-surface-subtle); color: var(--color-text-muted); cursor: not-allowed; }
+  .btn-secondary { background: var(--color-surface-raised); border: var(--border-default); color: var(--color-ink); }
+  .btn-warning { background: var(--color-warning-subtle); color: var(--color-warning); border: 1px solid var(--color-warning); }
+  .btn-danger { background: var(--color-danger); color: var(--color-canvas); border: none; }
+  .btn-danger:hover { filter: brightness(0.94); }
+  .btn-ghost-danger {
+    background: none; border: none; color: var(--color-danger);
+    text-decoration: underline; cursor: pointer; font-family: inherit; font-size: var(--text-body-sm);
+    min-height: 44px;
+  }
+  .btn-small { min-height: 36px; padding: 8px 12px; }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+  .card h2 { color: var(--color-ink); font-size: var(--text-h3); margin: 0 0 var(--space-5); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-5); }
+  .card-head h2 { margin: 0; }
+  .fallback-badge {
+    background: var(--color-gold-subtle);
+    color: var(--color-gold);
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-5); }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .field-check { flex-direction: row; align-items: center; gap: var(--space-3); }
+  .field-check input { width: 20px; height: 20px; }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); color: var(--color-text); }
+  .wajib {
+    display: inline-block;
+    margin-left: var(--space-2);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    border-radius: var(--radius-pill);
+    padding: 1px 8px;
+  }
+  input[type="text"], input[type="number"], textarea {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    min-height: 44px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    width: 100%;
+  }
+  textarea { resize: vertical; }
+  input:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .field-error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-body-sm);
+    margin: 0;
+  }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: 0 0 var(--space-5);
+  }
+
+  .items { border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-4); margin: 0; }
+  .items legend { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); padding: 0 var(--space-2); }
+  .items-list { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-3) 0; }
+  .item-row { display: grid; grid-template-columns: 1.2fr 1.6fr 0.9fr 0.9fr auto; gap: var(--space-2); align-items: center; }
+  @media (max-width: 768px) { .item-row { grid-template-columns: 1fr 1fr; } }
+
+  .placeholder {
+    background: var(--color-surface-subtle);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+    padding: var(--space-5);
+    margin: 0;
+  }
+  .asset-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+  .asset-list li {
+    display: flex; justify-content: space-between; gap: var(--space-3);
+    border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+  }
+  .asset-list span { color: var(--color-text-muted); }
+
+  .status-line { color: var(--color-text); font-size: var(--text-body-sm); margin: 0 0 var(--space-4); }
+  .status-line strong { color: var(--color-ink); }
+  .status-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+</style>
+
+<script>
+  const $ = <T extends HTMLElement>(sel: string): T | null => document.querySelector<T>(sel);
+
+  const campaignId = document.querySelector<HTMLElement>("[data-campaign]")?.dataset.campaign ?? "";
+  const saveBtn = $<HTMLButtonElement>("#save-btn");
+  const saveStatus = $<HTMLElement>("#save-status");
+  const globalError = $<HTMLElement>("#global-error");
+  const slugInput = $<HTMLInputElement>("#f-slug");
+  const slugError = $<HTMLElement>("#slug-error");
+  const titleIdError = $<HTMLElement>("#title-id-error");
+  const titleId = $<HTMLInputElement>("#f-title-id");
+  const descId = $<HTMLTextAreaElement>("#f-desc-id");
+  const titleEn = $<HTMLInputElement>("#f-title-en");
+  const descEn = $<HTMLTextAreaElement>("#f-desc-en");
+  const enFallback = $<HTMLElement>("#en-fallback");
+  const publishHint = $<HTMLElement>("#publish-hint");
+
+  // Slug tersimpan terakhir — dipakai untuk membatalkan perubahan slug saat
+  // admin membatalkan konfirmasi redirect.
+  let savedSlug = slugInput?.value ?? "";
+
+  function nowClock(): string {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function collectItems(listId: string) {
+    return [...document.querySelectorAll<HTMLInputElement>(`#${listId} .item-row`)].map((row) => ({
+      name: row.querySelector<HTMLInputElement>(".it-name")?.value.trim() ?? "",
+      benefit: row.querySelector<HTMLInputElement>(".it-benefit")?.value.trim() ?? "",
+      format: row.querySelector<HTMLInputElement>(".it-format")?.value.trim() ?? "",
+      size: row.querySelector<HTMLInputElement>(".it-size")?.value.trim() ?? "",
+    }));
+  }
+
+  function collectLocale(titleEl: HTMLInputElement | null, descEl: HTMLTextAreaElement | null, listId: string,
+    metaTitleSel: string, metaDescSel: string) {
+    return {
+      title: titleEl?.value ?? "",
+      description: descEl?.value ?? "",
+      rewardItems: collectItems(listId),
+      metaTitle: (document.querySelector<HTMLInputElement>(metaTitleSel)?.value ?? "").trim(),
+      metaDescription: (document.querySelector<HTMLTextAreaElement>(metaDescSel)?.value ?? "").trim(),
+    };
+  }
+
+  function showFieldError(el: HTMLElement | null, message: string) {
+    if (!el) return;
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  function clearErrors() {
+    for (const el of [slugError, titleIdError, globalError]) {
+      if (el) { el.hidden = true; el.textContent = ""; }
+    }
+  }
+
+  async function save(redirectConfirmed: boolean): Promise<void> {
+    if (!saveBtn) return;
+    clearErrors();
+    saveBtn.disabled = true;
+    if (saveStatus) saveStatus.textContent = "Menyimpan…";
+    try {
+      const res = await fetch(`/admin/api/campaigns/${campaignId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: slugInput?.value.trim() ?? "",
+          featuredImageKey: (document.querySelector<HTMLInputElement>("#f-image")?.value ?? "").trim(),
+          sortOrder: Number(document.querySelector<HTMLInputElement>("#f-order")?.value ?? 0),
+          indexable: (document.querySelector<HTMLInputElement>("#f-indexable") as HTMLInputElement | null)?.checked ?? false,
+          locales: {
+            id: collectLocale(titleId, descId, "items-id", "#f-meta-title-id", "#f-meta-desc-id"),
+            en: collectLocale(titleEn, descEn, "items-en", "#f-meta-title-en", "#f-meta-desc-en"),
+          },
+          redirectConfirmed,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        savedSlug = slugInput?.value ?? savedSlug;
+        if (saveStatus) saveStatus.textContent = `Tersimpan ${nowClock()}`;
+        return;
+      }
+      if (data.reason === "published-requires-confirmation") {
+        const ok = window.confirm(
+          "Campaign ini sudah pernah dipublikasikan. Mengubah slug akan membuat alamat lama dialihkan otomatis ke alamat baru. Lanjutkan menyimpan slug baru?",
+        );
+        if (ok) { await save(true); return; }
+        if (slugInput) slugInput.value = savedSlug;
+        if (saveStatus) saveStatus.textContent = "";
+        return;
+      }
+      if (data.reason === "invalid-slug" || data.reason === "slug-taken") {
+        showFieldError(slugError, data.reason === "slug-taken"
+          ? "Slug sudah dipakai campaign lain. Coba slug lain."
+          : "Slug hanya boleh huruf kecil, angka, dan tanda hubung (tanpa spasi).");
+        slugInput?.focus();
+      } else if (data.reason === "missing-title") {
+        showFieldError(titleIdError, "Judul wajib diisi bila konten diisi.");
+        titleId?.focus();
+      } else if (data.reason === "unauthorized") {
+        showFieldError(globalError, "Sesi berakhir. Muat ulang halaman untuk masuk kembali.");
+      } else {
+        showFieldError(globalError, "Terjadi kesalahan saat menyimpan. Coba lagi.");
+      }
+      if (saveStatus) saveStatus.textContent = "";
+    } catch {
+      showFieldError(globalError, "Terjadi kesalahan jaringan. Coba lagi.");
+      if (saveStatus) saveStatus.textContent = "";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  }
+
+  saveBtn?.addEventListener("click", () => void save(false));
+
+  // Badge kelengkapan EN + gating tombol Publikasikan (client-side; server
+  // tetap memvalidasi transisi).
+  function updateFallbackBadge() {
+    if (!enFallback) return;
+    const empty = (titleEn?.value.trim() ?? "") === "" && (descEn?.value.trim() ?? "") === "";
+    enFallback.hidden = !empty;
+  }
+  titleEn?.addEventListener("input", updateFallbackBadge);
+  descEn?.addEventListener("input", updateFallbackBadge);
+  updateFallbackBadge();
+
+  function updatePublishGate() {
+    const publishBtn = document.querySelector<HTMLButtonElement>('[data-status-action="publish"]');
+    if (!publishBtn || publishBtn.dataset.canPublish === undefined) return;
+    const assetCount = Number(publishBtn.dataset.assetCount ?? "0");
+    const ready = (titleId?.value.trim() ?? "") !== "" && (descId?.value.trim() ?? "") !== "" && assetCount >= 1;
+    publishBtn.disabled = !ready;
+    if (publishHint) publishHint.hidden = ready;
+  }
+  titleId?.addEventListener("input", updatePublishGate);
+  descId?.addEventListener("input", updatePublishGate);
+  updatePublishGate();
+
+  // Tambah/hapus item reward per locale.
+  function addItemRow(listId: string, placeholderLang: "id" | "en") {
+    const list = document.getElementById(listId);
+    if (!list) return;
+    const isEn = placeholderLang === "en";
+    const row = document.createElement("div");
+    row.className = "item-row";
+    row.innerHTML = `
+      <input type="text" class="it-name" placeholder="${isEn ? "Item name" : "Nama item"}" aria-label="${isEn ? "Item name" : "Nama item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
+      <input type="text" class="it-benefit" placeholder="${isEn ? "Short benefit" : "Manfaat singkat"}" aria-label="${isEn ? "Item benefit" : "Manfaat item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
+      <input type="text" class="it-format" placeholder="${isEn ? "Format (optional)" : "Format (opsional)"}" aria-label="Format" />
+      <input type="text" class="it-size" placeholder="${isEn ? "Size (optional)" : "Ukuran (opsional)"}" aria-label="Ukuran" />
+      <button type="button" class="item-remove btn-ghost-danger" aria-label="Hapus item">Hapus</button>`;
+    list.appendChild(row);
+    row.querySelector<HTMLInputElement>(".it-name")?.focus();
+  }
+  document.getElementById("add-item-id")?.addEventListener("click", () => addItemRow("items-id", "id"));
+  document.getElementById("add-item-en")?.addEventListener("click", () => addItemRow("items-en", "en"));
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.classList?.contains("item-remove")) target.closest(".item-row")?.remove();
+  });
+
+  // Aksi status: publish/pause/unpause/archive/duplicate — konfirmasi native
+  // dengan copy eksplisit sebelum memanggil API.
+  const confirmCopy: Record<string, (slug: string) => string> = {
+    publish: () => "Publikasikan campaign ini? Halaman reward akan tayang dan bisa diklaim subscriber.",
+    pause: () => "Jeda campaign ini? Pengunjung baru tidak bisa mengklaim reward sampai campaign diaktifkan kembali.",
+    unpause: () => "Aktifkan kembali campaign ini? Halaman reward akan tayang lagi.",
+    archive: () => "Arsipkan campaign ini? Campaign yang diarsipkan tidak bisa ditayangkan kembali.",
+    duplicate: (slug) => `Gandakan campaign ini? Salinan baru dibuat sebagai draft dengan slug ${slug}-copy.`,
+  };
+
+  document.querySelectorAll<HTMLButtonElement>("[data-status-action]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const action = btn.dataset.statusAction ?? "";
+      const msg = (confirmCopy[action] ?? (() => "Lanjutkan?"))(btn.dataset.slug ?? "");
+      if (!window.confirm(msg)) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/admin/api/campaigns/${campaignId}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        const data = await res.json();
+        if (data.ok && action === "duplicate" && data.newId) {
+          window.location.assign(`/admin/campaigns/${data.newId}`);
+          return;
+        }
+        if (data.ok) {
+          window.location.reload();
+          return;
+        }
+        if (globalError) {
+          globalError.textContent = data.reason === "invalid-transition"
+            ? "Aksi tidak valid untuk status campaign saat ini. Muat ulang halaman."
+            : data.reason === "unauthorized"
+              ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+              : "Terjadi kesalahan. Coba lagi.";
+          globalError.hidden = false;
+        }
+        btn.disabled = false;
+      } catch {
+        if (globalError) {
+          globalError.textContent = "Terjadi kesalahan jaringan. Coba lagi.";
+          globalError.hidden = false;
+        }
+        btn.disabled = false;
+      }
+    });
+  });
+</script>

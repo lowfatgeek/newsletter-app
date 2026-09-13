@@ -1,0 +1,85 @@
+---
+import { eq } from "drizzle-orm";
+import { db } from "../../../lib/db";
+import { doaTemplates } from "../../../lib/schema";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { getCampaignById } from "../../../lib/admin/campaigns";
+import RewardHero from "../../../components/RewardHero.astro";
+import RewardItemList from "../../../components/RewardItemList.astro";
+import ReflectionTabs from "../../../components/ReflectionTabs.astro";
+import type { RewardCampaignLocale } from "../../../lib/schema";
+
+// Token desain + font agar komponen publik dirender dengan gaya yang sama.
+import "@fontsource/plus-jakarta-sans/latin-400.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
+import "../../../styles/tokens.css";
+
+// Route on-demand — guard cookie per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const id = Astro.params.id ?? "";
+const data = await getCampaignById(id);
+if (!data) return new Response(null, { status: 404 });
+
+const { campaign } = data;
+const statusLabel: Record<string, string> = {
+  draft: "Draft",
+  published: "Published",
+  paused: "Paused",
+  archived: "Archived",
+};
+
+// Locale tampil: ID dulu, fallback EN bila ID belum diisi.
+const localeRow = (data.locales.find((l) => l.locale === "id")
+  ?? data.locales.find((l) => l.locale === "en") ?? null) as RewardCampaignLocale | null;
+const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
+
+// Teks doa dari pilihan preset (apa pun status campaign).
+async function doaContent(variant: "muslim" | "universal"): Promise<string> {
+  const sel = data.doaSelections.find((s) => s.variant === variant);
+  if (!sel) return "";
+  const [tpl] = await db.select().from(doaTemplates).where(eq(doaTemplates.id, sel.templateId));
+  return tpl?.content ?? "";
+}
+const muslimText = await doaContent("muslim");
+const universalText = await doaContent("universal");
+---
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Preview — {localeRow?.title ?? campaign.slug}</title>
+  </head>
+  <body style="margin: 0; font-family: var(--font-sans, sans-serif); background: var(--color-canvas); color: var(--color-text);">
+    <p
+      role="status"
+      style="background: var(--color-warning-subtle); color: var(--color-warning); margin: 0; padding: var(--space-3) var(--space-5); font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold);"
+    >
+      Preview admin — status: {statusLabel[campaign.status] ?? campaign.status}
+    </p>
+    <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
+      {localeRow ? (
+        <>
+          <RewardHero
+            overline="KADO DARI KELASWFA"
+            title={localeRow.title}
+            description={localeRow.description}
+            imageKey={campaign.featuredImageKey}
+          />
+          <RewardItemList items={items} locale={localeRow.locale === "en" ? "en" : "id"} />
+          <ReflectionTabs muslimText={muslimText} universalText={universalText} locale="id" />
+        </>
+      ) : (
+        <p style="margin-top: var(--space-12); color: var(--color-text-muted);">
+          Konten belum diisi. Buka editor untuk melengkapi judul dan deskripsi.
+        </p>
+      )}
+    </main>
+  </body>
+</html>

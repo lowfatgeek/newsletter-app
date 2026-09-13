@@ -1,0 +1,150 @@
+---
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+---
+<AdminLayout title="Buat Reward Campaign" admin={admin}>
+  <h1>Buat Reward Campaign</h1>
+  <p class="helper">
+    Pilih slug untuk halaman reward. Slug menjadi alamat publik, contoh:
+    <code>kado.kelaswfa.my.id/r/starter-kit</code>. Gunakan huruf kecil dan tanda hubung.
+  </p>
+
+  <form id="new-form" novalidate>
+    <label for="slug">Slug <span class="wajib">Wajib</span></label>
+    <input id="slug" name="slug" type="text" autocomplete="off" spellcheck="false" required />
+    <p id="slug-hint" class="hint">Huruf kecil, angka, dan tanda hubung. Contoh: starter-kit</p>
+    <p id="slug-error" class="error" role="alert" hidden></p>
+
+    <button type="submit" id="new-submit">Buat campaign</button>
+    <a href="/admin/campaigns" class="btn-secondary">Batal</a>
+  </form>
+</AdminLayout>
+
+<style>
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0 0 var(--space-6); }
+  code {
+    background: var(--color-surface-subtle);
+    border-radius: var(--radius-control);
+    padding: 2px 6px;
+  }
+  form {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+  }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); }
+  .wajib {
+    display: inline-block;
+    margin-left: var(--space-2);
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    border-radius: var(--radius-pill);
+    padding: 1px 8px;
+  }
+  input {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    min-height: 44px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    margin: var(--space-2) 0;
+  }
+  input:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: var(--space-3) 0 0;
+  }
+  button {
+    margin-top: var(--space-5);
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+  button:hover { background: var(--color-primary-hover); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  .btn-secondary {
+    margin-top: var(--space-3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    color: var(--color-ink);
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+</style>
+
+<script>
+  const form = document.getElementById("new-form") as HTMLFormElement | null;
+  const slugInput = document.getElementById("slug") as HTMLInputElement | null;
+  const error = document.getElementById("slug-error") as HTMLParagraphElement | null;
+  const submit = document.getElementById("new-submit") as HTMLButtonElement | null;
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!error || !submit || !slugInput) return;
+    error.hidden = true;
+    submit.disabled = true;
+    try {
+      const res = await fetch("/admin/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: slugInput.value.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok && data.id) {
+        window.location.assign(`/admin/campaigns/${data.id}`);
+        return;
+      }
+      error.textContent =
+        data.reason === "slug-taken"
+          ? "Slug sudah dipakai campaign lain. Coba slug lain."
+          : data.reason === "invalid-slug"
+            ? "Slug hanya boleh huruf kecil, angka, dan tanda hubung (tanpa spasi)."
+            : data.reason === "unauthorized"
+              ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+              : "Terjadi kesalahan. Coba lagi.";
+      error.hidden = false;
+      slugInput.focus();
+    } catch {
+      if (error) {
+        error.textContent = "Terjadi kesalahan. Coba lagi.";
+        error.hidden = false;
+      }
+    } finally {
+      if (submit) submit.disabled = false;
+    }
+  });
+</script>

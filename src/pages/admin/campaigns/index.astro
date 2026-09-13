@@ -1,0 +1,194 @@
+---
+import { desc, asc, eq, and } from "drizzle-orm";
+import { db } from "../../../lib/db";
+import { rewardCampaignLocales, rewardCampaigns } from "../../../lib/schema";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — data tabel + guard cookie bersifat per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+// Nama campaign = judul locale ID (fallback slug bila locale belum diisi).
+const rows = await db
+  .select({
+    id: rewardCampaigns.id,
+    slug: rewardCampaigns.slug,
+    status: rewardCampaigns.status,
+    publishedAt: rewardCampaigns.publishedAt,
+    createdAt: rewardCampaigns.createdAt,
+    titleId: rewardCampaignLocales.title,
+  })
+  .from(rewardCampaigns)
+  .leftJoin(
+    rewardCampaignLocales,
+    and(eq(rewardCampaignLocales.campaignId, rewardCampaigns.id), eq(rewardCampaignLocales.locale, "id")),
+  )
+  .orderBy(asc(rewardCampaigns.sortOrder), desc(rewardCampaigns.createdAt));
+
+const statusMeta: Record<string, { label: string; tone: "muted" | "success" | "warning" }> = {
+  draft: { label: "Draft", tone: "muted" },
+  published: { label: "Published", tone: "success" },
+  paused: { label: "Paused", tone: "warning" },
+  archived: { label: "Archived", tone: "muted" },
+};
+
+// Ikon outline 1.75 (DESIGN.md §7) — status selalu ikon + teks.
+const icons: Record<string, string> = {
+  draft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>`,
+  published: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>`,
+  paused: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>`,
+  archived: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>`,
+};
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" });
+function fmtDate(d: Date | null): string {
+  return d ? dateFmt.format(d) : "—";
+}
+---
+<AdminLayout title="Reward Campaign" admin={admin}>
+  <div class="page-head">
+    <div>
+      <h1>Reward Campaign</h1>
+      <p class="helper">Kelola halaman reward: konten dua bahasa, file hadiah, doa, dan status tayang.</p>
+    </div>
+    <a href="/admin/campaigns/new" class="btn-primary">Buat reward campaign</a>
+  </div>
+
+  {rows.length === 0 ? (
+    <div class="empty">
+      <p>Belum ada reward campaign. Buat campaign pertama untuk mulai mengatur hadiah.</p>
+      <a href="/admin/campaigns/new" class="btn-primary">Buat reward campaign</a>
+    </div>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Campaign</th>
+            <th scope="col">Status</th>
+            <th scope="col">Dipublikasikan</th>
+            <th scope="col">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const meta = statusMeta[row.status] ?? statusMeta.draft;
+            return (
+              <tr>
+                <td>
+                  <strong>{row.titleId || row.slug}</strong>
+                  <span class="slug">/{row.slug}</span>
+                </td>
+                <td>
+                  <span class={`badge tone-${meta.tone}`}>
+                    <span class="badge-icon" set:html={icons[row.status] ?? icons.draft} />
+                    {meta.label}
+                  </span>
+                </td>
+                <td>{fmtDate(row.publishedAt)}</td>
+                <td class="actions">
+                  <a href={`/admin/campaigns/${row.id}`}>Edit</a>
+                  <a href={`/admin/preview/${row.id}`}>Preview</a>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .btn-primary {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    text-decoration: none;
+  }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+
+  .empty {
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-8);
+    text-align: center;
+  }
+  .empty p { color: var(--color-text-muted); margin: 0 0 var(--space-5); }
+
+  .table-wrap {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    overflow-x: auto;
+    box-shadow: var(--shadow-card);
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  thead tr { background: var(--color-surface-subtle); }
+  th {
+    text-align: left;
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    padding: var(--space-3) var(--space-5);
+  }
+  td {
+    padding: var(--space-3) var(--space-5);
+    border-top: var(--border-default);
+    min-height: 56px;
+    height: 56px;
+    font-size: var(--text-body-sm);
+    color: var(--color-text);
+  }
+  tbody tr:hover { background: var(--color-primary-subtle); }
+  td strong { color: var(--color-ink); font-weight: var(--font-weight-semibold); display: block; }
+  .slug { color: var(--color-text-muted); font-size: var(--text-body-sm); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: var(--font-weight-semibold);
+  }
+  .badge :global(svg) { display: block; }
+  .tone-muted { background: var(--color-surface-subtle); color: var(--color-text-muted); }
+  .tone-success { background: var(--color-success-subtle); color: var(--color-success); }
+  .tone-warning { background: var(--color-warning-subtle); color: var(--color-warning); }
+
+  .actions a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    margin-right: var(--space-4);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  @media (max-width: 640px) {
+    .page-head { flex-direction: column; }
+  }
+</style>
