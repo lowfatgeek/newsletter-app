@@ -24,7 +24,18 @@ export async function getPublishedCampaign(slug: string) {
     .from(rewardCampaigns)
     .where(and(eq(rewardCampaigns.slug, slug), eq(rewardCampaigns.status, "published")));
   if (!campaign) return null;
+  return loadCampaignContent(campaign);
+}
 
+// Konten campaign tanpa cek status — dipakai halaman /akses: klaim lama
+// tetap bisa diunduh walau campaign sudah paused/draft/archived (PRD 7.1).
+export async function getCampaignContent(slug: string) {
+  const [campaign] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.slug, slug));
+  if (!campaign) return null;
+  return loadCampaignContent(campaign);
+}
+
+async function loadCampaignContent(campaign: typeof rewardCampaigns.$inferSelect) {
   const rows = await db
     .select()
     .from(rewardCampaignLocales)

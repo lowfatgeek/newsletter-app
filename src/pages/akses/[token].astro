@@ -1,29 +1,19 @@
 ---
 import PublicLayout from "../../layouts/PublicLayout.astro";
-import { consumeToken } from "../../lib/access";
+import { resolveAccess } from "../../lib/access-page";
 import { db } from "../../lib/db";
-import { rewardAssets, rewardCampaigns, rewardClaims } from "../../lib/schema";
+import { rewardAssets } from "../../lib/schema";
 import { eq } from "drizzle-orm";
-import { getPublishedCampaign } from "../../lib/campaign";
 
 export const prerender = false;
 
 const { token } = Astro.params;
-const sess = await consumeToken(token!, "session");
-if (!sess.ok) return Astro.redirect("/", 303);
-
-const [claim] = await db.select().from(rewardClaims).where(eq(rewardClaims.id, sess.claimId));
-if (!claim) return Astro.redirect("/", 303);
-
-// Ambil campaign dari claim, lalu validasi published + ambil locale row lewat
-// getPublishedCampaign (satu select by id, bukan resolve slug manual).
-const [campaign] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, claim.campaignId));
-if (!campaign) return Astro.redirect("/", 303);
-const data = await getPublishedCampaign(campaign.slug);
-if (!data) return Astro.redirect("/", 303);
+const resolved = await resolveAccess(token!);
+if (!resolved.ok) return Astro.redirect("/", 303);
+const { sessionToken, campaignId, content } = resolved;
 
 const assets = await db.select().from(rewardAssets)
-  .where(eq(rewardAssets.campaignId, claim.campaignId))
+  .where(eq(rewardAssets.campaignId, campaignId))
   .orderBy(rewardAssets.sortOrder);
 
 function humanSize(bytes: number): string {
@@ -42,7 +32,7 @@ function humanSize(bytes: number): string {
             <strong style="color: var(--color-ink);">{a.nameId}</strong>
             <p style="margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-body-sm);">{a.mimeType} · {humanSize(Number(a.sizeBytes))}</p>
           </div>
-          <a href={`/api/download/${token}/${a.id}`} style="background: var(--color-primary); color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">Unduh aman</a>
+          <a href={`/api/download/${sessionToken}/${a.id}`} referrerpolicy="no-referrer" style="background: var(--color-primary); color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">Unduh aman</a>
         </li>
       ))}
     </ul>
