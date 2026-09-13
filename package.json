@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "seed": "tsx scripts/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts"
@@ -26,6 +27,7 @@
     "esbuild": true
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.13",

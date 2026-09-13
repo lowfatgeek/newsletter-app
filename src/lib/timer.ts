@@ -1,8 +1,18 @@
 import { randomBytes } from "node:crypto";
 import { packToken, unpackToken } from "./crypto";
 
-const MIN_AGE_MS = 30_000;
+const DEFAULT_MIN_AGE_MS = 30_000;
 const MAX_AGE_MS = 2 * 60 * 60_000;
+
+// Usia minimum token mengikuti durasi timer yang dirender halaman
+// (TEST_TIMER_MS via vite.define di astro.config.mjs). Hanya dipakai di
+// dev/test — server hasil `astro build` selalu memakai 30 detik.
+const MIN_AGE_MS =
+  import.meta.env.PROD || process.env.NODE_ENV === "production"
+    ? DEFAULT_MIN_AGE_MS
+    : Number(process.env.TEST_TIMER_MS) > 0
+      ? Number(process.env.TEST_TIMER_MS)
+      : DEFAULT_MIN_AGE_MS;
 
 type TimerPayload = { c: string; n: string; iat: number };
 

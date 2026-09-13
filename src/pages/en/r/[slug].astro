@@ -20,8 +20,8 @@ const paused = state.state === "paused";
 const data = paused ? null : await getPublishedCampaign(slug!);
 if (!paused && !data) return new Response(null, { status: 404 });
 
-// Fallback eksplisit: kalau row EN kosong, seluruh halaman dirender memakai row ID
-// (fallbackToId=true) — konten, copy, dan lang mengikuti locale efektif.
+// Fallback eksplisit: kalau row EN kosong, konten halaman dirender memakai row ID
+// (fallbackToId=true), tetapi lang atribut tetap "en" sesuai URL yang diminta.
 const localeRow = (paused ? null : data!.localeRow("en").row) as RewardCampaignLocale | null;
 if (!paused && !localeRow) return new Response(null, { status: 404 });
 
@@ -33,7 +33,7 @@ const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewa
 <PublicLayout
   title={paused ? "This campaign is paused" : localeRow!.metaTitle ?? localeRow!.title}
   description={paused ? undefined : localeRow!.metaDescription ?? localeRow!.description}
-  lang={locale}
+  lang="en"
   noindex={!isIndexable}
 >
   {paused ? (
