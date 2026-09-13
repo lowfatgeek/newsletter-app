@@ -3,6 +3,7 @@ import { db } from "../db";
 import {
   campaignRedirects,
   doaSelections,
+  doaTemplates,
   rewardAssets,
   rewardCampaignLocales,
   rewardCampaigns,
@@ -309,6 +310,47 @@ export async function getCampaignById(id: string) {
     .orderBy(asc(rewardAssets.sortOrder));
   const selections = await db.select().from(doaSelections).where(eq(doaSelections.campaignId, id));
   return { campaign, locales, assets, doaSelections: selections };
+}
+
+/**
+ * Simpan pilihan preset doa untuk kedua variant (upsert pada unique
+ * (campaign, variant)). TemplateId divalidasi: variant template HARUS sama
+ * dengan variant yang dipilih — kalau tidak, seluruh operasi ditolak tanpa
+ * menulis apa pun (reason "variant-mismatch"; template tidak dikenal juga
+ * ditolak dengan reason yang sama karena tidak bisa dibuktikan cocok).
+ */
+export async function setDoaSelections(
+  campaignId: string,
+  sel: { muslim: string; universal: string },
+  auditOpts?: AuditOpts,
+): Promise<{ ok: true } | { ok: false; reason: "variant-mismatch" }> {
+  const wanted: Array<{ variant: "muslim" | "universal"; templateId: string }> = [
+    { variant: "muslim", templateId: sel.muslim },
+    { variant: "universal", templateId: sel.universal },
+  ];
+  for (const w of wanted) {
+    const [tpl] = await db
+      .select({ variant: doaTemplates.variant })
+      .from(doaTemplates)
+      .where(eq(doaTemplates.id, w.templateId));
+    if (!tpl || tpl.variant !== w.variant) return { ok: false, reason: "variant-mismatch" };
+  }
+  await db.transaction(async (tx) => {
+    for (const w of wanted) {
+      await tx
+        .insert(doaSelections)
+        .values({ campaignId, variant: w.variant, templateId: w.templateId })
+        .onConflictDoUpdate({
+          target: [doaSelections.campaignId, doaSelections.variant],
+          set: { templateId: w.templateId },
+        });
+    }
+  });
+  await audit("campaign_updated", {
+    ...auditArgs(auditOpts),
+    detail: { campaignId, op: "doa_selection_set", muslim: sel.muslim, universal: sel.universal },
+  });
+  return { ok: true };
 }
 
 export type { AuditOpts };

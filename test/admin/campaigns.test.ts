@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { db } from "../../src/lib/db";
-import { adminAuditLog, campaignRedirects, rewardAssets, rewardCampaigns } from "../../src/lib/schema";
+import { adminAuditLog, campaignRedirects, doaTemplates, rewardAssets, rewardCampaigns } from "../../src/lib/schema";
 import { eq } from "drizzle-orm";
 import {
   createCampaign, validateSlug, upsertCampaignLocale, changeSlug,
   setCampaignStatus, duplicateCampaign, getCampaignById, updateCampaignMeta,
+  setDoaSelections,
 } from "../../src/lib/admin/campaigns";
 import { resetDb } from "../helpers";
 
@@ -149,6 +150,17 @@ describe("campaigns lib", () => {
     const copyId = await duplicateCampaign(id);
     const copy = await getCampaignById(copyId);
     expect(copy!.campaign.slug).toBe("a".repeat(114) + "-copy"); // bukan "aaa...--copy"
+  });
+
+  it("setDoaSelections upserts and validates variant", async () => {
+    const { id } = (await createCampaign({ slug: "doa-c" })) as { ok: true; id: string };
+    const [m] = await db.insert(doaTemplates).values({ variant: "muslim", locale: "id", name: "M", content: "c" }).returning();
+    const [uni] = await db.insert(doaTemplates).values({ variant: "universal", locale: "id", name: "U", content: "c" }).returning();
+    expect((await setDoaSelections(id, { muslim: m.id, universal: uni.id })).ok).toBe(true);
+    expect((await setDoaSelections(id, { muslim: uni.id, universal: uni.id })).ok).toBe(false); // mismatch
+    expect((await setDoaSelections(id, { muslim: m.id, universal: uni.id })).ok).toBe(true); // re-set upsert
+    const got = await getCampaignById(id);
+    expect(got!.doaSelections).toHaveLength(2);
   });
 
   it("updateCampaignMeta with empty patch writes no audit row", async () => {

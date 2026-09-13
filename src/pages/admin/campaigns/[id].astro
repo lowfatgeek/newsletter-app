@@ -1,6 +1,7 @@
 ---
 import { asc } from "drizzle-orm";
 import { db } from "../../../lib/db";
+import { doaTemplates } from "../../../lib/schema";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 import { getCampaignById } from "../../../lib/admin/campaigns";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
@@ -49,6 +50,21 @@ const enItems = itemsOf(enRow);
 
 const assetCount = data.assets.length;
 const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount >= 1;
+
+// Preset doa dikelompokkan per variant untuk section Doa.
+const allTemplates = await db
+  .select()
+  .from(doaTemplates)
+  .orderBy(asc(doaTemplates.variant), asc(doaTemplates.name));
+const muslimTemplates = allTemplates.filter((t) => t.variant === "muslim");
+const universalTemplates = allTemplates.filter((t) => t.variant === "universal");
+const selectedMuslim = data.doaSelections.find((s) => s.variant === "muslim")?.templateId ?? null;
+const selectedUniversal = data.doaSelections.find((s) => s.variant === "universal")?.templateId ?? null;
+
+function excerpt(text: string, max = 80): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+}
 ---
 <AdminLayout title={`Edit ${campaign.slug}`} admin={admin}>
   <div class="page-head">
@@ -179,12 +195,48 @@ const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount
       )}
     </section>
 
-    <!-- SECTION: Doa (diisi tugas preset doa) -->
+    <!-- SECTION: Doa -->
     <section class="card" aria-labelledby="h-doa">
       <h2 id="h-doa">Doa</h2>
-      <p class="placeholder">
-        Pilihan preset doa (Doa Muslim dan Harapan Baik) akan tersedia pada langkah pengembangan berikutnya.
+      <p class="hint">
+        Pilih satu preset untuk setiap bagian refleksi. Teks doa tampil di tab
+        “Doa Muslim” dan “Harapan Baik” pada halaman reward.
       </p>
+      {muslimTemplates.length === 0 && universalTemplates.length === 0 ? (
+        <p class="placeholder">Belum ada preset doa. Tambahkan template doa terlebih dahulu.</p>
+      ) : (
+        <>
+          <fieldset class="doa-group">
+            <legend>Doa Muslim</legend>
+            {muslimTemplates.map((t) => (
+              <label class="doa-option">
+                <input type="radio" name="doa-muslim" value={t.id} checked={selectedMuslim === t.id} />
+                <span>
+                  <strong lang={t.locale}>{t.name}</strong>
+                  <em lang={t.locale}>{excerpt(t.content)}</em>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset class="doa-group">
+            <legend>Harapan Baik (universal)</legend>
+            {universalTemplates.map((t) => (
+              <label class="doa-option">
+                <input type="radio" name="doa-universal" value={t.id} checked={selectedUniversal === t.id} />
+                <span>
+                  <strong lang={t.locale}>{t.name}</strong>
+                  <em lang={t.locale}>{excerpt(t.content)}</em>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <p id="doa-error" class="field-error" hidden></p>
+          <div class="doa-actions">
+            <button type="button" id="doa-save" class="btn-secondary">Simpan pilihan doa</button>
+            <span id="doa-status" role="status" aria-live="polite"></span>
+          </div>
+        </>
+      )}
     </section>
 
     <!-- SECTION: SEO -->
@@ -388,6 +440,20 @@ const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount
   .status-line { color: var(--color-text); font-size: var(--text-body-sm); margin: 0 0 var(--space-4); }
   .status-line strong { color: var(--color-ink); }
   .status-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+
+  .doa-group { border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-4); margin: 0 0 var(--space-4); }
+  .doa-group legend { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); padding: 0 var(--space-2); }
+  .doa-option {
+    display: flex; align-items: flex-start; gap: var(--space-3);
+    padding: var(--space-3); border-radius: var(--radius-control);
+    font-weight: var(--font-weight-regular); font-size: var(--text-body); cursor: pointer;
+  }
+  .doa-option:hover { background: var(--color-primary-subtle); }
+  .doa-option input { width: 20px; height: 20px; flex: none; margin-top: 2px; }
+  .doa-option strong { display: block; color: var(--color-ink); font-weight: var(--font-weight-semibold); }
+  .doa-option em { color: var(--color-text-muted); font-size: var(--text-body-sm); font-style: normal; }
+  .doa-actions { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+  #doa-status { color: var(--color-text-muted); font-size: var(--text-body-sm); }
 </style>
 
 <script>
@@ -552,6 +618,56 @@ const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
     if (target.classList?.contains("item-remove")) target.closest(".item-row")?.remove();
+  });
+
+  // Pilihan preset doa: simpan lewat API doa (satu route tersendiri).
+  const doaSave = $<HTMLButtonElement>("#doa-save");
+  const doaStatus = $<HTMLElement>("#doa-status");
+  const doaError = $<HTMLElement>("#doa-error");
+
+  doaSave?.addEventListener("click", async () => {
+    if (!doaSave) return;
+    if (doaError) { doaError.hidden = true; doaError.textContent = ""; }
+    const muslim = document.querySelector<HTMLInputElement>('input[name="doa-muslim"]:checked')?.value ?? "";
+    const universal = document.querySelector<HTMLInputElement>('input[name="doa-universal"]:checked')?.value ?? "";
+    if (!muslim || !universal) {
+      if (doaError) {
+        doaError.textContent = "Pilih satu preset untuk Doa Muslim dan satu untuk Harapan Baik.";
+        doaError.hidden = false;
+      }
+      return;
+    }
+    doaSave.disabled = true;
+    if (doaStatus) doaStatus.textContent = "Menyimpan…";
+    try {
+      const res = await fetch(`/admin/api/campaigns/${campaignId}/doa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ muslim, universal }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (doaStatus) doaStatus.textContent = `Tersimpan ${nowClock()}`;
+        return;
+      }
+      if (doaError) {
+        doaError.textContent = data.reason === "variant-mismatch"
+          ? "Preset doa tidak cocok dengan bagianannya. Muat ulang halaman."
+          : data.reason === "unauthorized"
+            ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+            : "Terjadi kesalahan. Coba lagi.";
+        doaError.hidden = false;
+      }
+      if (doaStatus) doaStatus.textContent = "";
+    } catch {
+      if (doaError) {
+        doaError.textContent = "Terjadi kesalahan jaringan. Coba lagi.";
+        doaError.hidden = false;
+      }
+      if (doaStatus) doaStatus.textContent = "";
+    } finally {
+      doaSave.disabled = false;
+    }
   });
 
   // Aksi status: publish/pause/unpause/archive/duplicate — konfirmasi native
