@@ -1,0 +1,42 @@
+---
+import PublicLayout from "../../../layouts/PublicLayout.astro";
+
+export const prerender = false;
+
+// English mirror of /batal-berlangganan/[token] — confirmation page after the
+// one-click unsubscribe in GET /api/unsubscribe/<token>.
+const { token } = Astro.params;
+const invalid = token === "invalid";
+const resubscribeUrl = invalid ? null : `/subscribe-again/${token}`;
+---
+<PublicLayout title={invalid ? "Link no longer valid" : "You are unsubscribed"} lang="en" noindex>
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    {invalid ? (
+      <div style="background: var(--color-warning-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">This link is no longer valid</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          The unsubscribe link is invalid or has expired. If you are still receiving the KelasWFA
+          newsletter, please click the unsubscribe link in the most recent email.
+        </p>
+        <a href="/" style="color: var(--color-primary); font-weight: 600;">Back to the homepage</a>
+      </div>
+    ) : (
+      <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">You have unsubscribed from the KelasWFA newsletter</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Your request has been processed. You will no longer receive newsletter emails from KelasWFA.
+        </p>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4); font-size: var(--text-body-sm);">
+          Note: transactional emails — such as the reward access link you claimed — are still sent,
+          because they relate directly to your own request rather than the newsletter.
+        </p>
+        {resubscribeUrl && (
+          <p style="margin: 0;">
+            Changed your mind?
+            <a href={resubscribeUrl} style="color: var(--color-primary); font-weight: 600;">Subscribe again</a>
+          </p>
+        )}
+      </div>
+    )}
+  </main>
+</PublicLayout>

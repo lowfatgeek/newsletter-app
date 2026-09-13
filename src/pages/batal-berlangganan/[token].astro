@@ -1,0 +1,44 @@
+---
+import PublicLayout from "../../layouts/PublicLayout.astro";
+
+export const prerender = false;
+
+// Halaman ini hanya konfirmasi — unsubscribe sebenarnya sudah terjadi di
+// GET /api/unsubscribe/<token> sebelum redirect ke sini. Token invalid
+// (ketika redirect ke /batal-berlangganan/invalid) menampilkan kondisi
+// kedaluwarsa yang ramah.
+const { token } = Astro.params;
+const invalid = token === "invalid";
+const unsubAgainUrl = invalid ? null : `/subscribe-again/${token}`;
+---
+<PublicLayout title={invalid ? "Tautan tidak berlaku" : "Berhasil berhenti berlangganan"} lang="id" noindex>
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    {invalid ? (
+      <div style="background: var(--color-warning-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">Tautan sudah tidak berlaku</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Tautan berhenti berlangganan tidak valid atau sudah kedaluwarsa. Kalau kamu masih
+          menerima newsletter KelasWFA, silakan klik tautan unsubscribe di email yang paling baru.
+        </p>
+        <a href="/" style="color: var(--color-primary); font-weight: 600;">Kembali ke halaman utama</a>
+      </div>
+    ) : (
+      <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">Kamu berhenti berlangganan newsletter KelasWFA</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Permintaanmu sudah kami proses. Kamu tidak akan menerima email newsletter dari KelasWFA lagi.
+        </p>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4); font-size: var(--text-body-sm);">
+          Catatan: email transaksional — seperti tautan akses hadiah yang pernah kamu klaim — tetap
+          akan dikirim karena berkaitan langsung dengan permintaanmu, bukan newsletter.
+        </p>
+        {unsubAgainUrl && (
+          <p style="margin: 0;">
+            Berubah pikiran?
+            <a href={unsubAgainUrl} style="color: var(--color-primary); font-weight: 600;">Aktifkan kembali newsletter</a>
+          </p>
+        )}
+      </div>
+    )}
+  </main>
+</PublicLayout>

@@ -83,7 +83,10 @@ export async function confirmContactByToken(
       .where(eq(contacts.id, claim.contactId));
     await tx.update(rewardClaims).set({ status: "accessed" }).where(eq(rewardClaims.id, result.claimId));
     const [sub] = await tx.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, claim.contactId));
-    if (!sub || sub.status !== "active") {
+    // 'unsubscribed' TIDAK diaktifkan ulang di sini: consent berhenti berlangganan
+    // tetap dihormati. Re-subscribe hanya terjadi via halaman eksplisit
+    // /subscribe-again/<token> (resubscribeByToken di lib/broadcast/unsubscribe.ts).
+    if (!sub || (sub.status !== "active" && sub.status !== "unsubscribed")) {
       await tx.insert(marketingSubscriptions)
         .values({ contactId: claim.contactId, status: "active", subscribedAt: new Date(), source: "reward_claim" })
         .onConflictDoUpdate({

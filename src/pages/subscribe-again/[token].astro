@@ -1,0 +1,58 @@
+---
+import PublicLayout from "../layouts/PublicLayout.astro";
+import { resolveUnsubscribeToken } from "../lib/broadcast/unsubscribe";
+
+export const prerender = false;
+
+// Halaman persetujuan re-subscribe EKSPLISIT — satu-satunya jalur untuk
+// mengaktifkan kembali newsletter setelah unsubscribe (consent tetap
+// dihormati oleh alur reward/konfirmasi; lihat access.ts).
+const { token } = Astro.params;
+const ok = Astro.url.searchParams.get("ok") === "1";
+const target = token && token !== "invalid" ? await resolveUnsubscribeToken(token) : null;
+const valid = target !== null;
+---
+<PublicLayout title="Aktifkan kembali newsletter" lang="id" noindex>
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    {!valid ? (
+      <div style="background: var(--color-warning-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">Tautan sudah tidak berlaku</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Tautan ini tidak valid atau sudah kedaluwarsa. Kalau kamu ingin berlangganan lagi,
+          silakan klaim ulang hadiah dari halaman utama dengan email yang sama.
+        </p>
+        <a href="/" style="color: var(--color-primary); font-weight: 600;">Kembali ke halaman utama</a>
+      </div>
+    ) : ok ? (
+      <div style="background: var(--color-success-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">Newsletter sudah aktif kembali</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Terima kasih! Kamu akan menerima email newsletter KelasWFA berikutnya.
+        </p>
+        <a href="/" style="color: var(--color-primary); font-weight: 600;">Kembali ke halaman utama</a>
+      </div>
+    ) : (
+      <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">Aktifkan kembali newsletter KelasWFA</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Kamu sebelumnya berhenti berlangganan newsletter KelasWFA. Dengan menekan tombol di bawah,
+          kamu memberikan persetujuan baru untuk menerima email newsletter kami lagi.
+        </p>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-6); font-size: var(--text-body-sm);">
+          Yang perlu kamu tahu: persetujuan ini hanya berlaku untuk newsletter broadcast.
+          Email transaksional — seperti tautan akses hadiah — tetap dikirim apa pun pilihanmu,
+          dan kamu bisa berhenti berlangganan kapan saja lewat tautan di bagian bawah setiap email.
+        </p>
+        <form method="post" action="/api/unsubscribe/resubscribe">
+          <input type="hidden" name="token" value={token} />
+          <button
+            type="submit"
+            style="background: var(--color-primary); color: #ffffff; border: none; border-radius: var(--radius-control); font-weight: 600; font-size: var(--text-body-lg); padding: 14px 28px; min-height: 48px; cursor: pointer; width: 100%;"
+          >
+            Ya, aktifkan kembali newsletter
+          </button>
+        </form>
+      </div>
+    )}
+  </main>
+</PublicLayout>
