@@ -1,0 +1,334 @@
+---
+import { and, eq } from "drizzle-orm";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { listContacts } from "../../../lib/admin/contacts";
+import { db } from "../../../lib/db";
+import { rewardCampaignLocales, rewardCampaigns } from "../../../lib/schema";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data tabel per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const PAGE_SIZE = 20;
+const STATUSES = ["pending", "confirmed", "unsubscribed"] as const;
+type Status = (typeof STATUSES)[number];
+
+const url = Astro.url;
+const statusRaw = url.searchParams.get("status");
+const status: Status | undefined = (STATUSES as readonly string[]).includes(statusRaw ?? "")
+  ? (statusRaw as Status)
+  : undefined;
+const campaignId = url.searchParams.get("campaignId")?.trim() || undefined;
+const search = url.searchParams.get("search")?.trim() || undefined;
+
+let offset = Number.parseInt(url.searchParams.get("offset") ?? "0", 10);
+if (!Number.isFinite(offset) || offset < 0) offset = 0;
+
+const { rows, total } = await listContacts({ status, campaignId, search, limit: PAGE_SIZE, offset });
+
+// Label campaign untuk chip filter aktif.
+let campaignLabel: string | null = null;
+if (campaignId) {
+  const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, campaignId));
+  if (camp) {
+    const [loc] = await db
+      .select()
+      .from(rewardCampaignLocales)
+      .where(and(eq(rewardCampaignLocales.campaignId, camp.id), eq(rewardCampaignLocales.locale, "id")));
+    campaignLabel = loc?.title ?? camp.slug;
+  }
+}
+
+/** Query params dengan satu filter dibuang (untuk chip yang bisa dihapus). */
+function listParams(exclude?: "status" | "campaignId" | "search" | "offset"): string {
+  const p = new URLSearchParams();
+  if (status && exclude !== "status") p.set("status", status);
+  if (campaignId && exclude !== "campaignId") p.set("campaignId", campaignId);
+  if (search && exclude !== "search") p.set("search", search);
+  const s = p.toString();
+  return s ? `?${s}` : "";
+}
+
+const exportHref = `/admin/api/contacts/export${listParams()}`;
+
+function pageHref(newOffset: number): string {
+  const p = new URLSearchParams();
+  if (status) p.set("status", status);
+  if (campaignId) p.set("campaignId", campaignId);
+  if (search) p.set("search", search);
+  p.set("offset", String(newOffset));
+  return `?${p.toString()}`;
+}
+
+/** Badge gabungan: unsubscribed (marketing) > confirmed > pending. */
+function rowStatus(row: { marketingStatus: string | null; confirmationStatus: string }): "confirmed" | "pending" | "unsubscribed" {
+  if (row.marketingStatus === "unsubscribed") return "unsubscribed";
+  return row.confirmationStatus === "confirmed" ? "confirmed" : "pending";
+}
+
+const marketingText: Record<string, string> = {
+  active: "Aktif",
+  inactive: "Nonaktif",
+  unsubscribed: "Berhenti",
+};
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" });
+function fmtDate(d: Date | null): string {
+  return d ? dateFmt.format(d) : "—";
+}
+
+const showingFrom = total === 0 ? 0 : offset + 1;
+const showingTo = Math.min(offset + PAGE_SIZE, total);
+const hasPrev = offset > 0;
+const hasNext = offset + PAGE_SIZE < total;
+---
+<AdminLayout title="Kontak" admin={admin}>
+  <div class="page-head">
+    <div>
+      <p class="overline">Audience</p>
+      <h1>Kontak</h1>
+      <p class="helper">
+        Daftar kontak beserta status konfirmasi, langganan marketing, dan riwayat klaim reward.
+      </p>
+    </div>
+    <a class="btn-primary" href={exportHref} download>Export CSV</a>
+  </div>
+
+  <div class="filter-bar">
+    <form method="get" action="/admin/contacts" class="search-form">
+      {status ? <input type="hidden" name="status" value={status} /> : null}
+      {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
+      <input
+        type="search"
+        name="search"
+        value={search ?? ""}
+        placeholder="Cari email…"
+        aria-label="Cari email"
+      />
+      <button type="submit" class="btn-secondary">Cari</button>
+    </form>
+
+    <nav class="status-tabs" aria-label="Filter status">
+      <a href={listParams("status")} class={`tab ${!status ? "tab-active" : ""}`}>Semua</a>
+      <a href={`?${new URLSearchParams({ status: "confirmed", ...(campaignId ? { campaignId } : {}), ...(search ? { search } : {}) })}`} class={`tab ${status === "confirmed" ? "tab-active" : ""}`}>Confirmed</a>
+      <a href={`?${new URLSearchParams({ status: "pending", ...(campaignId ? { campaignId } : {}), ...(search ? { search } : {}) })}`} class={`tab ${status === "pending" ? "tab-active" : ""}`}>Pending</a>
+      <a href={`?${new URLSearchParams({ status: "unsubscribed", ...(campaignId ? { campaignId } : {}), ...(search ? { search } : {}) })}`} class={`tab ${status === "unsubscribed" ? "tab-active" : ""}`}>Unsubscribed</a>
+    </nav>
+  </div>
+
+  {(status || campaignId || search) && (
+    <div class="chips" aria-label="Filter aktif">
+      {status && (
+        <span class="chip">
+          Status: {status}
+          <a class="chip-remove" href={listParams("status")} aria-label={`Hapus filter status ${status}`}>×</a>
+        </span>
+      )}
+      {campaignId && campaignLabel && (
+        <span class="chip">
+          Campaign: {campaignLabel}
+          <a class="chip-remove" href={listParams("campaignId")} aria-label="Hapus filter campaign">×</a>
+        </span>
+      )}
+      {search && (
+        <span class="chip">
+          Pencarian: {search}
+          <a class="chip-remove" href={listParams("search")} aria-label="Hapus pencarian">×</a>
+        </span>
+      )}
+    </div>
+  )}
+
+  {rows.length === 0 ? (
+    <div class="card empty">
+      <p>Belum ada kontak yang cocok dengan filter ini.</p>
+    </div>
+  ) : (
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+              <th scope="col">Marketing</th>
+              <th scope="col">Klaim</th>
+              <th scope="col">Terdaftar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const s = rowStatus(r);
+              return (
+                <tr>
+                  <td>
+                    <a class="email-link" href={`/admin/contacts/${r.id}`}><strong>{r.emailNormalized}</strong></a>
+                  </td>
+                  <td>
+                    <span class={`badge badge-${s}`}>
+                      {s === "confirmed" && (
+                        <svg class="badge-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.5 11.2 3.3 8l-1 1 4.2 4.2 7.2-7.2-1-1z"/></svg>
+                      )}
+                      {s === "pending" && (
+                        <svg class="badge-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 12.5A5.5 5.5 0 1 1 8 2.5a5.5 5.5 0 0 1 0 11zM8.75 4.5h-1.5V8.8l3.3 2 .75-1.25-2.55-1.55z"/></svg>
+                      )}
+                      {s === "unsubscribed" && (
+                        <svg class="badge-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12.6 3.4 8 8l4.6 4.6-1 1L7 9l-4.6 4.6-1-1L6 8 1.4 3.4l1-1L7 7l4.6-4.6z"/></svg>
+                      )}
+                      {s === "confirmed" ? "Confirmed" : s === "pending" ? "Pending" : "Unsubscribed"}
+                    </span>
+                  </td>
+                  <td>{r.marketingStatus ? marketingText[r.marketingStatus] ?? r.marketingStatus : "—"}</td>
+                  <td>
+                    {r.claimsCount > 0 ? (
+                      <span title={r.claimSlugs.replace(/;/g, ", ")}>
+                        {r.claimsCount} claim · {r.claimSlugs.replace(/;/g, ", ")}
+                      </span>
+                    ) : (
+                      <span class="muted">—</span>
+                    )}
+                  </td>
+                  <td>{fmtDate(r.createdAt)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+
+  <div class="pagination">
+    <span class="muted">
+      Menampilkan {showingFrom}–{showingTo} dari {total} kontak
+    </span>
+    <div class="pagination-actions">
+      {hasPrev ? <a class="btn-secondary" href={pageHref(Math.max(offset - PAGE_SIZE, 0))}>← Sebelumnya</a> : <button class="btn-secondary" disabled>← Sebelumnya</button>}
+      {hasNext ? <a class="btn-secondary" href={pageHref(offset + PAGE_SIZE)}>Selanjutnya →</a> : <button class="btn-secondary" disabled>Selanjutnya →</button>}
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  }
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-primary); color: var(--color-canvas);
+    border: none; border-radius: var(--radius-control);
+    padding: 12px 16px; min-height: 44px;
+    font-family: inherit; font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm); cursor: pointer;
+    text-decoration: none;
+  }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+  .btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-surface-raised); border: var(--border-default);
+    color: var(--color-ink); border-radius: var(--radius-control);
+    padding: 8px 12px; min-height: 36px;
+    font-family: inherit; font-size: var(--text-body-sm); cursor: pointer;
+    text-decoration: none;
+  }
+  .btn-secondary:disabled { color: var(--color-text-muted); cursor: not-allowed; opacity: 0.6; }
+
+  .filter-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-4);
+  }
+  .search-form { display: flex; gap: var(--space-2); }
+  .search-form input {
+    font-family: inherit; font-size: var(--text-body);
+    padding: 8px 12px; min-height: 36px; min-width: 220px;
+    border: var(--border-default); border-radius: var(--radius-control);
+    background: var(--color-surface-raised); color: var(--color-text);
+  }
+  .search-form input:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+  .status-tabs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .tab {
+    color: var(--color-text-muted); text-decoration: none;
+    padding: 8px 12px; border-radius: var(--radius-control);
+    font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold);
+  }
+  .tab-active { background: var(--color-primary-subtle); color: var(--color-primary); }
+
+  .chips { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: var(--color-primary-subtle); color: var(--color-primary);
+    border-radius: var(--radius-pill);
+    padding: 4px 6px 4px 12px; font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+  .chip-remove {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.08); color: inherit;
+    text-decoration: none; font-size: 14px; line-height: 1;
+  }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-body-sm); }
+  th, td { text-align: left; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
+  th {
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-body-sm);
+    background: var(--color-surface-subtle);
+  }
+  td { color: var(--color-text); vertical-align: middle; min-height: 56px; height: 56px; }
+  td strong { color: var(--color-ink); }
+  tbody tr:hover { background: rgba(23, 107, 91, 0.04); } /* Forest Tint sangat ringan */
+  tbody tr:last-child td { border-bottom: none; }
+  .email-link { color: inherit; text-decoration: none; }
+  .email-link:hover { color: var(--color-primary); text-decoration: underline; }
+  .muted { color: var(--color-text-muted); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+    font-weight: var(--font-weight-semibold);
+  }
+  .badge-icon { flex-shrink: 0; }
+  .badge-confirmed { background: var(--color-success-subtle); color: var(--color-success); }
+  .badge-pending { background: var(--color-warning-subtle); color: var(--color-warning); }
+  .badge-unsubscribed { background: var(--color-danger-subtle); color: var(--color-danger); }
+
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-4); flex-wrap: wrap;
+  }
+  .pagination-actions { display: flex; gap: var(--space-2); }
+  .empty p { color: var(--color-text-muted); margin: 0; }
+</style>

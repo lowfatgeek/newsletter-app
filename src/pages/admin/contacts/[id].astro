@@ -1,0 +1,303 @@
+---
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { getContactDetail } from "../../../lib/admin/contacts";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const contactId = Astro.params.id ?? "";
+const detail = await getContactDetail(contactId);
+if (!detail) return Astro.redirect("/admin/contacts");
+
+const { contact, subscription, consents, claims } = detail;
+
+/** Badge gabungan seperti halaman daftar. */
+const rowStatus =
+  subscription?.status === "unsubscribed"
+    ? "unsubscribed"
+    : contact.confirmationStatus === "confirmed"
+      ? "confirmed"
+      : "pending";
+const badgeText = { confirmed: "Confirmed", pending: "Pending", unsubscribed: "Unsubscribed" }[rowStatus];
+
+const marketingText: Record<string, string> = {
+  active: "Aktif",
+  inactive: "Nonaktif",
+  unsubscribed: "Berhenti",
+};
+
+const claimText: Record<string, string> = {
+  access_sent: "Akses terkirim",
+  accessed: "Sudah diakses",
+};
+
+const consentText: Record<string, string> = {
+  subscribed: "Berlangganan",
+  unsubscribed: "Berhenti berlangganan",
+  resubscribed: "Berlangganan ulang",
+};
+
+const dateTimeFmt = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" });
+function fmtDateTime(d: Date | null): string {
+  return d ? dateTimeFmt.format(d) : "—";
+}
+---
+<AdminLayout title={`Kontak ${contact.emailNormalized}`} admin={admin}>
+  <p class="breadcrumb"><a href="/admin/contacts">← Kembali ke daftar kontak</a></p>
+
+  <div class="page-head">
+    <div>
+      <p class="overline">Detail Kontak</p>
+      <h1>{contact.emailNormalized}</h1>
+      <p class="helper">
+        Profil kontak, riwayat klaim reward, dan riwayat persetujuan marketing.
+      </p>
+    </div>
+  </div>
+
+  <div class="card profile-card">
+    <dl class="profile-grid">
+      <div><dt>Email</dt><dd><strong>{contact.emailNormalized}</strong></dd></div>
+      <div>
+        <dt>Status</dt>
+        <dd>
+          <span class={`badge badge-${rowStatus}`}>
+            {rowStatus === "confirmed" && (
+              <svg class="badge-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.5 11.2 3.3 8l-1 1 4.2 4.2 7.2-7.2-1-1z"/></svg>
+            )}
+            {rowStatus === "pending" && (
+              <svg class="badge-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 12.5A5.5 5.5 0 1 1 8 2.5a5.5 5.5 0 0 1 0 11zM8.75 4.5h-1.5V8.8l3.3 2 .75-1.25-2.55-1.55z"/></svg>
+            )}
+            {rowStatus === "unsubscribed" && (
+              <svg class="badge-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12.6 3.4 8 8l4.6 4.6-1 1L7 9l-4.6 4.6-1-1L6 8 1.4 3.4l1-1L7 7l4.6-4.6z"/></svg>
+            )}
+            {badgeText}
+          </span>
+        </dd>
+      </div>
+      <div>
+        <dt>Status konfirmasi email</dt>
+        <dd>{contact.confirmationStatus === "confirmed" ? `Dikonfirmasi ${fmtDateTime(contact.confirmedAt)}` : "Belum dikonfirmasi"}</dd>
+      </div>
+      <div>
+        <dt>Marketing</dt>
+        <dd>{subscription ? marketingText[subscription.status] ?? subscription.status : "—"}</dd>
+      </div>
+      <div><dt>Bahasa</dt><dd>{contact.locale}</dd></div>
+      <div><dt>Berlangganan</dt><dd>{fmtDateTime(subscription?.subscribedAt ?? null)}</dd></div>
+      <div><dt>Berhenti</dt><dd>{fmtDateTime(subscription?.unsubscribedAt ?? null)}</dd></div>
+      <div><dt>Terdaftar</dt><dd>{fmtDateTime(contact.createdAt)}</dd></div>
+    </dl>
+  </div>
+
+  <section class="card">
+    <h2>Riwayat Klaim Reward</h2>
+    {claims.length === 0 ? (
+      <p class="muted">Belum ada klaim reward.</p>
+    ) : (
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Campaign</th>
+              <th scope="col">Slug</th>
+              <th scope="col">Status</th>
+              <th scope="col">Pertama diklaim</th>
+            </tr>
+          </thead>
+          <tbody>
+            {claims.map((c) => (
+              <tr>
+                <td><strong>{c.campaignTitle}</strong></td>
+                <td>{c.campaignSlug}</td>
+                <td>{claimText[c.claimStatus] ?? c.claimStatus}</td>
+                <td>{fmtDateTime(c.firstClaimedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+
+  <section class="card">
+    <h2>Riwayat Persetujuan</h2>
+    {consents.length === 0 ? (
+      <p class="muted">Belum ada peristiwa persetujuan.</p>
+    ) : (
+      <ul class="consent-list">
+        {consents.map((c) => (
+          <li key={c.id}>
+            <strong>{consentText[c.event] ?? c.event}</strong>
+            <span class="muted"> · {fmtDateTime(c.createdAt)}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  <section class="card danger-zone">
+    <h2>Zona Destruktif</h2>
+    <p class="helper">
+      Anonimisasi mengganti email menjadi <code>deleted-{contact.id}@invalid.local</code>, menghapus
+      semua token akses milik kontak ini, dan tidak dapat dibatalkan. Riwayat klaim dan persetujuan
+      tetap tersimpan tanpa identitas pribadi.
+    </p>
+    <p id="anonymize-error" class="field-error" hidden role="alert"></p>
+    <button type="button" id="anonymize-btn" class="btn-danger" data-contact-id={contact.id}>
+      Anonimkan kontak ini
+    </button>
+  </section>
+</AdminLayout>
+
+<style>
+  .breadcrumb { margin: 0 0 var(--space-4); font-size: var(--text-body-sm); }
+  .breadcrumb a { color: var(--color-primary); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  .page-head { margin-bottom: var(--space-6); }
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); word-break: break-all; }
+  h2 { color: var(--color-ink); font-size: var(--text-body-lg); margin: 0 0 var(--space-4); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-4) var(--space-6);
+    margin: 0;
+  }
+  .profile-grid dt {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-1);
+  }
+  .profile-grid dd { margin: 0; color: var(--color-text); font-size: var(--text-body-sm); }
+  .profile-grid dd strong { color: var(--color-ink); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-body-sm); }
+  th, td { text-align: left; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); min-height: 56px; height: 56px; }
+  th {
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-body-sm);
+    background: var(--color-surface-subtle);
+  }
+  td strong { color: var(--color-ink); }
+  tbody tr:hover { background: rgba(23, 107, 91, 0.04); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .consent-list { margin: 0; padding: 0 0 0 var(--space-4); color: var(--color-text); font-size: var(--text-body-sm); }
+  .consent-list li { min-height: 32px; padding: var(--space-1) 0; }
+  .muted { color: var(--color-text-muted); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+    font-weight: var(--font-weight-semibold);
+  }
+  .badge-icon { flex-shrink: 0; }
+  .badge-confirmed { background: var(--color-success-subtle); color: var(--color-success); }
+  .badge-pending { background: var(--color-warning-subtle); color: var(--color-warning); }
+  .badge-unsubscribed { background: var(--color-danger-subtle); color: var(--color-danger); }
+
+  .danger-zone { border-color: var(--color-danger); }
+  .btn-danger {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-danger); color: var(--color-canvas);
+    border: none; border-radius: var(--radius-control);
+    padding: 12px 16px; min-height: 44px;
+    font-family: inherit; font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm); cursor: pointer;
+  }
+  .btn-danger:hover { background: color-mix(in srgb, var(--color-danger) 85%, black); }
+  .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+  code {
+    background: var(--color-surface-subtle);
+    border-radius: var(--radius-control);
+    padding: 2px 6px;
+    font-size: var(--text-body-sm);
+  }
+  .field-error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: var(--space-4) 0;
+  }
+</style>
+
+<script>
+  const anonymizeBtn = document.querySelector<HTMLButtonElement>("#anonymize-btn");
+  const errorEl = document.querySelector<HTMLElement>("#anonymize-error");
+
+  anonymizeBtn?.addEventListener("click", async () => {
+    const contactId = anonymizeBtn.dataset.contactId;
+    if (!contactId) return;
+    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+
+    // Konfirmasi pertama: jelaskan apa yang terjadi.
+    const first = window.confirm(
+      "Anonimkan kontak ini? Email akan diganti menjadi tanpa identitas dan semua token akses dihapus.",
+    );
+    if (!first) return;
+
+    // Konfirmasi kedua: tegaskan permanensi.
+    const second = window.confirm(
+      "PERMANEN — tindakan ini tidak dapat dibatalkan. Riwayat klaim dan persetujuan tetap tersimpan, " +
+        "tetapi kontak tidak akan bisa dihubungi lagi. Lanjutkan anonimisasi?",
+    );
+    if (!second) return;
+
+    anonymizeBtn.disabled = true;
+    try {
+      const res = await fetch(`/admin/api/contacts/${contactId}/anonymize`, { method: "POST" });
+      const data = (await res.json()) as { ok?: boolean };
+      if (data.ok) {
+        window.location.href = "/admin/contacts";
+        return;
+      }
+      if (errorEl) {
+        errorEl.textContent =
+          res.status === 404
+            ? "Kontak tidak ditemukan. Mungkin sudah dihapus."
+            : "Terjadi kesalahan. Coba lagi.";
+        errorEl.hidden = false;
+      }
+    } catch {
+      if (errorEl) {
+        errorEl.textContent = "Terjadi kesalahan jaringan. Coba lagi.";
+        errorEl.hidden = false;
+      }
+    } finally {
+      anonymizeBtn.disabled = false;
+    }
+  });
+</script>
