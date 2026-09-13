@@ -25,3 +25,6 @@ test-results/
 
 # jetbrains setting folder
 .idea/
+
+# worktrees
+.worktrees/

@@ -25,6 +25,7 @@
     "esbuild": true
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.13",
     "vitest": "^5.0.0"
