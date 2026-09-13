@@ -1,0 +1,58 @@
+export const EMAIL_FROM = "KelasWFA <admin@kelaswfa.my.id>";
+export const EMAIL_REPLY_TO = "admin@kelaswfa.my.id";
+
+export function maskedEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  return `${local.slice(0, 2)}**@${domain}`;
+}
+
+function layout(lang: "id" | "en", title: string, bodyHtml: string, linkLabel: string, url: string): string {
+  const replyNote = lang === "id"
+    ? "Balas email ini jika butuh bantuan."
+    : "Reply to this email if you need help.";
+  return `<!doctype html><html lang="${lang}"><body style="font-family:Arial,Helvetica,sans-serif;color:#36514B;background:#FFFCF5;padding:24px;">
+<div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E7DED0;border-radius:20px;padding:32px;">
+<h1 style="color:#153B35;font-size:22px;margin:0 0 16px;">${title}</h1>
+<div style="font-size:16px;line-height:1.6;">${bodyHtml}</div>
+<p style="margin:24px 0;"><a href="${url}" style="background:#176B5B;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:12px;display:inline-block;">${linkLabel}</a></p>
+<p style="color:#6C7E79;font-size:13px;">${replyNote} (${EMAIL_REPLY_TO})</p>
+</div></body></html>`;
+}
+
+export function confirmationEmail(locale: "id" | "en", confirmUrl: string) {
+  if (locale === "en") {
+    return {
+      subject: "Confirm your email to open your KelasWFA gift",
+      html: layout("en", "Confirm your email",
+        "<p>Tap the button below to confirm your email and unlock your reward.</p><p>Your link is valid for 7 days.</p>",
+        "Confirm my email", confirmUrl),
+      text: "Confirm your email to open your KelasWFA gift: " + confirmUrl + " (valid 7 days)",
+    };
+  }
+  return {
+    subject: "Konfirmasi email untuk membuka hadiah KelasWFA",
+    html: layout("id", "Satu langkah lagi",
+      "<p>Klik tombol di bawah untuk mengonfirmasi emailmu dan membuka hadiah dari KelasWFA.</p><p>Tautan berlaku 7 hari.</p>",
+      "Konfirmasi emailku", confirmUrl),
+    text: "Konfirmasi email untuk membuka hadiah KelasWFA: " + confirmUrl + " (berlaku 7 hari)",
+  };
+}
+
+export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, rewardTitle: string) {
+  if (locale === "en") {
+    return {
+      subject: `Your KelasWFA gift: ${rewardTitle}`,
+      html: layout("en", "Your gift is ready",
+        `<p>Your reward <strong>${rewardTitle}</strong> is ready to download.</p><p>This access link is valid for 7 days. The download link itself is valid for 1 hour.</p>`,
+        "Open my gift", accessUrl),
+      text: `Your KelasWFA gift "${rewardTitle}" is ready: ${accessUrl} (valid 7 days)`,
+    };
+  }
+  return {
+    subject: `Hadiah KelasWFA-mu: ${rewardTitle}`,
+    html: layout("id", "Kadonya siap dibuka",
+      `<p>Hadiah <strong>${rewardTitle}</strong> sudah siap diunduh.</p><p>Tautan akses berlaku 7 hari. Link unduhan berlaku 1 jam.</p>`,
+      "Buka hadiahku", accessUrl),
+    text: `Hadiah KelasWFA "${rewardTitle}" sudah siap: ${accessUrl} (berlaku 7 hari)`,
+  };
+}
