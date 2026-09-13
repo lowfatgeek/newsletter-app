@@ -1,0 +1,115 @@
+import { describe, it, expect } from "vitest";
+import { sanitizeBody, validateContent, renderForRecipient } from "../../src/lib/broadcast/content";
+
+describe("sanitizeBody", () => {
+  it("strips scripts, handlers, and non-https hrefs, forces rel/target", () => {
+    const out = sanitizeBody(`<p onclick="x()">Hai</p><script>alert(1)</script>
+      <a href="https://a.b">ok</a><a href="http://a.b">no</a><a href="javascript:alert(1)">js</a>`);
+    expect(out).toContain("<p>Hai</p>");
+    expect(out).not.toContain("script");
+    expect(out).toContain('href="https://a.b"');
+    expect(out).not.toContain('href="http://a.b"');
+    expect(out).not.toContain("javascript:");
+    expect(out).toContain('rel="noopener"');
+  });
+  it("strips style tags and event handlers on anchors", () => {
+    const out = sanitizeBody(`<style>.x{}</style><a href="https://a.b" onclick="y()">klik</a>`);
+    expect(out).not.toContain("style");
+    expect(out).not.toContain(".x{}");
+    expect(out).not.toContain("onclick");
+    expect(out).toContain('href="https://a.b"');
+    expect(out).toContain('target="_blank"');
+  });
+  it("keeps the allowlisted formatting tags", () => {
+    const out = sanitizeBody(
+      "<h2>Judul</h2><p><strong>tebal</strong> <em>miring</em> <u>garis</u></p><ul><li>satu</li></ul><blockquote>q</blockquote>",
+    );
+    expect(out).toContain("<h2>Judul</h2>");
+    expect(out).toContain("<strong>tebal</strong>");
+    expect(out).toContain("<em>miring</em>");
+    expect(out).toContain("<u>garis</u>");
+    expect(out).toContain("<li>satu</li>");
+    expect(out).toContain("<blockquote>q</blockquote>");
+  });
+  it("drops disallowed tags like img and table", () => {
+    const out = sanitizeBody('<p>A</p><img src="https://x.y/i.png"><table><tr><td>B</td></tr></table>');
+    expect(out).not.toContain("<img");
+    expect(out).not.toContain("<table");
+    expect(out).toContain("<p>A</p>");
+  });
+});
+
+describe("validateContent", () => {
+  const id = { subjectId: "s", preheaderId: "p", bodyHtmlId: "<p>b</p>" };
+  it("ok with id only, missing en flagged", () => {
+    expect(validateContent(id)).toEqual({ ok: true, missing: ["en"] });
+  });
+  it("ok complete when en filled", () => {
+    expect(validateContent({ ...id, subjectEn: "s", preheaderEn: "p", bodyHtmlEn: "<p>b</p>" }))
+      .toEqual({ ok: true, missing: [] });
+  });
+  it("rejects incomplete id", () => {
+    expect(validateContent({ subjectId: "s", preheaderId: "", bodyHtmlId: "" }).ok).toBe(false);
+  });
+  it("flags en missing when only some en fields are filled", () => {
+    expect(validateContent({ ...id, subjectEn: "s" })).toEqual({ ok: true, missing: ["en"] });
+  });
+});
+
+describe("renderForRecipient", () => {
+  const campaign = {
+    subjectId: "Halo {{email}}", preheaderId: "p", bodyHtmlId: '<p>Hai <a href="https://a.b">link</a> {{locale}}</p>',
+    subjectEn: "Hello {{email}}", preheaderEn: "pe", bodyHtmlEn: '<p>Hi {{locale}} <a href="https://a.b">link</a></p>',
+  };
+  it("uses en locale and rewrites links + unsubscribe footer", () => {
+    const r = renderForRecipient({
+      campaign, locale: "en", email: "a@b.c", siteUrl: "https://kado.test",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
+      linkRewrite: (u) => `https://kado.test/api/click/L1/tok`,
+    });
+    expect(r.subject).toBe("Hello a@b.c");
+    expect(r.html).toContain("https://kado.test/api/click/L1/tok");
+    expect(r.html).toContain("unsubscribe");
+    expect(r.html).toContain("https://kado.test/api/unsubscribe/tok");
+    expect(r.text).toContain("Hi en");
+  });
+  it("falls back to id when en empty for that field", () => {
+    const r = renderForRecipient({
+      campaign: { ...campaign, subjectEn: "" }, locale: "en", email: "a@b.c",
+      siteUrl: "https://kado.test", unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      linkRewrite: (u) => u,
+    });
+    expect(r.subject).toBe("Halo a@b.c");
+  });
+  it("renders id locale with id footer and replaced variables", () => {
+    const r = renderForRecipient({
+      campaign, locale: "id", email: "a@b.c", siteUrl: "https://kado.test",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
+      linkRewrite: (u) => `https://kado.test/api/click/L1/${u.includes("a.b") ? "tok" : "x"}`,
+    });
+    expect(r.subject).toBe("Halo a@b.c");
+    expect(r.preheader).toBe("p");
+    expect(r.html).toContain("https://kado.test/api/click/L1/tok");
+    expect(r.html).toContain("Berhenti berlangganan");
+  });
+  it("text version strips tags, decodes entities, and includes unsubscribe url", () => {
+    const r = renderForRecipient({
+      campaign: { subjectId: "s", preheaderId: "p", bodyHtmlId: "<p>Tips &amp; trik &lt;b&gt;</p>" },
+      locale: "id", email: "a@b.c", siteUrl: "https://kado.test",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
+      linkRewrite: (u) => u,
+    });
+    expect(r.text).toContain("Tips & trik <b>");
+    expect(r.text).toContain("https://kado.test/api/unsubscribe/tok");
+    expect(r.text).not.toMatch(/<p>/);
+  });
+  it("replaces {{email}} safely even with $-patterns in the email", () => {
+    const r = renderForRecipient({
+      campaign: { subjectId: "Hai $& $1 {{email}}", preheaderId: "p", bodyHtmlId: "<p>x</p>" },
+      locale: "id", email: "a$&b@c.d", siteUrl: "https://kado.test",
+      unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
+      linkRewrite: (u) => u,
+    });
+    expect(r.subject).toBe("Hai $& $1 a$&b@c.d");
+  });
+});

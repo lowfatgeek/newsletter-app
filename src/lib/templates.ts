@@ -13,6 +13,23 @@ export function escapeHtml(s: string): string {
   );
 }
 
+/**
+ * Layout email broadcast: body sudah siap (render per recipient),
+ * plus footer unsubscribe (link per-recipient) dan reply-to note.
+ */
+export function broadcastLayout(lang: "id" | "en", bodyHtml: string, unsubscribeUrl: string): string {
+  const unsubLabel = lang === "id" ? "Berhenti berlangganan" : "Unsubscribe";
+  const replyNote = lang === "id"
+    ? "Balas email ini jika butuh bantuan."
+    : "Reply to this email if you need help.";
+  return `<!doctype html><html lang="${lang}"><body style="font-family:Arial,Helvetica,sans-serif;color:#36514B;background:#FFFCF5;padding:24px;">
+<div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E7DED0;border-radius:20px;padding:32px;">
+<div style="font-size:16px;line-height:1.6;">${bodyHtml}</div>
+<p style="color:#6C7E79;font-size:13px;">${replyNote} (${EMAIL_REPLY_TO})</p>
+<p style="color:#6C7E79;font-size:13px;"><a href="${unsubscribeUrl}" style="color:#6C7E79;">${unsubLabel}</a></p>
+</div></body></html>`;
+}
+
 function layout(lang: "id" | "en", title: string, bodyHtml: string, linkLabel: string, url: string): string {
   const replyNote = lang === "id"
     ? "Balas email ini jika butuh bantuan."
