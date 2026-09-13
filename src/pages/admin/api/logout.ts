@@ -1,4 +1,6 @@
 import type { APIRoute } from "astro";
+
+// Route on-demand — tidak pernah diprerender.
 import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs, revokeSession } from "../../../lib/admin/sessions";
 
 const noStore = { "Cache-Control": "no-store" };
@@ -18,6 +20,8 @@ function parseCookies(header: string | null): Record<string, string> {
  * Revoke sesi dari cookie, hapus kedua cookie (Max-Age=0), redirect 303 ke
  * /admin/login. Selalu redirect, apa pun kondisi cookie.
  */
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
   const cookies = parseCookies(request.headers.get("cookie"));
   const raw = cookies[ADMIN_SESSION_COOKIE];

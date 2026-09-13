@@ -1,4 +1,6 @@
 import type { APIRoute } from "astro";
+
+// Route on-demand — tidak pernah diprerender.
 import { startLogin } from "../../../lib/admin/login";
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
@@ -8,6 +10,8 @@ const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json
  * Sukses → { ok: true, challengeId }; kredensial salah → 401 generik;
  * terkena rate limit → 429. Tidak pernah mengungkap apakah email terdaftar.
  */
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
   let body: { email?: unknown; password?: unknown };
   try {

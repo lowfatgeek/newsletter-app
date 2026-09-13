@@ -1,6 +1,10 @@
 ---
 import { getAdmin } from "../../lib/admin/guard";
 
+// Route on-demand — keputusan redirect butuh cookie sesi per-request.
+export const prerender = false;
+
+
 // /admin → /admin/campaigns bila sudah login, /admin/login bila belum.
 // Task 10 mengganti dashboard; target redirect sudah final sekarang.
 const secure = Astro.url.protocol === "https:";

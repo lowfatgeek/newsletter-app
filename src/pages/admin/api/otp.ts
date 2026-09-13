@@ -1,4 +1,6 @@
 import type { APIRoute } from "astro";
+
+// Route on-demand — tidak pernah diprerender.
 import { completeLogin } from "../../../lib/admin/login";
 import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs } from "../../../lib/admin/sessions";
 
@@ -9,6 +11,8 @@ const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json
  * Sukses → Set-Cookie sesi (+ perangkat tepercaya bila diminta) + { ok: true }.
  * Gagal → { ok: false, reason } tanpa cookie.
  */
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
   let body: { challengeId?: unknown; code?: unknown; trustDevice?: unknown };
   try {
