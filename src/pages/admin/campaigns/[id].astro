@@ -175,24 +175,63 @@ function excerpt(text: string, max = 80): string {
       </fieldset>
     </section>
 
-    <!-- SECTION: Reward files (placeholder — unggah asset datang pada tugas berikutnya) -->
+    <!-- SECTION: Reward files -->
     <section class="card" aria-labelledby="h-files">
       <h2 id="h-files">Reward files</h2>
-      {data.assets.length === 0 ? (
-        <p class="placeholder">
-          Belum ada file reward. Pengunggahan file reward (maks. 100 MB per file) akan tersedia pada
-          langkah pengembangan berikutnya. Kamu sudah bisa melengkapi konten dan doa terlebih dahulu.
-        </p>
-      ) : (
-        <ul class="asset-list">
-          {data.assets.map((a) => (
-            <li>
+      <p class="hint" id="files-format-hint">Format: PDF, ZIP, DOCX, XLSX, PPTX, PNG, JPG, WebP · maksimal 100 MB</p>
+
+      <div
+        id="dropzone"
+        class="dropzone"
+        role="button"
+        tabindex="0"
+        aria-label="Unggah file reward: tarik dan letakkan file, atau klik untuk memilih"
+        aria-describedby="files-format-hint"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28" aria-hidden="true">
+          <path d="M12 16V4m0 0 4 4m-4-4L8 8" />
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+        </svg>
+        <p>Tarik &amp; letakkan file di sini, atau <strong>klik untuk memilih file</strong></p>
+      </div>
+      <input id="asset-input" type="file" accept=".pdf,.zip,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.webp" hidden />
+
+      <div id="upload-progress" class="upload-progress" hidden>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <span id="progress-label" class="hint">0%</span>
+      </div>
+
+      <p id="asset-error" class="field-error" hidden></p>
+      <p id="asset-status" class="hint" role="status" aria-live="polite"></p>
+
+      <p id="asset-empty" class="placeholder" hidden={assetCount > 0}>
+        Belum ada file reward. Unggah minimal satu file sebelum mempublikasikan.
+      </p>
+      <ul
+        id="asset-list"
+        class="asset-list"
+        data-assets={JSON.stringify(
+          data.assets.map((a) => ({
+            id: a.id, nameId: a.nameId, mimeType: a.mimeType, sizeBytes: a.sizeBytes, sortOrder: a.sortOrder,
+          })),
+        )}
+      >
+        {data.assets.map((a, i) => (
+          <li class="asset-row" data-id={a.id}>
+            <div class="asset-info">
               <strong>{a.nameId}</strong>
               <span>{a.mimeType} · {fmtBytes(a.sizeBytes)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+            <div class="asset-actions">
+              <button type="button" class="btn-secondary btn-small asset-up" aria-label={`Naikkan urutan ${a.nameId}`} disabled={i === 0}>↑</button>
+              <button type="button" class="btn-secondary btn-small asset-down" aria-label={`Turunkan urutan ${a.nameId}`} disabled={i === data.assets.length - 1}>↓</button>
+              <button type="button" class="btn-ghost-danger asset-delete">Hapus</button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </section>
 
     <!-- SECTION: Doa -->
@@ -429,13 +468,53 @@ function excerpt(text: string, max = 80): string {
     padding: var(--space-5);
     margin: 0;
   }
-  .asset-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-  .asset-list li {
-    display: flex; justify-content: space-between; gap: var(--space-3);
+
+  /* Dropzone — Linen Surface dashed (DESIGN.md §6 Upload asset). */
+  .dropzone {
+    background: var(--color-surface-subtle);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+    padding: var(--space-6);
+    text-align: center;
+    cursor: pointer;
+    margin: var(--space-4) 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .dropzone p { margin: var(--space-2) 0 0; font-size: var(--text-body-sm); }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+  }
+  .dropzone:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+
+  .upload-progress { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0; }
+  .progress-track {
+    flex: 1;
+    height: 8px;
+    background: var(--color-surface-subtle);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--color-primary);
+    border-radius: var(--radius-pill);
+    transition: width 0.15s ease;
+  }
+
+  .asset-list { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+  .asset-row {
+    display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);
     border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-3) var(--space-4);
     font-size: var(--text-body-sm);
   }
-  .asset-list span { color: var(--color-text-muted); }
+  .asset-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .asset-info strong { color: var(--color-ink); overflow-wrap: anywhere; }
+  .asset-info span { color: var(--color-text-muted); }
+  .asset-actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+  .asset-list .placeholder { margin: 0; }
 
   .status-line { color: var(--color-text); font-size: var(--text-body-sm); margin: 0 0 var(--space-4); }
   .status-line strong { color: var(--color-ink); }
@@ -667,6 +746,201 @@ function excerpt(text: string, max = 80): string {
       if (doaStatus) doaStatus.textContent = "";
     } finally {
       doaSave.disabled = false;
+    }
+  });
+
+  // ===== Reward files: dropzone + XHR upload + list management =====
+  type AssetView = { id: string; nameId: string; mimeType: string; sizeBytes: number; sortOrder: number };
+
+  const dropzone = $<HTMLElement>("#dropzone");
+  const assetInput = $<HTMLInputElement>("#asset-input");
+  const uploadProgress = $<HTMLElement>("#upload-progress");
+  const progressBar = $<HTMLElement>("#progress-bar");
+  const progressLabel = $<HTMLElement>("#progress-label");
+  const assetError = $<HTMLElement>("#asset-error");
+  const assetStatus = $<HTMLElement>("#asset-status");
+  const assetList = $<HTMLUListElement>("#asset-list");
+  const assetEmpty = $<HTMLElement>("#asset-empty");
+
+  // State asset sekarang — sumber kebenaran untuk render + reorder.
+  let currentAssets: AssetView[] = (() => {
+    try { return JSON.parse(assetList?.dataset.assets ?? "[]") as AssetView[]; }
+    catch { return []; }
+  })();
+
+  function humanSize(n: number): string {
+    if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    if (n >= 1024) return `${(n / 1024).toFixed(0)} KB`;
+    return `${n} B`;
+  }
+
+  function showAssetError(msg: string) {
+    if (!assetError) return;
+    assetError.textContent = msg;
+    assetError.hidden = false;
+  }
+
+  /** Render ulang list asset + perbarui data-asset-count tombol Publikasikan. */
+  function renderAssets(assets: AssetView[]) {
+    currentAssets = assets;
+    if (!assetList) return;
+    assetList.replaceChildren(
+      ...assets.map((a, i) => {
+        const li = document.createElement("li");
+        li.className = "asset-row";
+        li.dataset.id = a.id;
+        const info = document.createElement("div");
+        info.className = "asset-info";
+        const name = document.createElement("strong");
+        name.textContent = a.nameId;
+        const meta = document.createElement("span");
+        meta.textContent = `${a.mimeType} · ${humanSize(a.sizeBytes)}`;
+        info.append(name, meta);
+        const actions = document.createElement("div");
+        actions.className = "asset-actions";
+        actions.innerHTML = `
+          <button type="button" class="btn-secondary btn-small asset-up" aria-label="Naikkan urutan" ${i === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" class="btn-secondary btn-small asset-down" aria-label="Turunkan urutan" ${i === assets.length - 1 ? "disabled" : ""}>↓</button>
+          <button type="button" class="btn-ghost-danger asset-delete">Hapus</button>`;
+        li.append(info, actions);
+        return li;
+      }),
+    );
+    if (assetEmpty) assetEmpty.hidden = assets.length > 0;
+    // Publish gate: perbarui jumlah asset tanpa reload halaman.
+    const publishBtn = document.querySelector<HTMLButtonElement>('[data-status-action="publish"]');
+    if (publishBtn && publishBtn.dataset.assetCount !== undefined) {
+      publishBtn.dataset.assetCount = String(assets.length);
+    }
+    updatePublishGate();
+  }
+
+  async function refreshAssets(): Promise<void> {
+    const res = await fetch(`/admin/api/campaigns/${campaignId}/assets`);
+    const data = await res.json();
+    if (data.ok) renderAssets(data.assets);
+  }
+
+  /** Upload satu file via XHR agar progress bar (bukan spinner) per kunci ruling. */
+  function uploadFile(file: File) {
+    if (!dropzone) return;
+    if (assetError) { assetError.hidden = true; assetError.textContent = ""; }
+    if (assetStatus) assetStatus.textContent = "";
+    if (uploadProgress) uploadProgress.hidden = false;
+    if (progressBar) progressBar.style.width = "0%";
+    if (progressLabel) progressLabel.textContent = "0%";
+
+    const form = new FormData();
+    form.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/admin/api/campaigns/${campaignId}/assets`);
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable || !progressBar || !progressLabel) return;
+      const pct = Math.min(100, Math.round((e.loaded / e.total) * 100));
+      progressBar.style.width = `${pct}%`;
+      progressLabel.textContent = `${pct}%`;
+    };
+    xhr.onload = () => {
+      if (uploadProgress) uploadProgress.hidden = true;
+      let data: { ok?: boolean; reason?: string; assets?: AssetView[] } = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* fallthrough */ }
+      if (xhr.status >= 200 && xhr.status < 300 && data.ok && data.assets) {
+        renderAssets(data.assets);
+        if (assetStatus) assetStatus.textContent = `File "${file.name}" terunggah.`;
+        return;
+      }
+      const reason = data.reason;
+      showAssetError(
+        reason === "mime-not-allowed"
+          ? "Format file tidak didukung. Gunakan PDF, ZIP, DOCX, XLSX, PPTX, PNG, JPG, atau WebP."
+          : reason === "too-large"
+            ? "Ukuran file melebihi batas 100 MB."
+            : reason === "unauthorized"
+              ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+              : "Gagal mengunggah file. Coba lagi.",
+      );
+    };
+    xhr.onerror = () => {
+      if (uploadProgress) uploadProgress.hidden = true;
+      showAssetError("Terjadi kesalahan jaringan saat mengunggah. Coba lagi.");
+    };
+    xhr.send(form);
+  }
+
+  dropzone?.addEventListener("click", () => assetInput?.click());
+  dropzone?.addEventListener("keydown", (e) => {
+    if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") {
+      e.preventDefault();
+      assetInput?.click();
+    }
+  });
+  dropzone?.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone?.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+  dropzone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    const file = (e as DragEvent).dataTransfer?.files?.[0];
+    if (file) uploadFile(file);
+  });
+  assetInput?.addEventListener("change", () => {
+    const file = assetInput.files?.[0];
+    if (file) uploadFile(file);
+    assetInput.value = "";
+  });
+
+  // Reorder ↑↓: tukar posisi di state lalu PATCH { order } (dokumentasi:
+  // reorder memakai PATCH di route assets campaign).
+  assetList?.addEventListener("click", async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button");
+    if (!btn || btn.disabled) return;
+    const row = btn.closest<HTMLElement>(".asset-row");
+    if (!row) return;
+    const idx = currentAssets.findIndex((a) => a.id === row.dataset.id);
+    if (idx < 0) return;
+
+    if (btn.classList.contains("asset-up") || btn.classList.contains("asset-down")) {
+      const swapWith = btn.classList.contains("asset-up") ? idx - 1 : idx + 1;
+      if (swapWith < 0 || swapWith >= currentAssets.length) return;
+      const order = [...currentAssets];
+      [order[idx], order[swapWith]] = [order[swapWith], order[idx]];
+      try {
+        const res = await fetch(`/admin/api/campaigns/${campaignId}/assets`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: order.map((a) => a.id) }),
+        });
+        const data = await res.json();
+        if (data.ok && data.assets) renderAssets(data.assets);
+        else showAssetError("Gagal menyimpan urutan. Muat ulang halaman.");
+      } catch {
+        showAssetError("Terjadi kesalahan jaringan. Coba lagi.");
+      }
+      return;
+    }
+
+    if (btn.classList.contains("asset-delete")) {
+      const name = currentAssets[idx]?.nameId ?? "file ini";
+      // Konfirmasi ganda: hapus row + penjelasan objek storage tetap tersimpan.
+      if (!window.confirm(`Hapus "${name}" dari daftar reward?`)) return;
+      if (!window.confirm("Object lama tetap tersimpan di storage")) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/admin/api/assets/${row.dataset.id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.ok) {
+          await refreshAssets();
+          if (assetStatus) assetStatus.textContent = `File "${name}" dihapus dari daftar.`;
+        } else if (data.reason === "unauthorized") {
+          showAssetError("Sesi berakhir. Muat ulang halaman untuk masuk kembali.");
+          btn.disabled = false;
+        } else {
+          showAssetError("Gagal menghapus file. Muat ulang halaman.");
+          btn.disabled = false;
+        }
+      } catch {
+        showAssetError("Terjadi kesalahan jaringan. Coba lagi.");
+        btn.disabled = false;
+      }
     }
   });
 

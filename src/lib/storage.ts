@@ -18,6 +18,26 @@ export function assertAssetDownloadable(asset: { mimeType: string; sizeBytes: nu
   if (asset.sizeBytes > MAX_UPLOAD_BYTES) throw new Error("File exceeds 100 MB limit");
 }
 
+/**
+ * PUT objek privat ke R2. MOCK_R2=true melewatkan PUT (test CI / dev tanpa
+ * kredensial R2) — baris DB tetap ditulis oleh pemanggil.
+ */
+export async function putObject(key: string, body: ArrayBuffer, contentType: string): Promise<void> {
+  if (key.includes("..") || key.startsWith("/")) throw new Error("Invalid storage key");
+  if (env("MOCK_R2", "false") === "true") return;
+  const host = `${env("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
+  const url = `https://${host}/${env("R2_BUCKET")}/${key}`;
+  const signer = new AwsV4Signer({
+    url,
+    accessKeyId: env("R2_ACCESS_KEY_ID"),
+    secretAccessKey: env("R2_SECRET_ACCESS_KEY"),
+    method: "PUT",
+  });
+  const signed = await signer.sign();
+  const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body });
+  if (!res.ok) throw new Error(`R2 PUT ${res.status}: ${(await res.text()).slice(0, 200)}`);
+}
+
 export async function presignDownloadUrl(storageKey: string, expiresInSec = 3600): Promise<string> {
   if (storageKey.includes("..") || storageKey.startsWith("/")) throw new Error("Invalid storage key");
   const host = `${env("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
