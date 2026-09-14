@@ -78,7 +78,7 @@ function excerpt(text: string, max = 80): string {
     </div>
     <div class="save-area">
       <span id="save-status" role="status" aria-live="polite"></span>
-      <button type="button" id="save-btn" class="btn-primary">Simpan</button>
+      <button type="button" id="save-btn" class={campaign.status === "draft" ? "btn-secondary" : "btn-primary"}>Simpan</button>
       <a href={`/admin/preview/${campaign.id}`} class="btn-secondary">Preview</a>
     </div>
   </div>
