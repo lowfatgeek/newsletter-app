@@ -331,6 +331,22 @@ describe("retryFailedRecipients", () => {
     const res = await retryFailedRecipients("00000000-0000-0000-0000-000000000000", { adminUserId: null, ip: "1.1.1.1" });
     expect(res).toEqual({ ok: false, reason: "not-found" });
   });
+
+  it("throttles after 3 retries per hour: 4th returns rate-limited without audit", async () => {
+    const camp = await seedRetryCampaign("sending", "throttle");
+    const [admin] = await db.insert(adminUsers).values({ email: "throttle@test.dev", passwordHash: "x" }).returning();
+
+    expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toMatchObject({ ok: true });
+    expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toMatchObject({ ok: true });
+    expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toMatchObject({ ok: true });
+    expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" }))
+      .toEqual({ ok: false, reason: "rate-limited" });
+
+    // hanya 3 audit (throttle tidak menulis audit)
+    const audits = await db.select().from(adminAuditLog)
+      .where(eq(adminAuditLog.action, "campaign_retry_failed"));
+    expect(audits).toHaveLength(3);
+  });
 });
 
 describe("sendTestEmail", () => {

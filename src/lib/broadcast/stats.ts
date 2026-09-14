@@ -6,6 +6,7 @@ import {
 } from "../schema";
 import { renderForRecipient, type CampaignContent } from "./content";
 import { enqueueTransactionalEmail } from "../outbox";
+import { consumeRateLimit } from "../ratelimit";
 import { audit } from "../admin/audit";
 
 /**
@@ -166,7 +167,7 @@ export async function listRecipients(
 
 export type RetryFailedResult =
   | { ok: true; reset: number }
-  | { ok: false; reason: "not-found" | "invalid-state" };
+  | { ok: false; reason: "not-found" | "invalid-state" | "rate-limited" };
 
 /**
  * Status kampanye yang boleh di-retry (PRD §10: admin dapat resend sesuai
@@ -177,6 +178,8 @@ const RETRYABLE_STATUSES = new Set(["sending", "queued", "completed", "failed"])
 
 /**
  * Kirim ulang recipient gagal:
+ * - throttle 3/jam per campaign SEBELUM guard status (tanpa audit saat kena
+ *   throttle — konsisten dengan guard invalid-state yang tidak menulis audit)
  * - UPDATE status 'failed' → 'pending' (sent/pending/cancelled disentuh tidak)
  * - kampanye completed/failed dikembalikan ke 'queued' agar worker tick
  *   berikutnya mengirim ulang lewat limit yang sama (maxPerMinute/maxPerHour)
@@ -187,6 +190,9 @@ export async function retryFailedRecipients(
   campaignId: string,
   auditOpts?: AuditOpts,
 ): Promise<RetryFailedResult> {
+  if (!(await consumeRateLimit("broadcast_retry", campaignId, 3))) {
+    return { ok: false, reason: "rate-limited" };
+  }
   const [campaign] = await db
     .select({ id: emailCampaigns.id, status: emailCampaigns.status })
     .from(emailCampaigns)

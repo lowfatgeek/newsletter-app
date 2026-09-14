@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { env } from "../env";
 import {
@@ -134,13 +134,21 @@ export async function scheduleCampaign(
 
 /**
  * Klaim kampanye queued untuk dikirim worker — atomic:
- * UPDATE ... SET status='sending' WHERE id AND status='queued' RETURNING.
- * Dua worker yang berebut hanya satu yang berhasil.
+ * UPDATE ... SET status='sending' WHERE id AND status='queued'
+ * AND NOT EXISTS (campaign LAIN berstatus 'sending') RETURNING.
+ * Dua worker yang berebut hanya satu yang berhasil, dan tidak pernah ada dua
+ * campaign berbeda berstatus sending bersamaan (PRD §7.4). Campaign sendiri
+ * dikecualikan agar retry klaim idempoten (klaim ulang campaign yang sudah
+ * sending → false via status='queued', bukan via guard ini).
  */
 export async function claimForSending(campaignId: string): Promise<boolean> {
   const rows = await db.update(emailCampaigns)
     .set({ status: "sending", updatedAt: new Date() })
-    .where(and(eq(emailCampaigns.id, campaignId), eq(emailCampaigns.status, "queued")))
+    .where(and(
+      eq(emailCampaigns.id, campaignId),
+      eq(emailCampaigns.status, "queued"),
+      sql`not exists (select 1 from email_campaigns ec where ec.status = 'sending' and ec.id <> ${campaignId})`,
+    ))
     .returning({ id: emailCampaigns.id });
   return rows.length > 0;
 }
