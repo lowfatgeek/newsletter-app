@@ -332,3 +332,4 @@ diproses.
 atau naikkan plan Emailit lebih dulu. Pantau `sent_today` (§4d) agar tidak
 melewati batas harian; pengiriman yang gagal karena kuota akan tercatat di
 `email_deliveries.error` dan bisa di-retry dari UI (`retry-failed`).
+Tombol retry dibatasi 3x per jam per campaign (429 "Terlalu sering. Coba lagi nanti.").
