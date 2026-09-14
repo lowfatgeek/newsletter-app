@@ -8,6 +8,7 @@ import { mintTrustedDevice, resolveTrustedDevice } from "../src/lib/admin/device
 import { ADMIN_DEVICE_COOKIE } from "../src/lib/admin/sessions";
 import { csvEscape, listContacts } from "../src/lib/admin/contacts";
 import { clientIp } from "../src/lib/ip";
+import { cronAuthorized } from "../src/lib/cron-auth";
 import { onRequest, applySecurityHeaders, SECURITY_CSP } from "../src/middleware";
 import { POST as logoutPOST } from "../src/pages/admin/api/logout";
 import { resetDb, setEnv } from "./helpers";
@@ -61,6 +62,27 @@ describe("hardening: security headers middleware", () => {
     const prod = new Headers();
     applySecurityHeaders(prod, true);
     expect(prod.get("Strict-Transport-Security")).toBe("max-age=31536000; includeSubDomains");
+  });
+});
+
+describe("hardening: cron auth accepts x-cron-secret and Vercel Bearer", () => {
+  beforeEach(() => setEnv({ CRON_SECRET: "test-cron-secret" }));
+
+  it("accepts x-cron-secret", () => {
+    const req = new Request("http://x/api/cron/outbox", { headers: { "x-cron-secret": "test-cron-secret" } });
+    expect(cronAuthorized(req)).toBe(true);
+  });
+
+  it("accepts Authorization: Bearer", () => {
+    const req = new Request("http://x/api/cron/outbox", { headers: { authorization: "Bearer test-cron-secret" } });
+    expect(cronAuthorized(req)).toBe(true);
+  });
+
+  it("rejects missing/wrong secret", () => {
+    expect(cronAuthorized(new Request("http://x/api/cron/outbox"))).toBe(false);
+    expect(cronAuthorized(new Request("http://x/api/cron/outbox", {
+      headers: { "x-cron-secret": "wrong", authorization: "Bearer wrong" },
+    }))).toBe(false);
   });
 });
 

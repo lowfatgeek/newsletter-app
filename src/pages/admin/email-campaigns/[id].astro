@@ -86,7 +86,7 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
 
   <p id="global-error" class="error" role="alert" hidden></p>
 
-  <form id="composer-form" data-campaign={campaign.id} data-filter={filterJson} data-draft={isDraft ? "1" : "0"} onsubmit="return false;">
+  <form id="composer-form" data-campaign={campaign.id} data-filter={filterJson} data-draft={isDraft ? "1" : "0"}>
     <!-- SECTION: Segment -->
     <section class="card" aria-labelledby="h-segment">
       <h2 id="h-segment">Segment</h2>
@@ -485,6 +485,9 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
   const form = $<HTMLFormElement>("#composer-form");
   const campaignId = form?.dataset.campaign ?? "";
   const isDraft = form?.dataset.draft === "1";
+
+  // Pengganti `onsubmit="return false;"` — CSP produksi melarang inline handler.
+  form?.addEventListener("submit", (e) => e.preventDefault());
 
   const saveBtn = $<HTMLButtonElement>("#save-btn");
   const saveStatus = $<HTMLElement>("#save-status");

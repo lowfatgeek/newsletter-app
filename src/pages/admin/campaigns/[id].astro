@@ -85,7 +85,7 @@ function excerpt(text: string, max = 80): string {
 
   <p id="global-error" class="error" role="alert" hidden></p>
 
-  <form id="editor-form" data-campaign={campaign.id} onsubmit="return false;">
+  <form id="editor-form" data-campaign={campaign.id}>
     <!-- SECTION: Detail -->
     <section class="card" aria-labelledby="h-detail">
       <h2 id="h-detail">Detail</h2>
@@ -551,6 +551,9 @@ function excerpt(text: string, max = 80): string {
   const descEn = $<HTMLTextAreaElement>("#f-desc-en");
   const enFallback = $<HTMLElement>("#en-fallback");
   const publishHint = $<HTMLElement>("#publish-hint");
+
+  // Pengganti `onsubmit="return false;"` — CSP produksi melarang inline handler.
+  $<HTMLFormElement>("#editor-form")?.addEventListener("submit", (e) => e.preventDefault());
 
   // Slug tersimpan terakhir — dipakai untuk membatalkan perubahan slug saat
   // admin membatalkan konfirmasi redirect.

@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { env } from "../../../lib/env";
+import { cronAuthorized } from "../../../lib/cron-auth";
 import { processBroadcast } from "../../../lib/broadcast/worker";
 
 // Route on-demand — tidak pernah diprerender.
@@ -11,7 +11,7 @@ export const prerender = false;
  * Jalur transaksional email_outbox (Plan 1) tidak tersentuh di sini.
  */
 export const GET: APIRoute = async ({ request }) => {
-  if (request.headers.get("x-cron-secret") !== env("CRON_SECRET")) {
+  if (!cronAuthorized(request)) {
     return new Response("unauthorized", { status: 401 });
   }
   const result = await processBroadcast();

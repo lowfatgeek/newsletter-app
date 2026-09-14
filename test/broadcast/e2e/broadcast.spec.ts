@@ -118,15 +118,16 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
     expect(cronJson.stopped).toBe("completed");
 
     // f. Laporan: badge Selesai, progres <expected> dari <expected>, KPI
-    //    Terkirim <expected> (Delivered masih 0 — webhook belum masuk).
+    //    Terkirim <expected> (Sampai masih 0 — webhook belum masuk).
     await page.goto(`/admin/email-campaigns/${campaignId}/laporan`);
     await expect(page.locator(".helper .badge")).toContainText("Selesai");
     await expect(page.locator(".progress-line")).toContainText(
       new RegExp(`Mengirim\\s*${expected} dari ${expected} penerima`),
     );
     const kpi = (label: string) => page.locator(".kpi", { has: page.locator("dt", { hasText: label }) }).locator("dd");
-    await expect(kpi("Terkirim")).toHaveText("1");
+    await expect(kpi("Terkirim")).toHaveText(String(expected));
     await expect(kpi("Sampai")).toHaveText("0");
+    // Belum ada yang unsubscribe.
     await expect(kpi("Berhenti")).toHaveText("0");
 
     // g. Simulasikan webhook Emailit delivered: baca fake provider message id
@@ -138,7 +139,7 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
       join email_campaign_recipients r on r.id = d.campaign_recipient_id
       where r.campaign_id = ${campaignId} and d.email_type = 'broadcast'
     `;
-    expect(deliveries).toHaveLength(1);
+    expect(deliveries).toHaveLength(expected);
     const rawBody = JSON.stringify({ type: "email.delivered", message_id: deliveries[0].provider_message_id });
     const signature = createHmac("sha256", E2E_EMAILIT_WEBHOOK_SECRET).update(rawBody).digest("hex");
     const hookRes = await page.request.post("/api/webhooks/emailit", {
@@ -154,9 +155,13 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
 
     // h. Unsubscribe satu-klik dari link di html terakhir (token raw 43 char
     //    base64url) → halaman konfirmasi → DB: unsubscribed + suppression.
+    //    Ambil baris recipient MILIK contact e2e (bukan recipients[0]) agar
+    //    tetap benar saat audiens > 1.
     const recipients = await sql<{ last_rendered_html: string }[]>`
-      select last_rendered_html from email_campaign_recipients
-      where campaign_id = ${campaignId}
+      select r.last_rendered_html
+      from email_campaign_recipients r
+      join contact c on c.id = r.contact_id
+      where r.campaign_id = ${campaignId} and c.email_normalized = ${E2E_CONTACT_EMAIL}
     `;
     expect(recipients).toHaveLength(1);
     const rawToken = recipients[0].last_rendered_html.match(/\/api\/unsubscribe\/([A-Za-z0-9_-]{43})/)?.[1];
@@ -180,7 +185,8 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
     expect(suppressions).toHaveLength(1);
     expect(suppressions[0].reason).toBe("unsubscribe");
 
-    // i. Kembali ke laporan → KPI Berhenti 1.
+    // i. Kembali ke laporan → KPI Berhenti 1 (hanya contact e2e yang
+    //    unsubscribe; nilai ini tidak bergantung besar audiens).
     await page.goto(`/admin/email-campaigns/${campaignId}/laporan`);
     await expect(kpi("Berhenti")).toHaveText("1");
   } finally {

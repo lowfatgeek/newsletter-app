@@ -31,7 +31,7 @@ function fmtDate(d: Date): string {
   <p id="domain-error" class="field-error" hidden role="alert"></p>
   <p id="domain-status" class="hint" role="status" aria-live="polite"></p>
 
-  <form id="domain-add-form" class="card add-form" onsubmit="return false;">
+  <form id="domain-add-form" class="card add-form">
     <div class="add-row">
       <input
         id="domain-input"
@@ -192,6 +192,9 @@ function fmtDate(d: Date): string {
   const addBtn = $<HTMLButtonElement>("#domain-add-btn");
   const errorEl = $<HTMLElement>("#domain-error");
   const statusEl = $<HTMLElement>("#domain-status");
+
+  // Pengganti `onsubmit="return false;"` — CSP produksi melarang inline handler.
+  $<HTMLFormElement>("#domain-add-form")?.addEventListener("submit", (e) => e.preventDefault());
 
   function showError(msg: string) {
     if (!errorEl) return;

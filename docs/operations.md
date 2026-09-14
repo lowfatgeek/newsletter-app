@@ -266,8 +266,10 @@ where campaign_id = '<campaign-id>' and status = 'pending';
 Tidak ada flag global. Pilihan:
 - Nonaktifkan cron di Vercel (Project → Settings → Cron Jobs → disable) atau
   ubah jadwal `vercel.json`; worker berhenti mengirim sampai cron diaktifkan.
-- Atau putar `CRON_SECRET` di Vercel (cron lama gagal auth 401) — lihat §6.
 - Pause setiap campaign `sending` dengan query di atas.
+- Catatan: merotasi `CRON_SECRET` TIDAK menghentikan Vercel Cron — header
+  `Authorization: Bearer <CRON_SECRET>` dihitung Vercel dari env terbaru, jadi
+  cron tetap lolos. Rotasi hanya mencabut pemanggil cron eksternal.
 
 Setelah insiden selesai, cek 4a–4d sebelum melanjutkan.
 
@@ -289,9 +291,9 @@ Menandatangani token timer funnel (HMAC). Rotasi:
 ### `CRON_SECRET`
 Autentikasi endpoint cron (`Authorization: Bearer` / `x-cron-secret`).
 1. Set nilai baru di Vercel → redeploy.
-2. Vercel Cron otomatis memakai env terbaru. Bila ada pemanggil cron eksternal,
-   perbarui bersamaan.
-3. Sebagai efek samping, rotasi ini juga berfungsi sebagai kill switch (§5).
+2. Vercel Cron otomatis memakai env terbaru, jadi cron internal tetap jalan.
+   Bila ada pemanggil cron eksternal, perbarui secret-nya bersamaan.
+3. Rotasi ini BUKAN kill switch — untuk menghentikan pengiriman lihat §5.
 
 ### `EMAILIT_WEBHOOK_SECRET`
 HMAC signature webhook Emailit. Rotasi HARUS sinkron dengan dashboard Emailit

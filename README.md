@@ -54,7 +54,7 @@ email/asset tidak keluar ke provider saat dev.
 | `npm run seed` | Seed data dev + bersihkan sisa baris e2e |
 | `npm run admin:bootstrap` | Buat admin dari `ADMIN_EMAIL` / set password |
 | `npm test` | Unit/integration test (Vitest, butuh Postgres) |
-| `npm run test:e2e` / `npx playwright test` | E2E (Playwright, 5 spec) |
+| `npm run test:e2e` / `npx playwright test` | E2E (Playwright, 5 test) |
 | `npx playwright test test/broadcast/e2e/broadcast.spec.ts` | E2E broadcast saja |
 
 Test memakai database yang sama dengan `DATABASE_URL`; `test/helpers.ts`
@@ -92,7 +92,7 @@ drizzle/            SQL migrasi
    | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | ya | Kredensial Cloudflare R2 |
    | `ADMIN_PASSWORD` | tidak | Hanya bootstrap/dev |
    | `ADMIN_SESSION_TTL_HOURS` | tidak | Default 12 |
-   | `RATE_LIMIT_IP_PER_HOUR` / `RATE_LIMIT_EMAIL_PER_HOUR` | tidak | Default 10 / 3 |
+   | `RATE_LIMIT_IP_PER_HOUR` / `RATE_LIMIT_EMAIL_PER_HOUR` | tidak | Default 10 / 5 |
    | `EMAILIT_MAX_PER_SECOND` / `EMAILIT_MAX_PER_DAY` | tidak | Default 2 / 5000 |
    | `MOCK_EMAILIT` / `MOCK_R2` / `MO_BROADCAST` | tidak | Biarkan kosong/false di produksi |
 
@@ -104,7 +104,8 @@ drizzle/            SQL migrasi
    | `/api/cron/broadcast` | `* * * * *` | Proses satu batch kampanye broadcast |
 
    Vercel Cron mengirim header `Authorization: Bearer $CRON_SECRET`; route
-   menerima header `x-cron-secret`. Pastikan `CRON_SECRET` terpasang.
+   menerimanya sekaligus header `x-cron-secret` (untuk pemanggil manual/e2e).
+   Pastikan `CRON_SECRET` terpasang.
 
 5. Jalankan migrasi ke database produksi sekali dari lokal:
    `DATABASE_URL=<direct-url> npm run db:migrate`.
