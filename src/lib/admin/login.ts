@@ -15,7 +15,14 @@ const RESET_ATTEMPTS_PER_HOUR = 5;
 
 // challengeId adalah uuid — tolak bentuk lain sebelum menyentuh DB supaya
 // input sampah tidak memicu error tipe Postgres (500).
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Hash Argon2id dari "dummy-password-123" (bukan password produksi). Untuk
+// email yang tidak dikenal kita tetap menjalankan verify terhadap hash ini
+// supaya biaya/waktu respons mirip dengan email yang ada → menutup timing
+// side-channel user enumeration (deferred Plan 2).
+const DUMMY_PASSWORD_HASH =
+  "$argon2id$v=19$m=19456,t=2,p=1$+aD6KISWEgcIzl9bb/EBvw$hhBilZF15VP/yqxoC4dQ0ktCYT+RmNbE0h11iy+uHWI";
 
 export type StartLoginResult =
   | { ok: true; challengeId: string }
@@ -33,7 +40,9 @@ export async function startLogin(input: { email: string; password: string; ip: s
     return { ok: false, reason: "rate-limited" };
   }
   const [user] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
-  const valid = user !== undefined && (await verifyPassword(user.passwordHash, input.password));
+  // Selalu verifikasi (dummy hash bila email tidak dikenal) agar timing tidak
+  // membocorkan keberadaan email.
+  const valid = await verifyPassword(user?.passwordHash ?? DUMMY_PASSWORD_HASH, input.password);
   if (!user || !valid) {
     // Generic reason — never reveal whether the email exists.
     await audit("login_failed", { adminUserId: user?.id, detail: { email }, ip: input.ip });

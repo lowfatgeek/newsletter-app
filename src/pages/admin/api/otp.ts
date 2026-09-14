@@ -1,15 +1,10 @@
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
-import { completeLogin } from "../../../lib/admin/login";
+import { completeLogin, UUID_RE } from "../../../lib/admin/login";
 import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs } from "../../../lib/admin/sessions";
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
-
-// challengeId adalah uuid — tolak bentuk lain sebelum menyentuh DB supaya
-// input sampah tidak memicu error tipe Postgres (500). Sama seperti jalur
-// reset di src/lib/admin/login.ts.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * POST /admin/api/otp — body JSON { challengeId, code, trustDevice }.

@@ -35,6 +35,16 @@ export async function revokeTrustedDevice(id: string): Promise<void> {
     .where(eq(trustedDevices.id, id));
 }
 
+/**
+ * Revoke perangkat tepercaya langsung dari token mentah (dipakai logout:
+ * cookie hanya menyimpan token mentah, bukan id). Revoke by hash.
+ */
+export async function revokeTrustedDeviceByHash(raw: string): Promise<void> {
+  await db.update(trustedDevices)
+    .set({ revokedAt: new Date() })
+    .where(eq(trustedDevices.tokenHash, hashToken(raw)));
+}
+
 export async function revokeAllDevices(adminUserId: string): Promise<void> {
   await db.update(trustedDevices)
     .set({ revokedAt: new Date() })

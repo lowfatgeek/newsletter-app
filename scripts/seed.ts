@@ -189,6 +189,17 @@ async function main() {
   await db.execute(sql`delete from email_campaigns where subject_id like '[E2E]%'`);
   console.log("cleaned prior [E2E] broadcast rows");
 
+  // 5c. Bersihkan sisa reward campaign e2e admin (Plan 2) — SCOPE KETAT hanya
+  //     slug berprefix 'admin-e2e-' (dibuat test/admin/e2e/admin.spec.ts).
+  //     reward_claim tidak punya ON DELETE CASCADE ke reward_campaign → hapus
+  //     dulu; locales/assets/doa/redirect cascade dari reward_campaign.
+  await db.execute(sql`
+    delete from reward_claim
+    where campaign_id in (select id from reward_campaign where slug like 'admin-e2e-%')
+  `);
+  await db.execute(sql`delete from reward_campaign where slug like 'admin-e2e-%'`);
+  console.log("cleaned prior admin-e2e reward campaigns");
+
   // 6. Admin e2e/dev — idempoten. Bila ADMIN_PASSWORD terpasang (fixture test,
   //    bukan secret produksi), hash admin di-reset agar login e2e repeatable
   //    walau admin sudah ada dari run sebelumnya. Try/catch supaya seed tetap

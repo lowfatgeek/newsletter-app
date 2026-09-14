@@ -7,7 +7,7 @@ import EmailForm from "../../../components/EmailForm.astro";
 import CampaignPaused from "../../../components/CampaignPaused.astro";
 import { getPublicCampaignState, getPublishedCampaign } from "../../../lib/campaign";
 import { resolveSlugRedirect } from "../../../lib/admin/campaigns";
-import { notFoundHtml } from "../../../lib/notfound";
+import { notFoundResponse } from "../../../lib/notfound";
 import { t, type Locale } from "../../../lib/i18n";
 import type { RewardCampaignLocale } from "../../../lib/schema";
 
@@ -40,15 +40,6 @@ const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewa
 
 // Link alternatif bilingual: keduanya selalu ada (versi ID di /r/<slug>,
 // versi EN di /en/r/<slug>) — pada fallback EN tetap bisa ditemukan crawler.
-
-// 404 on-demand: render kartu ramah langsung dengan status 404
-// (Astro.rewrite("/404") tidak bisa menarget route prerender).
-function notFoundResponse(): Response {
-  return new Response(notFoundHtml(), {
-    status: 404,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
-}
 
 const alternates = [
   { hreflang: "id" as const, href: `/r/${slug}` },

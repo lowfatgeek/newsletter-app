@@ -4,6 +4,7 @@ import { db } from "../../lib/db";
 import { rewardCampaigns } from "../../lib/schema";
 import { processSubscribe } from "../../lib/subscribe";
 import { env } from "../../lib/env";
+import { clientIp } from "../../lib/ip";
 
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;
@@ -45,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
     email: String(form.get("email") ?? ""),
     timerToken: String(form.get("timer_token") ?? ""),
     honeypot: String(form.get("website") ?? ""),
-    ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0",
+    ip: clientIp(request),
     campaignId: camp.id,
     siteUrl,
     locale,

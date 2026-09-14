@@ -11,7 +11,11 @@ export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promis
   const batch = await db.select().from(emailOutbox)
     .where(and(eq(emailOutbox.status, "pending"), lte(emailOutbox.scheduledAt, new Date())))
     .orderBy(asc(emailOutbox.createdAt))
-    .limit(20);
+    .limit(20)
+    // FOR UPDATE SKIP LOCKED: dua tick cron yang tumpang tindih tidak akan
+    // mengambil baris pending yang sama; tick kedua melewati baris yang sudah
+    // dikunci tick pertama → mencegah double-send (deferred Plan 1).
+    .for("update", { skipLocked: true });
 
   let sent = 0;
   let failed = 0;

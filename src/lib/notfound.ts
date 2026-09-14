@@ -66,3 +66,15 @@ export function notFoundHtml(): string {
   </body>
 </html>`;
 }
+
+/**
+ * Response 404 on-demand (dipakai r/[slug].astro + en/r/[slug].astro).
+ * Astro.rewrite("/404") tidak bisa menarget route prerender dari halaman
+ * server, jadi respons dibuat manual di sini (sumber tunggal).
+ */
+export function notFoundResponse(): Response {
+  return new Response(notFoundHtml(), {
+    status: 404,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}

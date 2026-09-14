@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
 import { startLogin } from "../../../lib/admin/login";
+import { clientIp } from "../../../lib/ip";
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
 
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 400, headers: noStore });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const ip = clientIp(request);
   const result = await startLogin({ email, password, ip });
 
   if (!result.ok) {

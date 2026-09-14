@@ -4,6 +4,7 @@ import type { APIRoute } from "astro";
 import { getAdmin } from "../../../../../lib/admin/guard";
 import { listAssets, removeAsset, reorderAssets, storeAsset } from "../../../../../lib/admin/assets";
 import { getCampaignById } from "../../../../../lib/admin/campaigns";
+import { MAX_UPLOAD_BYTES } from "../../../../../lib/storage";
 
 export const prerender = false;
 
@@ -52,6 +53,15 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
   const campaignId = params.id ?? "";
   const existing = await getCampaignById(campaignId);
   if (!existing) return json({ ok: false, reason: "not-found" }, 404);
+
+  // Pre-check sebelum membaca multipart body penuh: Content-Length melebihi
+  // MAX_UPLOAD_BYTES (+1KB overhead multipart) ditolak lebih awal supaya body
+  // besar tidak dibuffer ke memori. Header absen (chunked) → lanjut, validasi
+  // ukuran tetap dijalankan lib admin/assets.
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES + 1024) {
+    return json({ ok: false, reason: "too-large" }, 413);
+  }
 
   let form: FormData;
   try {

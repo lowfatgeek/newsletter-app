@@ -55,6 +55,14 @@ export type ContactDetail = {
   }>;
 };
 
+/**
+ * Escape wildcard LIKE/ILIKE (`\`, `%`, `_`) supaya input pencarian admin
+ * dicocokkan literal, bukan sebagai pola (deferred Plan 2).
+ */
+function escapeIlike(value: string): string {
+  return value.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
 function filterConditions(filter: ContactsFilter) {
   const conds = [];
   if (filter.status === "confirmed") conds.push(eq(contacts.confirmationStatus, "confirmed"));
@@ -69,7 +77,7 @@ function filterConditions(filter: ContactsFilter) {
     );
   }
   if (filter.search && filter.search.trim() !== "") {
-    conds.push(ilike(contacts.emailNormalized, `%${filter.search.trim()}%`));
+    conds.push(ilike(contacts.emailNormalized, `%${escapeIlike(filter.search.trim())}%`));
   }
   return conds;
 }
@@ -215,9 +223,13 @@ export async function getContactDetail(contactId: string): Promise<ContactDetail
   return { contact, subscription: subscription ?? null, consents, claims, deliveries };
 }
 
-function csvEscape(value: string): string {
-  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+export function csvEscape(value: string): string {
+  // Formula injection: Excel/Sheets mengeksekusi cell yang diawali =, +, -, @.
+  // Prefix dengan apostrof tunggal agar diperlakukan sebagai teks.
+  let v = value;
+  if (/^[=+\-@]/.test(v)) v = `'${v}`;
+  if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+  return v;
 }
 
 function csvField(value: string | null | undefined): string {

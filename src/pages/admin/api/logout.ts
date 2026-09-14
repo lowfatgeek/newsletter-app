@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
 import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs, revokeSession } from "../../../lib/admin/sessions";
+import { revokeTrustedDeviceByHash } from "../../../lib/admin/devices";
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -17,8 +18,9 @@ function parseCookies(header: string | null): Record<string, string> {
 
 /**
  * POST /admin/api/logout — menerima POST form biasa (dari layout) maupun fetch.
- * Revoke sesi dari cookie, hapus kedua cookie (Max-Age=0), redirect 303 ke
- * /admin/login. Selalu redirect, apa pun kondisi cookie.
+ * Revoke sesi + perangkat tepercaya dari cookie (by hash), hapus kedua cookie
+ * (Max-Age=0), redirect 303 ke /admin/login. Selalu redirect, apa pun kondisi
+ * cookie.
  */
 export const prerender = false;
 
@@ -26,6 +28,10 @@ export const POST: APIRoute = async ({ request }) => {
   const cookies = parseCookies(request.headers.get("cookie"));
   const raw = cookies[ADMIN_SESSION_COOKIE];
   if (raw) await revokeSession(raw);
+  // Revoke trusted device juga — logout harus mematikan "remember device",
+  // bukan hanya sesi OTP saat ini.
+  const rawDevice = cookies[ADMIN_DEVICE_COOKIE];
+  if (rawDevice) await revokeTrustedDeviceByHash(rawDevice);
 
   const secure = new URL(request.url).protocol === "https:";
   const cleared = `${adminCookieAttrs(secure)}; Max-Age=0`;
