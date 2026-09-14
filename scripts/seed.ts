@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { and, eq, like, or } from "drizzle-orm";
+import { and, eq, like, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { AwsV4Signer } from "aws4fetch";
 import { db, sqlClient } from "../src/lib/db";
@@ -162,6 +162,32 @@ async function main() {
 
   // 5. Asset contoh ke R2 bila kredensial tersedia; kalau tidak, lewati.
   await uploadSampleAsset(camp.id);
+
+  // 5b. Bersihkan sisa broadcast e2e sebelumnya — hanya baris milik campaign
+  //     dengan subject berprefix '[E2E]' (marker khusus spec broadcast e2e).
+  //     Urutan mengikuti FK: provider events (via provider_message_id) →
+  //     deliveries (via campaign_recipient_id) → links/recipients (campaign_id)
+  //     → campaigns terakhir. WAJIB sebelum ensureAdmin/rate-limit cleanup
+  //     supaya audiens e2e deterministik (hanya contact yang dibuat spec).
+  const e2eScope = sql`campaign_id in (select id from email_campaigns where subject_id like '[E2E]%')`;
+  await db.execute(sql`
+    delete from email_provider_events
+    where provider_message_id in (
+      select d.provider_message_id from email_deliveries d
+      join email_campaign_recipients r on r.id = d.campaign_recipient_id
+      where ${e2eScope}
+    )
+  `);
+  await db.execute(sql`
+    delete from email_deliveries
+    where campaign_recipient_id in (
+      select r.id from email_campaign_recipients r where ${e2eScope}
+    )
+  `);
+  await db.execute(sql`delete from email_links where ${e2eScope}`);
+  await db.execute(sql`delete from email_campaign_recipients where ${e2eScope}`);
+  await db.execute(sql`delete from email_campaigns where subject_id like '[E2E]%'`);
+  console.log("cleaned prior [E2E] broadcast rows");
 
   // 6. Admin e2e/dev — idempoten. Bila ADMIN_PASSWORD terpasang (fixture test,
   //    bukan secret produksi), hash admin di-reset agar login e2e repeatable
