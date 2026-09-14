@@ -64,6 +64,23 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
     await page.click("#otp-submit");
     await expect(page).toHaveURL(/\/admin\/campaigns$/);
 
+    // b2. Ekspektasi audiens dihitung dari DB dengan definisi yang sama seperti
+    //     src/lib/broadcast/audience.ts: contact confirmed + subscription
+    //     marketing aktif + tanpa baris suppression. Segment default "Semua
+    //     subscriber" (all: true); tidak ada cap limit saat snapshot. Ini
+    //     membuat spec tidak lagi bergantung pada asumsi "audiens = 1".
+    const expectedRows = await sql<{ id: string }[]>`
+      select c.id
+      from contact c
+      join marketing_subscription ms on ms.contact_id = c.id
+      left join email_suppressions s on s.email_normalized = c.email_normalized
+      where c.confirmation_status = 'confirmed'
+        and ms.status = 'active'
+        and s.email_normalized is null
+    `;
+    const expected = expectedRows.length;
+    expect(expected).toBeGreaterThan(0);
+
     // c. Buat campaign draft → editor → isi konten ID + 1 link https → simpan.
     await page.goto("/admin/email-campaigns/new");
     await page.click("#new-submit");
@@ -84,8 +101,8 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
     //    → status queued.
     await page.click("#schedule-btn");
     const reviewConfirm = page.locator("#review-confirm");
-    await expect(reviewConfirm).toHaveText("Kirim ke 1 subscriber");
-    await expect(page.locator("#rv-audience")).toHaveText("1 subscriber");
+    await expect(reviewConfirm).toHaveText(`Kirim ke ${expected} subscriber`);
+    await expect(page.locator("#rv-audience")).toHaveText(`${expected} subscriber`);
     await reviewConfirm.click();
     await expect(page.locator(".helper strong")).toHaveText("Antre");
 
@@ -97,14 +114,16 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
     expect(cronRes.status()).toBe(200);
     const cronJson = (await cronRes.json()) as { campaignId: string | null; sent: number; stopped: string };
     expect(cronJson.campaignId).toBe(campaignId);
-    expect(cronJson.sent).toBe(1);
+    expect(cronJson.sent).toBe(expected);
     expect(cronJson.stopped).toBe("completed");
 
-    // f. Laporan: badge Selesai, progres 1 dari 1, KPI Terkirim 1 (Delivered
-    //    masih 0 — webhook belum masuk).
+    // f. Laporan: badge Selesai, progres <expected> dari <expected>, KPI
+    //    Terkirim <expected> (Delivered masih 0 — webhook belum masuk).
     await page.goto(`/admin/email-campaigns/${campaignId}/laporan`);
     await expect(page.locator(".helper .badge")).toContainText("Selesai");
-    await expect(page.locator(".progress-line")).toContainText(/Mengirim\s*1 dari 1 penerima/);
+    await expect(page.locator(".progress-line")).toContainText(
+      new RegExp(`Mengirim\\s*${expected} dari ${expected} penerima`),
+    );
     const kpi = (label: string) => page.locator(".kpi", { has: page.locator("dt", { hasText: label }) }).locator("dd");
     await expect(kpi("Terkirim")).toHaveText("1");
     await expect(kpi("Sampai")).toHaveText("0");
