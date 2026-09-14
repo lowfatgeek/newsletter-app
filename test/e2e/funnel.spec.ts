@@ -28,6 +28,24 @@ test("en fallback: /en/r/starter-kit renders ID content with lang=id + bilingual
   await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute("href", "/en/r/starter-kit");
 });
 
+test("locale toggle: /r/<slug> ⇄ /en/r/<slug> with per-locale canonical", async ({ page }) => {
+  await page.goto("/r/starter-kit");
+  const idNav = page.getByRole("navigation", { name: "Pilih bahasa" });
+  await expect(idNav.getByRole("link", { name: "EN" })).toBeVisible();
+  await expect(idNav.locator('[aria-current="true"]')).toHaveText("ID");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/r\/starter-kit$/);
+
+  await idNav.getByRole("link", { name: "EN" }).click();
+  await expect(page).toHaveURL("/en/r/starter-kit");
+  const enNav = page.getByRole("navigation", { name: "Pilih bahasa" });
+  await expect(enNav.getByRole("link", { name: "ID" })).toBeVisible();
+  await expect(enNav.locator('[aria-current="true"]')).toHaveText("EN");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/en\/r\/starter-kit$/);
+
+  await enNav.getByRole("link", { name: "ID" }).click();
+  await expect(page).toHaveURL("/r/starter-kit");
+});
+
 test("404: unknown slug returns friendly 404 page with status 404", async ({ page }) => {
   const response = await page.goto("/r/tidak-ada-campaign-ini");
   expect(response?.status()).toBe(404);

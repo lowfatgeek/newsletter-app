@@ -1,5 +1,6 @@
 ---
 import PublicLayout from "../../layouts/PublicLayout.astro";
+import LocaleSwitch from "../../components/LocaleSwitch.astro";
 import RewardHero from "../../components/RewardHero.astro";
 import RewardItemList from "../../components/RewardItemList.astro";
 import ReflectionTabs from "../../components/ReflectionTabs.astro";
@@ -9,6 +10,7 @@ import { getPublicCampaignState, getPublishedCampaign } from "../../lib/campaign
 import { resolveSlugRedirect } from "../../lib/admin/campaigns";
 import { notFoundResponse } from "../../lib/notfound";
 import { t } from "../../lib/i18n";
+import { env } from "../../lib/env";
 import type { RewardCampaignLocale } from "../../lib/schema";
 
 export const prerender = false;
@@ -40,14 +42,24 @@ const alternates = [
   { hreflang: "id" as const, href: `/r/${slug}` },
   { hreflang: "en" as const, href: `/en/r/${slug}` },
 ];
+
+const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
 ---
 <PublicLayout
   title={paused ? "Campaign sedang dijeda" : localeRow!.metaTitle ?? localeRow!.title}
   description={paused ? undefined : localeRow!.metaDescription ?? localeRow!.description}
   lang="id"
   noindex={!isIndexable}
+  canonical={`${siteUrl}/r/${slug}`}
   alternates={alternates}
 >
+  <header
+    slot="header"
+    style="display: flex; align-items: center; justify-content: space-between; height: 64px; max-width: var(--funnel-content); margin: 0 auto; padding: 0 var(--space-5); border-bottom: var(--border-default);"
+  >
+    <a href="/" style="color: var(--color-ink); font-weight: var(--font-weight-bold); font-size: var(--text-body-lg); text-decoration: none;">KelasWFA</a>
+    <LocaleSwitch current="id" idHref={`/r/${slug}`} enHref={`/en/r/${slug}`} />
+  </header>
   {paused ? (
     <CampaignPaused locale="id" />
   ) : (
