@@ -1,6 +1,9 @@
 import type { APIRoute } from "astro";
 import { resubscribeByToken } from "../../../lib/broadcast/unsubscribe";
 
+// Route on-demand — tidak pernah diprerender.
+export const prerender = false;
+
 /**
  * POST /api/unsubscribe/resubscribe (form-encoded) — aksi eksplisit dari
  * halaman persetujuan /subscribe-again/<token>. Bukan unsubscribe; segmen

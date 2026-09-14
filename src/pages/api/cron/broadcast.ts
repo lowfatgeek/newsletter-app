@@ -2,6 +2,9 @@ import type { APIRoute } from "astro";
 import { env } from "../../../lib/env";
 import { processBroadcast } from "../../../lib/broadcast/worker";
 
+// Route on-demand — tidak pernah diprerender.
+export const prerender = false;
+
 /**
  * Cron worker broadcast (interval 1 menit, lihat vercel.json).
  * Satu tick = satu batch satu kampanye; single-flight via claimForSending.

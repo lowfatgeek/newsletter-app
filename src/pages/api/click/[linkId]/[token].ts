@@ -1,6 +1,9 @@
 import type { APIRoute } from "astro";
 import { resolveClick } from "../../../../lib/broadcast/links";
 
+// Route on-demand — tidak pernah diprerender.
+export const prerender = false;
+
 /**
  * GET /api/click/<linkId>/<rawToken> — bentuk URL ini sudah ditanam di
  * lastRenderedHtml oleh linkRewrite saat snapshot.

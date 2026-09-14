@@ -5,6 +5,9 @@ import { rewardCampaigns } from "../../lib/schema";
 import { processSubscribe } from "../../lib/subscribe";
 import { env } from "../../lib/env";
 
+// Route on-demand — tidak pernah diprerender.
+export const prerender = false;
+
 function cekEmailPath(locale: "id" | "en", errorSuffix: string): string {
   return `/${locale === "en" ? "en/cek-email" : "cek-email"}${errorSuffix}`;
 }

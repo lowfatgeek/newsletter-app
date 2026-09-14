@@ -1,6 +1,9 @@
 import type { APIRoute } from "astro";
 import { resolveUnsubscribeToken, unsubscribeByToken } from "../../../lib/broadcast/unsubscribe";
 
+// Route on-demand — tidak pernah diprerender.
+export const prerender = false;
+
 /**
  * GET /api/unsubscribe/<rawToken> — tautan satu-klik di footer email broadcast.
  * Token valid → unsubscribe (idempoten) lalu 303 ke halaman konfirmasi
