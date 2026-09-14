@@ -187,6 +187,28 @@ describe("claimForSending", () => {
     const c = await seedCampaign();
     expect(await claimForSending(c.id)).toBe(false); // draft
   });
+
+  it("refuses to claim while ANOTHER campaign is sending (single-sending guard)", async () => {
+    const a = await seedCampaign();
+    const b = await seedCampaign();
+    await scheduleCampaign(a.id, { scheduledAt: null }, AUDIT);
+    await scheduleCampaign(b.id, { scheduledAt: null }, AUDIT);
+    expect(await claimForSending(a.id)).toBe(true);
+    // B tetap queued — klaim ditolak karena A sending
+    expect(await claimForSending(b.id)).toBe(false);
+    const [rowB] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, b.id));
+    expect(rowB.status).toBe("queued");
+  });
+
+  it("allows claiming B after A leaves sending", async () => {
+    const a = await seedCampaign();
+    const b = await seedCampaign();
+    await scheduleCampaign(a.id, { scheduledAt: null }, AUDIT);
+    await scheduleCampaign(b.id, { scheduledAt: null }, AUDIT);
+    expect(await claimForSending(a.id)).toBe(true);
+    expect(await markCompleted(a.id, AUDIT)).toEqual({ ok: true });
+    expect(await claimForSending(b.id)).toBe(true);
+  });
 });
 
 describe("markCompleted / markFailed", () => {

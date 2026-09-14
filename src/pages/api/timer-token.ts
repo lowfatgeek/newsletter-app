@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { db } from "../../lib/db";
 import { rewardCampaigns } from "../../lib/schema";
 import { issueTimerToken } from "../../lib/timer";
+import { clientIp } from "../../lib/ip";
+import { consumeRateLimit, hashIp } from "../../lib/ratelimit";
 
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;
@@ -13,6 +15,10 @@ export const prerender = false;
  * Without JS, the server-rendered token in the page is used instead (PRD 7.1).
  */
 export const POST: APIRoute = async ({ request }) => {
+  // Token murah tapi tak terbatas = amplifikasi — batasi 60/jam per IP.
+  if (!(await consumeRateLimit("timer", hashIp(clientIp(request)), 60))) {
+    return new Response("too many requests", { status: 429 });
+  }
   let slug: string | undefined;
   try {
     ({ slug } = (await request.json()) as { slug?: string });

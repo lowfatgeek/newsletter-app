@@ -10,6 +10,10 @@ const raw = Astro.url.searchParams.get("m") ?? "";
 const masked = raw ? maskedEmail(raw) : null;
 const body = t("en", "checkEmailBody").replace("{email}", masked ?? "your email");
 const error = Astro.url.searchParams.get("e");
+// ?s= membawa slug campaign asal — tombol "Resend" menaut kembali ke
+// landing campaign; fallback "/" bila tidak ada (mis. error pre-slug).
+const resendSlug = Astro.url.searchParams.get("s") ?? "";
+const resendHref = resendSlug ? `/en/r/${resendSlug}` : "/";
 const errorText: Record<string, string> = {
   "bad-request": t("en", "errorGeneric"),
   "too-fast": t("en", "timerTooFast"),
@@ -31,7 +35,7 @@ const errorText: Record<string, string> = {
         </p>
       )}
       <a
-        href="/"
+        href={resendHref}
         style="display: inline-flex; align-items: center; min-height: 44px; padding: 10px 20px; border: var(--border-default); border-radius: var(--radius-control); background: transparent; color: var(--color-primary); font-weight: 600; text-decoration: none;"
       >Resend</a>
     </div>

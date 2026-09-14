@@ -1,13 +1,111 @@
 ---
 import { getAdmin } from "../../lib/admin/guard";
+import { getFunnelStats } from "../../lib/funnel";
+import AdminLayout from "../../layouts/AdminLayout.astro";
 
-// Route on-demand — keputusan redirect butuh cookie sesi per-request.
+// Route on-demand — guard cookie + agregat funnel bersifat per-request.
 export const prerender = false;
 
-
-// /admin → /admin/campaigns bila sudah login, /admin/login bila belum.
-// Task 10 mengganti dashboard; target redirect sudah final sekarang.
 const secure = Astro.url.protocol === "https:";
 const admin = await getAdmin(Astro.cookies, secure);
-return Astro.redirect(admin ? "/admin/campaigns" : "/admin/login", 303);
+if (!admin) return Astro.redirect("/admin/login", 303);
+
+const stats = await getFunnelStats();
+const fmt = new Intl.NumberFormat("id-ID");
+function fmtNum(n: number): string {
+  return fmt.format(n);
+}
+
+// Reward access rate = unduhan / email reward_access terkirim.
+const accessRate = stats.rewardAccessSent > 0
+  ? `${fmt.format((stats.downloadsIssued / stats.rewardAccessSent) * 100)}%`
+  : "—";
+
+const cards: { label: string; value: string; helper: string }[] = [
+  { label: "Total kontak", value: fmtNum(stats.contactsTotal), helper: "Semua email yang pernah submit" },
+  { label: "Terkonfirmasi 30 hari", value: fmtNum(stats.contactsConfirmed30d), helper: "confirmed_at ≥ 30 hari terakhir" },
+  { label: "Subscriber aktif", value: fmtNum(stats.activeSubscribers), helper: "marketing_subscription aktif" },
+  { label: "Total klaim", value: fmtNum(stats.claimsTotal), helper: "reward_claim tercatat" },
+  { label: "Email konfirmasi", value: fmtNum(stats.confirmationsSent), helper: "outbox tipe confirmation" },
+  { label: "Email akses hadiah", value: fmtNum(stats.rewardAccessSent), helper: "outbox tipe reward_access" },
+  { label: "Unduhan diterbitkan", value: fmtNum(stats.downloadsIssued), helper: "token sesi akses dibuat" },
+  { label: "Berhenti berlangganan", value: fmtNum(stats.unsubscribedTotal), helper: "marketing_subscription berhenti" },
+];
 ---
+<AdminLayout title="Dashboard" admin={admin}>
+  <div class="page-head">
+    <div>
+      <h1>Dashboard Funnel</h1>
+      <p class="helper">Statistik berbasis data tersimpan; tanpa pelacakan page-view.</p>
+    </div>
+    <div class="head-links">
+      <a href="/admin/contacts">Kontak</a>
+      <a href="/admin/campaigns">Reward Campaign</a>
+      <a href="/admin/audit">Lihat audit log</a>
+    </div>
+  </div>
+
+  <div class="cards">
+    {cards.map((c) => (
+      <article class="card">
+        <p class="card-label">{c.label}</p>
+        <p class="card-value">{c.value}</p>
+        <p class="card-helper">{c.helper}</p>
+      </article>
+    ))}
+    <article class="card">
+      <p class="card-label">Reward access rate</p>
+      <p class="card-value">{accessRate}</p>
+      <p class="card-helper">unduhan ÷ email akses hadiah</p>
+    </article>
+  </div>
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .head-links { display: flex; gap: var(--space-4); flex: none; }
+  .head-links a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    font-size: var(--text-body-sm);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-5);
+  }
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-5);
+  }
+  .card-label {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  .card-value {
+    color: var(--color-ink);
+    font-size: var(--text-h2);
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  .card-helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  @media (max-width: 640px) {
+    .page-head { flex-direction: column; }
+  }
+</style>

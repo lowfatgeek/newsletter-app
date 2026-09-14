@@ -1,0 +1,177 @@
+---
+import { requireAdminOrRedirect } from "../../lib/admin/guard";
+import { listAuditEvents } from "../../lib/admin/audit";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data tabel per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const PAGE_SIZE = 50;
+
+let offset = Number.parseInt(Astro.url.searchParams.get("offset") ?? "0", 10);
+if (!Number.isFinite(offset) || offset < 0) offset = 0;
+
+const { rows, total } = await listAuditEvents({ limit: PAGE_SIZE, offset });
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+function fmtDate(d: Date): string {
+  return dateFmt.format(d);
+}
+
+/** Ringkasan detail JSON: potong 120 karakter, title memuat versi penuh. */
+function summarize(detail: Record<string, unknown>): { short: string; full: string } {
+  const full = JSON.stringify(detail);
+  const short = full.length > 120 ? `${full.slice(0, 120)}…` : full;
+  return { short, full };
+}
+
+const showingFrom = total === 0 ? 0 : offset + 1;
+const showingTo = Math.min(offset + PAGE_SIZE, total);
+const hasPrev = offset > 0;
+const hasNext = offset + PAGE_SIZE < total;
+
+function pageHref(newOffset: number): string {
+  return newOffset === 0 ? "/admin/audit" : `/admin/audit?offset=${newOffset}`;
+}
+---
+<AdminLayout title="Audit Log" admin={admin}>
+  <div class="page-head">
+    <div>
+      <h1>Audit Log</h1>
+      <p class="helper">
+        {total === 0
+          ? "Belum ada aktivitas tercatat."
+          : `Menampilkan ${showingFrom}–${showingTo} dari ${total} aktivitas.`}
+      </p>
+    </div>
+    <a href="/admin" class="back-link">← Dashboard</a>
+  </div>
+
+  {rows.length === 0 ? (
+    <div class="empty">
+      <p>Belum ada aktivitas admin yang tercatat.</p>
+    </div>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Waktu</th>
+            <th scope="col">Admin</th>
+            <th scope="col">Aksi</th>
+            <th scope="col">Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const s = summarize(row.detail);
+            return (
+              <tr>
+                <td>{fmtDate(row.createdAt)}</td>
+                <td>{row.adminEmail ?? "—"}</td>
+                <td><span class="action">{row.action}</span></td>
+                <td><span class="detail" title={s.full}>{s.short}</span></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  <div class="pager">
+    {hasPrev ? <a class="btn-secondary" href={pageHref(Math.max(offset - PAGE_SIZE, 0))}>← Sebelumnya</a> : <button class="btn-secondary" disabled>← Sebelumnya</button>}
+    {hasNext ? <a class="btn-secondary" href={pageHref(offset + PAGE_SIZE)}>Selanjutnya →</a> : <button class="btn-secondary" disabled>Selanjutnya →</button>}
+  </div>
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .back-link {
+    color: var(--color-primary);
+    text-decoration: underline;
+    font-size: var(--text-body-sm);
+    flex: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .empty {
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-8);
+    text-align: center;
+  }
+  .empty p { color: var(--color-text-muted); margin: 0; }
+  .table-wrap {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    overflow-x: auto;
+    box-shadow: var(--shadow-card);
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  thead tr { background: var(--color-surface-subtle); }
+  th {
+    text-align: left;
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    padding: var(--space-3) var(--space-5);
+  }
+  td {
+    padding: var(--space-3) var(--space-5);
+    border-top: var(--border-default);
+    font-size: var(--text-body-sm);
+    color: var(--color-text);
+    vertical-align: top;
+  }
+  tbody tr:hover { background: var(--color-primary-subtle); }
+  .action { color: var(--color-ink); font-weight: var(--font-weight-semibold); }
+  .detail { font-family: monospace; word-break: break-all; }
+  .pager {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    padding: 10px 16px;
+    min-height: 44px;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  a.btn-secondary:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  button.btn-secondary:disabled { opacity: 0.5; cursor: default; }
+  @media (max-width: 640px) {
+    .page-head { flex-direction: column; }
+  }
+</style>

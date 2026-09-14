@@ -10,9 +10,10 @@ interface Props {
   description?: string;
   lang?: "id" | "en";
   noindex?: boolean;
+  canonical?: string;
   alternates?: Array<{ hreflang: "id" | "en"; href: string }>;
 }
-const { title, description = "", lang = "id", noindex = false, alternates = [] } = Astro.props;
+const { title, description = "", lang = "id", noindex = false, canonical, alternates = [] } = Astro.props;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -22,9 +23,11 @@ const { title, description = "", lang = "id", noindex = false, alternates = [] }
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
+    {canonical && <link rel="canonical" href={canonical} />}
     {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
   </head>
   <body>
+    <slot name="header" />
     <slot />
   </body>
 </html>
