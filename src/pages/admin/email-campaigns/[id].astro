@@ -1,0 +1,834 @@
+---
+import { asc } from "drizzle-orm";
+import { db } from "../../../lib/db";
+import { rewardCampaigns } from "../../../lib/schema";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { getEmailCampaignById } from "../../../lib/broadcast/crud";
+import { validateFilter, countAudience } from "../../../lib/broadcast/audience";
+import { env } from "../../../lib/env";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const id = Astro.params.id ?? "";
+const campaign = await getEmailCampaignById(id);
+if (!campaign) return new Response(null, { status: 404 });
+
+const isDraft = campaign.status === "draft";
+const enComplete = Boolean(
+  campaign.subjectEn?.trim() && campaign.preheaderEn?.trim() && campaign.bodyHtmlEn?.trim(),
+);
+
+// Estimate audiens awal dari filter tersimpan.
+const storedFilter = validateFilter(campaign.audienceFilter);
+const initialCount = storedFilter.ok ? await countAudience(storedFilter.filter) : null;
+
+// Daftar reward campaign untuk segmen claim (chip memakai slug).
+const claimRows = await db
+  .select({ id: rewardCampaigns.id, slug: rewardCampaigns.slug })
+  .from(rewardCampaigns)
+  .orderBy(asc(rewardCampaigns.createdAt));
+
+const adminEmail = env("ADMIN_EMAIL", "kelaswfa@gmail.com");
+const caps = {
+  perSecond: env("EMAILIT_MAX_PER_SECOND", "2"),
+  perDay: env("EMAILIT_MAX_PER_DAY", "5000"),
+};
+
+const statusLabel: Record<string, string> = {
+  draft: "Draft",
+  scheduled: "Terjadwal",
+  queued: "Antre",
+  sending: "Mengirim",
+  paused: "Dijeda",
+  completed: "Selesai",
+  failed: "Gagal",
+  cancelled: "Dibatalkan",
+};
+
+function fmtDateTime(d: Date | null): string {
+  if (!d) return "—";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  }).format(d);
+}
+
+// Nilai datetime-local untuk jadwal tersimpan (zona lokal browser admin).
+function toLocalInput(d: Date | null): string {
+  if (!d) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+const storedScheduledAt = toLocalInput(campaign.scheduledAt);
+const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
+---
+<AdminLayout title={`Email: ${campaign.subjectId || "draft"}`} admin={admin}>
+  <div class="page-head">
+    <div>
+      <p class="overline">Email Campaign</p>
+      <h1>{campaign.subjectId || "Draft campaign"}</h1>
+      <p class="helper">
+        Status: <strong>{statusLabel[campaign.status] ?? campaign.status}</strong>
+        {campaign.scheduledAt && <span> · {fmtDateTime(campaign.scheduledAt)}</span>}
+        {!isDraft && <span> · Konten terkunci setelah dijadwalkan</span>}
+      </p>
+    </div>
+    <div class="save-area">
+      <span id="save-status" role="status" aria-live="polite"></span>
+      {isDraft && <button type="button" id="save-btn" class="btn-primary">Simpan</button>}
+    </div>
+  </div>
+
+  <p id="global-error" class="error" role="alert" hidden></p>
+
+  <form id="composer-form" data-campaign={campaign.id} data-filter={filterJson} data-draft={isDraft ? "1" : "0"} onsubmit="return false;">
+    <!-- SECTION: Segment -->
+    <section class="card" aria-labelledby="h-segment">
+      <h2 id="h-segment">Segment</h2>
+      <fieldset class="seg-group">
+        <legend>Audiens</legend>
+        <label class="seg-option">
+          <input type="radio" name="seg-mode" value="all" checked={storedFilter.ok && !!storedFilter.filter.all} />
+          <span>Semua subscriber</span>
+        </label>
+        <label class="seg-option">
+          <input type="radio" name="seg-mode" value="locale" checked={storedFilter.ok && !!storedFilter.filter.locales} />
+          <span>Pilih bahasa subscriber</span>
+        </label>
+        <div class="seg-nested" data-shows="locale">
+          <span class="seg-nested-label">Bahasa:</span>
+          <label class="chip">
+            <input type="checkbox" name="seg-locale" value="id" checked={storedFilter.ok && storedFilter.filter.locales?.includes("id") === true} />
+            Indonesia
+          </label>
+          <label class="chip">
+            <input type="checkbox" name="seg-locale" value="en" checked={storedFilter.ok && storedFilter.filter.locales?.includes("en") === true} />
+            English
+          </label>
+        </div>
+        <label class="seg-option">
+          <input type="radio" name="seg-mode" value="claim" checked={storedFilter.ok && !!storedFilter.filter.claimCampaignIds} />
+          <span>Penerima reward campaign</span>
+        </label>
+        <div class="seg-nested" data-shows="claim">
+          {claimRows.length === 0 ? (
+            <p class="hint">Belum ada reward campaign.</p>
+          ) : (
+            <div class="claim-list">
+              {claimRows.map((c) => (
+                <label class="chip">
+                  <input type="checkbox" name="seg-claim" value={c.id}
+                    checked={storedFilter.ok && storedFilter.filter.claimCampaignIds?.includes(c.id) === true} />
+                  {c.slug}
+                </label>
+              ))}
+            </div>
+          )}
+          <div class="claim-mode">
+            <span class="seg-nested-label">Syarat:</span>
+            <label class="seg-option">
+              <input type="radio" name="seg-claim-mode" value="ANY" checked={storedFilter.ok && (storedFilter.filter.claimMode ?? "ANY") === "ANY"} />
+              <span>Salah satu campaign (ANY)</span>
+            </label>
+            <label class="seg-option">
+              <input type="radio" name="seg-claim-mode" value="ALL" checked={storedFilter.ok && storedFilter.filter.claimMode === "ALL"} />
+              <span>Semua campaign terpilih (ALL)</span>
+            </label>
+          </div>
+        </div>
+        <p id="segment-error" class="field-error" hidden></p>
+      </fieldset>
+
+      <p class="estimate">
+        Estimasi audiens: <strong id="audience-count">{initialCount === null ? "—" : new Intl.NumberFormat("id-ID").format(initialCount)}</strong>
+        <span id="audience-unit" class="hint"> subscriber</span>
+      </p>
+      <p id="estimate-error" class="field-error" hidden></p>
+    </section>
+
+    <!-- SECTION: Bahasa + Subject + Preheader + Body -->
+    <section class="card" aria-labelledby="h-content">
+      <div class="card-head">
+        <h2 id="h-content">Konten</h2>
+        <span id="en-fallback" class="fallback-badge" hidden={enComplete}>EN belum lengkap — fallback ID</span>
+      </div>
+
+      <div class="field">
+        <label for="f-subject-id">Subject (ID) <span class="wajib">Wajib</span></label>
+        <input id="f-subject-id" type="text" value={campaign.subjectId} maxlength="300" lang="id"
+          aria-describedby="subject-id-error" disabled={!isDraft} />
+        <p id="subject-id-error" class="field-error" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-preheader-id">Preheader (ID) <span class="wajib">Wajib</span></label>
+        <input id="f-preheader-id" type="text" value={campaign.preheaderId ?? ""} maxlength="300" lang="id"
+          aria-describedby="preheader-id-error" disabled={!isDraft} />
+        <p id="preheader-id-error" class="field-error" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-body-id">Body (ID) <span class="wajib">Wajib</span></label>
+        <textarea id="f-body-id" rows="10" lang="id" disabled={!isDraft}>{campaign.bodyHtmlId}</textarea>
+        <p class="hint">Tag diizinkan: p, br, strong, em, u, a, ul, ol, li, h2, h3, blockquote — link harus https</p>
+        <p id="body-id-error" class="field-error" hidden></p>
+      </div>
+
+      <h3 class="sub-head">Versi EN (opsional)</h3>
+      <div class="grid-2">
+        <div class="field">
+          <label for="f-subject-en">Subject (EN)</label>
+          <input id="f-subject-en" type="text" value={campaign.subjectEn ?? ""} maxlength="300" lang="en" disabled={!isDraft} />
+        </div>
+        <div class="field">
+          <label for="f-preheader-en">Preheader (EN)</label>
+          <input id="f-preheader-en" type="text" value={campaign.preheaderEn ?? ""} maxlength="300" lang="en" disabled={!isDraft} />
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-body-en">Body (EN)</label>
+        <textarea id="f-body-en" rows="8" lang="en" disabled={!isDraft}>{campaign.bodyHtmlEn ?? ""}</textarea>
+        <p class="hint">Tag diizinkan: p, br, strong, em, u, a, ul, ol, li, h2, h3, blockquote — link harus https</p>
+      </div>
+    </section>
+
+    <!-- SECTION: Preview -->
+    <section class="card" aria-labelledby="h-preview">
+      <h2 id="h-preview">Preview</h2>
+      <div class="preview-controls">
+        <label class="chip">
+          <input type="radio" name="preview-locale" value="id" checked />
+          Indonesia
+        </label>
+        <label class="chip">
+          <input type="radio" name="preview-locale" value="en" />
+          English
+        </label>
+        <p class="hint">Preview memakai konten tersimpan — simpan dulu untuk melihat perubahan.</p>
+      </div>
+      <div class="preview-row">
+        <figure class="preview-frame">
+          <figcaption>Desktop · 640px</figcaption>
+          <iframe id="preview-desktop" title="Preview desktop" width="640" height="600"></iframe>
+        </figure>
+        <figure class="preview-frame">
+          <figcaption>Mobile · 375px</figcaption>
+          <iframe id="preview-mobile" title="Preview mobile" width="375" height="600"></iframe>
+        </figure>
+      </div>
+      <p id="preview-error" class="field-error" hidden></p>
+    </section>
+
+    <!-- SECTION: Jadwal -->
+    <section class="card" aria-labelledby="h-schedule">
+      <h2 id="h-schedule">Jadwal</h2>
+      <fieldset class="seg-group">
+        <legend>Waktu kirim</legend>
+        <label class="seg-option">
+          <input type="radio" name="send-mode" value="now" checked={!campaign.scheduledAt} disabled={!isDraft} />
+          <span>Kirim sekarang</span>
+        </label>
+        <label class="seg-option">
+          <input type="radio" name="send-mode" value="scheduled" checked={!!campaign.scheduledAt} disabled={!isDraft} />
+          <span>Jadwalkan</span>
+        </label>
+        <div class="seg-nested" data-shows="scheduled">
+          <label for="f-scheduled-at">Waktu (zona waktu browser Anda)</label>
+          <input id="f-scheduled-at" type="datetime-local" value={storedScheduledAt} disabled={!isDraft} />
+        </div>
+      </fieldset>
+      {isDraft && (
+        <div class="schedule-actions">
+          <button type="button" id="schedule-btn" class="btn-primary">Kirim campaign</button>
+          <p class="hint">Membuka ringkasan review sebelum campaign benar-benar dikirim.</p>
+        </div>
+      )}
+    </section>
+
+    <!-- SECTION: Rate limit -->
+    <section class="card" aria-labelledby="h-limits">
+      <h2 id="h-limits">Rate limit</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="f-max-per-minute">Maksimum pesan per menit <span class="wajib">Wajib</span></label>
+          <input id="f-max-per-minute" type="number" min="1" step="1" value={campaign.maxPerMinute} disabled={!isDraft} />
+        </div>
+        <div class="field">
+          <label for="f-max-per-hour">Maksimum pesan per jam <span class="wajib">Wajib</span></label>
+          <input id="f-max-per-hour" type="number" min="1" step="1" value={campaign.maxPerHour} disabled={!isDraft} />
+        </div>
+      </div>
+      <p class="hint">Kapasitas provider: {caps.perSecond} pesan/detik, {new Intl.NumberFormat("id-ID").format(Number(caps.perDay))} pesan/hari</p>
+    </section>
+
+    <!-- SECTION: Kirim tes -->
+    <section class="card" aria-labelledby="h-test">
+      <h2 id="h-test">Kirim tes</h2>
+      <p class="hint">Mengirim pratinjau email asli ke alamat pada daftar izin (TEST_SEND_ADDRESSES) — tidak menyentuh recipient atau statistik.</p>
+      <div class="test-row">
+        <div class="field test-field">
+          <label for="f-test-address">Alamat email tujuan</label>
+          <input id="f-test-address" type="email" value={adminEmail} autocomplete="email" />
+        </div>
+        <button type="button" id="test-send-btn" class="btn-secondary">Kirim tes</button>
+      </div>
+      <p id="test-status" class="hint" role="status" aria-live="polite"></p>
+      <p id="test-error" class="field-error" hidden></p>
+    </section>
+  </form>
+
+  <!-- Review modal (DESIGN.md §6: tombol kirim membuka review modal) -->
+  <dialog id="review-modal" class="review-modal">
+    <h2>Review campaign</h2>
+    <dl class="review-list">
+      <div><dt>Campaign</dt><dd id="rv-name"></dd></div>
+      <div><dt>Audiens (estimasi)</dt><dd id="rv-audience"></dd></div>
+      <div><dt>Segment</dt><dd id="rv-segment"></dd></div>
+      <div><dt>Bahasa</dt><dd><span id="rv-lang"></span></dd></div>
+      <div><dt>Subject (ID)</dt><dd id="rv-subject"></dd></div>
+      <div><dt>Jadwal</dt><dd id="rv-schedule"></dd></div>
+      <div><dt>Rate limit</dt><dd id="rv-limits"></dd></div>
+    </dl>
+    <p id="review-error" class="field-error" hidden></p>
+    <div class="review-actions">
+      <button type="button" id="review-confirm" class="btn-primary"></button>
+      <button type="button" id="review-cancel" class="btn-secondary">Batal</button>
+    </div>
+  </dialog>
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+  }
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .save-area { display: flex; align-items: center; gap: var(--space-3); flex: none; }
+  #save-status { color: var(--color-text-muted); font-size: var(--text-body-sm); }
+
+  .btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--color-primary); color: var(--color-canvas); border: none; }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+  .btn-primary:disabled { background: var(--color-surface-subtle); color: var(--color-text-muted); cursor: not-allowed; }
+  .btn-secondary { background: var(--color-surface-raised); border: var(--border-default); color: var(--color-ink); }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+  .card h2 { color: var(--color-ink); font-size: var(--text-h3); margin: 0 0 var(--space-5); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-5); }
+  .card-head h2 { margin: 0; }
+  .sub-head { color: var(--color-ink); font-size: var(--text-body); margin: var(--space-5) 0 var(--space-3); }
+  .fallback-badge {
+    background: var(--color-warning-subtle);
+    color: var(--color-warning);
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+  }
+
+  .seg-group { border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-4); margin: 0; }
+  .seg-group legend { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); padding: 0 var(--space-2); }
+  .seg-option {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-2); border-radius: var(--radius-control);
+    font-weight: var(--font-weight-regular); font-size: var(--text-body); cursor: pointer;
+  }
+  .seg-option:hover { background: var(--color-primary-subtle); }
+  .seg-option input { width: 20px; height: 20px; flex: none; }
+  .seg-nested {
+    margin: var(--space-2) 0 var(--space-3) var(--space-7);
+    display: flex; flex-direction: column; gap: var(--space-2);
+    border-left: 2px solid var(--color-border);
+    padding-left: var(--space-4);
+  }
+  .seg-nested[hidden] { display: none; }
+  .seg-nested-label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); }
+  .claim-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    border: var(--border-default); border-radius: var(--radius-pill);
+    padding: 8px 12px; min-height: 44px; cursor: pointer;
+    font-size: var(--text-body-sm);
+  }
+  .chip:hover { background: var(--color-primary-subtle); }
+  .chip input { width: 18px; height: 18px; }
+  .claim-mode { display: flex; flex-direction: column; }
+
+  .estimate { color: var(--color-text); font-size: var(--text-body); margin: var(--space-4) 0 0; }
+  .estimate strong { color: var(--color-ink); font-size: var(--text-h3); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-5); }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); color: var(--color-text); }
+  .wajib {
+    display: inline-block;
+    margin-left: var(--space-2);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    border-radius: var(--radius-pill);
+    padding: 1px 8px;
+  }
+  input[type="text"], input[type="number"], input[type="datetime-local"], input[type="email"], textarea {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    min-height: 44px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    width: 100%;
+  }
+  textarea { resize: vertical; font-family: monospace; }
+  input:disabled, textarea:disabled { background: var(--color-surface-subtle); color: var(--color-text-muted); }
+  input:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .field-error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-body-sm);
+    margin: var(--space-2) 0 0;
+  }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: 0 0 var(--space-5);
+  }
+
+  .preview-controls { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .preview-row { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+  .preview-frame { margin: 0; }
+  .preview-frame figcaption {
+    color: var(--color-text-muted); font-size: var(--text-body-sm);
+    margin-bottom: var(--space-2); font-weight: var(--font-weight-semibold);
+  }
+  .preview-frame iframe {
+    border: var(--border-default); border-radius: var(--radius-control);
+    background: var(--color-surface-raised); max-width: 100%;
+  }
+
+  .schedule-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-4); }
+
+  .test-row { display: flex; align-items: flex-end; gap: var(--space-3); flex-wrap: wrap; }
+  .test-field { flex: 1; min-width: 220px; margin-bottom: 0; }
+
+  .review-modal {
+    border: var(--border-default);
+    border-radius: var(--radius-modal);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    max-width: 480px;
+    width: calc(100vw - var(--space-8));
+  }
+  .review-modal::backdrop { background: rgba(54, 81, 75, 0.45); }
+  .review-modal h2 { color: var(--color-ink); font-size: var(--text-h3); margin: 0 0 var(--space-5); }
+  .review-list { margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+  .review-list > div { display: flex; justify-content: space-between; gap: var(--space-4); }
+  .review-list dt { color: var(--color-text-muted); font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold); }
+  .review-list dd { margin: 0; text-align: right; color: var(--color-ink); font-size: var(--text-body-sm); overflow-wrap: anywhere; }
+  .review-actions { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-5); }
+
+  @media (max-width: 640px) {
+    .page-head { flex-direction: column; }
+  }
+</style>
+
+<script>
+  const $ = <T extends HTMLElement>(sel: string): T | null => document.querySelector<T>(sel);
+  const nf = new Intl.NumberFormat("id-ID");
+  const dateTimeFmt = new Intl.DateTimeFormat("id-ID", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  const form = $<HTMLFormElement>("#composer-form");
+  const campaignId = form?.dataset.campaign ?? "";
+  const isDraft = form?.dataset.draft === "1";
+
+  const saveBtn = $<HTMLButtonElement>("#save-btn");
+  const saveStatus = $<HTMLElement>("#save-status");
+  const globalError = $<HTMLElement>("#global-error");
+  const scheduleBtn = $<HTMLButtonElement>("#schedule-btn");
+  const reviewModal = $<HTMLDialogElement>("#review-modal");
+  const reviewConfirm = $<HTMLButtonElement>("#review-confirm");
+  const reviewCancel = $<HTMLButtonElement>("#review-cancel");
+  const reviewError = $<HTMLElement>("#review-error");
+
+  const subjectId = $<HTMLInputElement>("#f-subject-id");
+  const preheaderId = $<HTMLInputElement>("#f-preheader-id");
+  const bodyId = $<HTMLTextAreaElement>("#f-body-id");
+  const subjectEn = $<HTMLInputElement>("#f-subject-en");
+  const preheaderEn = $<HTMLInputElement>("#f-preheader-en");
+  const bodyEn = $<HTMLTextAreaElement>("#f-body-en");
+  const maxPerMinute = $<HTMLInputElement>("#f-max-per-minute");
+  const maxPerHour = $<HTMLInputElement>("#f-max-per-hour");
+  const scheduledAtInput = $<HTMLInputElement>("#f-scheduled-at");
+  const enFallback = $<HTMLElement>("#en-fallback");
+  const segmentError = $<HTMLElement>("#segment-error");
+  const estimateError = $<HTMLElement>("#estimate-error");
+
+  const testAddress = $<HTMLInputElement>("#f-test-address");
+  const testBtn = $<HTMLButtonElement>("#test-send-btn");
+  const testStatus = $<HTMLElement>("#test-status");
+  const testError = $<HTMLElement>("#test-error");
+
+  let lastAudienceCount: number | null = null;
+
+  function showFieldError(el: HTMLElement | null, msg: string) {
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+  }
+  function hideEl(el: HTMLElement | null) {
+    if (el) { el.hidden = true; el.textContent = ""; }
+  }
+  function trim(v: string | undefined): string {
+    return (v ?? "").trim();
+  }
+
+  // ===== Segment → filter JSON + live audience estimate =====
+
+  type Filter = { all?: true; locales?: string[]; claimCampaignIds?: string[]; claimMode?: "ANY" | "ALL" };
+
+  function currentSegmentMode(): string {
+    return document.querySelector<HTMLInputElement>('input[name="seg-mode"]:checked')?.value ?? "all";
+  }
+
+  function buildFilter(): Filter | null {
+    const mode = currentSegmentMode();
+    if (mode === "all") return { all: true };
+    if (mode === "locale") {
+      const locales = [...document.querySelectorAll<HTMLInputElement>('input[name="seg-locale"]:checked')]
+        .map((el) => el.value);
+      if (locales.length === 0) return null;
+      return { locales };
+    }
+    const ids = [...document.querySelectorAll<HTMLInputElement>('input[name="seg-claim"]:checked')]
+      .map((el) => el.value);
+    if (ids.length === 0) return null;
+    const claimMode = document.querySelector<HTMLInputElement>('input[name="seg-claim-mode"]:checked')?.value;
+    return { claimCampaignIds: ids, claimMode: claimMode === "ALL" ? "ALL" : "ANY" };
+  }
+
+  function segmentSummary(filter: Filter): string {
+    if (filter.all) return "Semua subscriber";
+    const parts: string[] = [];
+    if (filter.locales) parts.push(`Bahasa: ${filter.locales.join(", ")}`);
+    if (filter.claimCampaignIds) {
+      const slugs = [...document.querySelectorAll<HTMLInputElement>('input[name="seg-claim"]:checked')]
+        .map((el) => el.closest("label")?.textContent?.trim() ?? "");
+      parts.push(`Penerima ${filter.claimMode === "ALL" ? "semua" : "salah satu"} dari: ${slugs.join(", ")}`);
+    }
+    return parts.join(" · ") || "—";
+  }
+
+  async function refreshEstimate(): Promise<void> {
+    hideEl(segmentError);
+    hideEl(estimateError);
+    const filter = buildFilter();
+    const countEl = $<HTMLElement>("#audience-count");
+    if (!filter) {
+      lastAudienceCount = null;
+      if (countEl) countEl.textContent = "—";
+      showFieldError(segmentError, "Pilih minimal satu kriteria audiens.");
+      return;
+    }
+    try {
+      const res = await fetch("/admin/api/email-campaigns/count", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filter }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        lastAudienceCount = data.count as number;
+        if (countEl) countEl.textContent = nf.format(lastAudienceCount);
+      } else {
+        lastAudienceCount = null;
+        if (countEl) countEl.textContent = "—";
+        showFieldError(estimateError, data.reason === "invalid-filter"
+          ? "Kombinasi segmen tidak valid."
+          : "Gagal menghitung estimasi audiens.");
+      }
+    } catch {
+      lastAudienceCount = null;
+      showFieldError(estimateError, "Terjadi kesalahan jaringan. Coba lagi.");
+    }
+  }
+
+  // Tampilkan sub-panel sesuai mode; estimasi di-refresh pada setiap perubahan.
+  function syncSegmentVisibility(): void {
+    const mode = currentSegmentMode();
+    for (const panel of document.querySelectorAll<HTMLElement>(".seg-nested")) {
+      panel.hidden = panel.dataset.shows !== mode
+        && !(panel.dataset.shows === "scheduled" && sendMode() === "scheduled");
+    }
+  }
+
+  document.querySelectorAll<HTMLInputElement>('input[name="seg-mode"], input[name="seg-locale"], input[name="seg-claim"], input[name="seg-claim-mode"]')
+    .forEach((el) => {
+      el.addEventListener("change", () => {
+        syncSegmentVisibility();
+        void refreshEstimate();
+      });
+    });
+
+  // ===== EN fallback badge =====
+
+  function enFilled(): boolean {
+    return trim(subjectEn?.value) !== "" && trim(preheaderEn?.value) !== "" && trim(bodyEn?.value) !== "";
+  }
+  function updateFallbackBadge(): void {
+    if (enFallback) enFallback.hidden = enFilled();
+  }
+  [subjectEn, preheaderEn, bodyEn].forEach((el) => el?.addEventListener("input", updateFallbackBadge));
+  updateFallbackBadge();
+
+  // ===== Preview iframes =====
+
+  function previewLocale(): string {
+    return document.querySelector<HTMLInputElement>('input[name="preview-locale"]:checked')?.value ?? "id";
+  }
+  function refreshPreview(): void {
+    const locale = previewLocale();
+    const src = `/admin/api/email-campaigns/${campaignId}/preview?locale=${locale}`;
+    const desktop = $<HTMLIFrameElement>("#preview-desktop");
+    const mobile = $<HTMLIFrameElement>("#preview-mobile");
+    if (desktop) desktop.src = src;
+    if (mobile) mobile.src = src;
+  }
+  document.querySelectorAll<HTMLInputElement>('input[name="preview-locale"]').forEach((el) => {
+    el.addEventListener("change", refreshPreview);
+  });
+  refreshPreview();
+
+  // ===== Save draft =====
+
+  function collectDraft() {
+    return {
+      subjectId: subjectId?.value ?? "",
+      preheaderId: preheaderId?.value ?? "",
+      bodyHtmlId: bodyId?.value ?? "",
+      subjectEn: subjectEn?.value ?? "",
+      preheaderEn: preheaderEn?.value ?? "",
+      bodyHtmlEn: bodyEn?.value ?? "",
+      audienceFilter: buildFilter() ?? { all: true },
+      maxPerMinute: Number(maxPerMinute?.value ?? 0),
+      maxPerHour: Number(maxPerHour?.value ?? 0),
+    };
+  }
+
+  async function save(): Promise<boolean> {
+    if (!saveBtn) return false;
+    hideEl(globalError);
+    hideEl($<HTMLElement>("#subject-id-error"));
+    hideEl($<HTMLElement>("#preheader-id-error"));
+    hideEl($<HTMLElement>("#body-id-error"));
+    if (saveStatus) saveStatus.textContent = "Menyimpan…";
+    saveBtn.disabled = true;
+    try {
+      const res = await fetch(`/admin/api/email-campaigns/${campaignId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(collectDraft()),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const d = new Date();
+        if (saveStatus) saveStatus.textContent =
+          `Tersimpan ${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`;
+        return true;
+      }
+      if (data.reason === "unauthorized") {
+        showFieldError(globalError, "Sesi berakhir. Muat ulang halaman untuk masuk kembali.");
+      } else if (data.reason === "invalid-filter") {
+        showFieldError(segmentError, "Kombinasi segmen tidak valid.");
+      } else if (data.reason === "not-draft") {
+        showFieldError(globalError, "Campaign sudah dijadwalkan atau dikirim — konten terkunci. Muat ulang halaman.");
+      } else {
+        showFieldError(globalError, "Terjadi kesalahan saat menyimpan. Coba lagi.");
+      }
+      if (saveStatus) saveStatus.textContent = "";
+      return false;
+    } catch {
+      showFieldError(globalError, "Terjadi kesalahan jaringan. Coba lagi.");
+      if (saveStatus) saveStatus.textContent = "";
+      return false;
+    } finally {
+      saveBtn.disabled = false;
+    }
+  }
+  saveBtn?.addEventListener("click", () => void save());
+
+  // ===== Schedule + review modal =====
+
+  function sendMode(): string {
+    return document.querySelector<HTMLInputElement>('input[name="send-mode"]:checked')?.value ?? "now";
+  }
+  document.querySelectorAll<HTMLInputElement>('input[name="send-mode"]').forEach((el) => {
+    el.addEventListener("change", syncSegmentVisibility);
+  });
+  syncSegmentVisibility();
+
+  scheduleBtn?.addEventListener("click", async () => {
+    hideEl(reviewError);
+    if (isDraft && !(await save())) return;
+
+    // Estimasi segar untuk review (jangan pakai angka basi).
+    await refreshEstimate();
+
+    const filter = buildFilter();
+    const sendNow = sendMode() === "now";
+    const scheduled = trim(scheduledAtInput?.value) !== "";
+
+    const rvName = $<HTMLElement>("#rv-name");
+    const rvAudience = $<HTMLElement>("#rv-audience");
+    const rvSegment = $<HTMLElement>("#rv-segment");
+    const rvLang = $<HTMLElement>("#rv-lang");
+    const rvSubject = $<HTMLElement>("#rv-subject");
+    const rvSchedule = $<HTMLElement>("#rv-schedule");
+    const rvLimits = $<HTMLElement>("#rv-limits");
+
+    if (rvName) rvName.textContent = trim(subjectId?.value) || "Draft campaign";
+    if (rvAudience) rvAudience.textContent = lastAudienceCount === null ? "—" : `${nf.format(lastAudienceCount)} subscriber`;
+    if (rvSegment) rvSegment.textContent = filter ? segmentSummary(filter) : "—";
+    if (rvLang) {
+      rvLang.textContent = enFilled() ? "ID + EN lengkap" : "EN belum lengkap — fallback ID";
+    }
+    if (rvSubject) rvSubject.textContent = trim(subjectId?.value) || "(kosong)";
+    if (rvSchedule) {
+      if (sendNow) {
+        rvSchedule.textContent = "Kirim sekarang";
+      } else if (scheduled && scheduledAtInput) {
+        rvSchedule.textContent = dateTimeFmt.format(new Date(scheduledAtInput.value));
+      } else {
+        rvSchedule.textContent = "—";
+      }
+    }
+    if (rvLimits) {
+      rvLimits.textContent = `${nf.format(Number(maxPerMinute?.value ?? 0))}/menit · ${nf.format(Number(maxPerHour?.value ?? 0))}/jam`;
+    }
+
+    if (reviewConfirm) {
+      reviewConfirm.textContent = sendNow
+        ? `Kirim ke ${lastAudienceCount === null ? "?" : nf.format(lastAudienceCount)} subscriber`
+        : "Jadwalkan campaign";
+    }
+    reviewModal?.showModal();
+  });
+
+  reviewCancel?.addEventListener("click", () => reviewModal?.close());
+
+  reviewConfirm?.addEventListener("click", async () => {
+    if (!reviewConfirm) return;
+    hideEl(reviewError);
+    reviewConfirm.disabled = true;
+
+    const sendNow = sendMode() === "now";
+    let iso: string | null = null;
+    if (!sendNow) {
+      const raw = trim(scheduledAtInput?.value);
+      if (!raw) {
+        showFieldError(reviewError, "Isi waktu jadwal terlebih dahulu.");
+        reviewConfirm.disabled = false;
+        return;
+      }
+      iso = new Date(raw).toISOString();
+    }
+
+    try {
+      const res = await fetch(`/admin/api/email-campaigns/${campaignId}/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledAt: iso }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        window.location.reload();
+        return;
+      }
+      const reason = data.reason as string;
+      showFieldError(reviewError,
+        reason === "limits" ? "Melebihi kapasitas provider"
+          : reason === "missing-id" ? "Konten ID wajib lengkap"
+            : reason === "in-past" ? "Jadwal harus di masa depan"
+              : reason === "not-draft" ? "Campaign sudah dijadwalkan atau dikirim. Muat ulang halaman."
+                : "Terjadi kesalahan. Coba lagi.");
+    } catch {
+      showFieldError(reviewError, "Terjadi kesalahan jaringan. Coba lagi.");
+    } finally {
+      reviewConfirm.disabled = false;
+    }
+  });
+
+  // ===== Test send =====
+
+  testBtn?.addEventListener("click", async () => {
+    hideEl(testError);
+    if (testStatus) testStatus.textContent = "";
+    testBtn.disabled = true;
+    try {
+      const res = await fetch(`/admin/api/email-campaigns/${campaignId}/test-send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: trim(testAddress?.value) }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (testStatus) testStatus.textContent = `Email tes terkirim ke ${trim(testAddress?.value)}.`;
+        return;
+      }
+      showFieldError(testError,
+        data.reason === "not-allowed" ? "Alamat tidak ada di daftar izin (TEST_SEND_ADDRESSES)."
+          : data.reason === "no-content" ? "Lengkapi subject, preheader, dan body ID terlebih dahulu (simpan dulu)."
+            : data.reason === "invalid" ? "Alamat email tidak valid."
+              : data.reason === "unauthorized" ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+                : "Terjadi kesalahan. Coba lagi.");
+    } catch {
+      showFieldError(testError, "Terjadi kesalahan jaringan. Coba lagi.");
+    } finally {
+      testBtn.disabled = false;
+    }
+  });
+</script>

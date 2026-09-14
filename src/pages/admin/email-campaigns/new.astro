@@ -1,0 +1,110 @@
+---
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+---
+<AdminLayout title="Buat Email Campaign" admin={admin}>
+  <h1>Buat Email Campaign</h1>
+  <p class="helper">
+    Campaign baru dibuat sebagai draft: konten masih kosong, audiens awal
+    “Semua subscriber”, dan rate limit default 60/menit, 600/jam. Semuanya bisa
+    diubah di editor sebelum dijadwalkan.
+  </p>
+
+  <form id="new-form" novalidate>
+    <p id="new-error" class="error" role="alert" hidden></p>
+    <button type="submit" id="new-submit">Buat draft campaign</button>
+    <a href="/admin/email-campaigns" class="btn-secondary">Batal</a>
+  </form>
+</AdminLayout>
+
+<style>
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0 0 var(--space-6); max-width: 560px; }
+  form {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+  }
+  .error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin: 0 0 var(--space-3);
+  }
+  button {
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    cursor: pointer;
+  }
+  button:hover { background: var(--color-primary-hover); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  .btn-secondary {
+    margin-top: var(--space-3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    color: var(--color-ink);
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+</style>
+
+<script>
+  const form = document.getElementById("new-form") as HTMLFormElement | null;
+  const error = document.getElementById("new-error") as HTMLParagraphElement | null;
+  const submit = document.getElementById("new-submit") as HTMLButtonElement | null;
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!submit || !error) return;
+    error.hidden = true;
+    submit.disabled = true;
+    try {
+      const res = await fetch("/admin/api/email-campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.ok && data.id) {
+        window.location.assign(`/admin/email-campaigns/${data.id}`);
+        return;
+      }
+      error.textContent = data.reason === "unauthorized"
+        ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+        : "Terjadi kesalahan. Coba lagi.";
+      error.hidden = false;
+    } catch {
+      if (error) {
+        error.textContent = "Terjadi kesalahan jaringan. Coba lagi.";
+        error.hidden = false;
+      }
+    } finally {
+      if (submit) submit.disabled = false;
+    }
+  });
+</script>

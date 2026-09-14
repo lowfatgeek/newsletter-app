@@ -1,0 +1,215 @@
+---
+import { desc } from "drizzle-orm";
+import { db } from "../../../lib/db";
+import { emailCampaigns } from "../../../lib/schema";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { progressOf } from "../../../lib/broadcast/stats";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data tabel per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const rows = await db
+  .select({
+    id: emailCampaigns.id,
+    status: emailCampaigns.status,
+    subjectId: emailCampaigns.subjectId,
+    scheduledAt: emailCampaigns.scheduledAt,
+    snapshotAt: emailCampaigns.snapshotAt,
+    createdAt: emailCampaigns.createdAt,
+  })
+  .from(emailCampaigns)
+  .orderBy(desc(emailCampaigns.createdAt));
+
+// Ukuran snapshot per kampanye (0 bila belum pernah dijadwalkan/dikirim).
+const progress = new Map<string, { total: number; sentSoFar: number }>();
+for (const row of rows) {
+  progress.set(row.id, await progressOf(row.id));
+}
+
+const statusMeta: Record<string, { label: string; tone: "muted" | "success" | "warning" | "danger" }> = {
+  draft: { label: "Draft", tone: "muted" },
+  scheduled: { label: "Terjadwal", tone: "warning" },
+  queued: { label: "Antre", tone: "warning" },
+  sending: { label: "Mengirim", tone: "warning" },
+  paused: { label: "Dijeda", tone: "warning" },
+  completed: { label: "Selesai", tone: "success" },
+  failed: { label: "Gagal", tone: "danger" },
+  cancelled: { label: "Dibatalkan", tone: "muted" },
+};
+
+// Ikon outline 1.75 (DESIGN.md §7) — status selalu ikon + teks.
+const icons: Record<string, string> = {
+  draft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>`,
+  scheduled: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+  queued: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>`,
+  sending: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="m22 2-11 11"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`,
+  paused: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>`,
+  completed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>`,
+  failed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>`,
+  cancelled: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>`,
+};
+
+const dateTimeFmt = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+});
+function fmtDateTime(d: Date | null): string {
+  return d ? dateTimeFmt.format(d) : "—";
+}
+---
+<AdminLayout title="Email Campaign" admin={admin}>
+  <div class="page-head">
+    <div>
+      <h1>Email Campaign</h1>
+      <p class="helper">Kelola broadcast email: segmen audiens, konten dua bahasa, jadwal, dan laporan.</p>
+    </div>
+    <a href="/admin/email-campaigns/new" class="btn-primary">Buat email campaign</a>
+  </div>
+
+  {rows.length === 0 ? (
+    <div class="empty">
+      <p>Belum ada email campaign. Buat campaign pertama untuk mulai broadcast.</p>
+      <a href="/admin/email-campaigns/new" class="btn-primary">Buat email campaign</a>
+    </div>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Campaign</th>
+            <th scope="col">Status</th>
+            <th scope="col">Jadwal</th>
+            <th scope="col">Snapshot</th>
+            <th scope="col">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const meta = statusMeta[row.status] ?? statusMeta.draft;
+            const prog = progress.get(row.id);
+            const hasSnapshot = (prog?.total ?? 0) > 0;
+            return (
+              <tr>
+                <td>
+                  <strong>{row.subjectId || "(tanpa subjek)"}</strong>
+                  <span class="sub">Dibuat {fmtDateTime(row.createdAt)}</span>
+                </td>
+                <td>
+                  <span class={`badge tone-${meta.tone}`}>
+                    <span class="badge-icon" set:html={icons[row.status] ?? icons.draft} />
+                    {meta.label}
+                  </span>
+                </td>
+                <td>{fmtDateTime(row.scheduledAt)}</td>
+                <td>
+                  {hasSnapshot
+                    ? `Mengirim ${prog!.sentSoFar} dari ${prog!.total}`
+                    : "—"}
+                </td>
+                <td class="actions">
+                  <a href={`/admin/email-campaigns/${row.id}`}>Edit</a>
+                  {hasSnapshot && <a href={`/admin/email-campaigns/${row.id}/laporan`}>Laporan</a>}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</AdminLayout>
+
+<style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .btn-primary {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    background: var(--color-primary);
+    color: var(--color-canvas);
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    text-decoration: none;
+  }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+
+  .empty {
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-8);
+    text-align: center;
+  }
+  .empty p { color: var(--color-text-muted); margin: 0 0 var(--space-5); }
+
+  .table-wrap {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    overflow-x: auto;
+    box-shadow: var(--shadow-card);
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  thead tr { background: var(--color-surface-subtle); }
+  th {
+    text-align: left;
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    padding: var(--space-3) var(--space-5);
+  }
+  td {
+    padding: var(--space-3) var(--space-5);
+    border-top: var(--border-default);
+    min-height: 56px;
+    height: 56px;
+    font-size: var(--text-body-sm);
+    color: var(--color-text);
+  }
+  tbody tr:hover { background: var(--color-primary-subtle); }
+  td strong { color: var(--color-ink); font-weight: var(--font-weight-semibold); display: block; }
+  .sub { color: var(--color-text-muted); font-size: var(--text-body-sm); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: var(--font-weight-semibold);
+  }
+  .badge :global(svg) { display: block; }
+  .tone-muted { background: var(--color-surface-subtle); color: var(--color-text-muted); }
+  .tone-success { background: var(--color-success-subtle); color: var(--color-success); }
+  .tone-warning { background: var(--color-warning-subtle); color: var(--color-warning); }
+  .tone-danger { background: var(--color-danger-subtle); color: var(--color-danger); }
+
+  .actions a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    margin-right: var(--space-4);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  @media (max-width: 640px) {
+    .page-head { flex-direction: column; }
+  }
+</style>
