@@ -39,14 +39,16 @@ test("admin e2e: login → OTP → CMS buat campaign → publish → halaman pub
     await sql.end();
   }
 
-  // d. Submit OTP + percayai perangkat → dashboard /admin/campaigns.
+  // d. Submit OTP + percayai perangkat → dashboard funnel /admin.
   await page.fill("#code", code);
   await page.check("#trust-device");
   await page.click("#otp-submit");
-  await expect(page).toHaveURL(/\/admin\/campaigns$/);
-  await expect(page.getByRole("heading", { name: "Reward Campaign" })).toBeVisible();
+  await expect(page).toHaveURL(/^.*\/admin\/?$/);
+  await expect(page.getByRole("heading", { name: "Dashboard Funnel" })).toBeVisible();
 
   // e. Buat campaign baru via UI → editor terbuka.
+  await page.goto("/admin/campaigns");
+  await expect(page.getByRole("heading", { name: "Reward Campaign" })).toBeVisible();
   await page.getByRole("link", { name: "Buat reward campaign" }).first().click();
   await expect(page).toHaveURL(/\/admin\/campaigns\/new$/);
   const slug = `admin-e2e-${Math.random().toString(36).slice(2, 8)}`;

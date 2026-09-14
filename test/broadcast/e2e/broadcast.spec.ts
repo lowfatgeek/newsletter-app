@@ -62,7 +62,7 @@ test("broadcast e2e: composer → kirim → worker → laporan → delivered →
     await page.fill("#code", code);
     await page.check("#trust-device");
     await page.click("#otp-submit");
-    await expect(page).toHaveURL(/\/admin\/campaigns$/);
+    await expect(page).toHaveURL(/^.*\/admin\/?$/);
 
     // b2. Ekspektasi audiens dihitung dari DB dengan definisi yang sama seperti
     //     src/lib/broadcast/audience.ts: contact confirmed + subscription
