@@ -1,5 +1,7 @@
 import type { APIRoute } from "astro";
 import { processEmailitEvent, verifyEmailitSignature } from "../../../lib/broadcast/webhooks";
+import { clientIp } from "../../../lib/ip";
+import { consumeRateLimit, hashIp } from "../../../lib/ratelimit";
 
 /**
  * POST /api/webhooks/emailit — endpoint webhook provider Emailit.
@@ -34,9 +36,18 @@ export const POST: APIRoute = async ({ request }) => {
     return json(400, { error: "invalid-json" });
   }
 
+  // Rate limit SESUDAH verifikasi HMAC: request tanpa signature valid tidak
+  // menghabiskan budget identitas valid, dan penyerang tanpa secret tidak
+  // bisa memicu kerja DB. Identitas = message_id bila ada, else hash IP.
+  const messageId = typeof parsed.message_id === "string" ? parsed.message_id : "";
+  const identity = messageId !== "" ? messageId : hashIp(clientIp(request));
+  if (!(await consumeRateLimit("webhook", identity, 600))) {
+    return json(429, { error: "too-many-requests" });
+  }
+
   const result = await processEmailitEvent({
     type: typeof parsed.type === "string" ? parsed.type : "",
-    message_id: typeof parsed.message_id === "string" ? parsed.message_id : undefined,
+    message_id: messageId !== "" ? messageId : undefined,
     recipient_email: typeof parsed.recipient_email === "string" ? parsed.recipient_email : undefined,
     raw: parsed,
   });
