@@ -1,0 +1,623 @@
+---
+import { eq, sql } from "drizzle-orm";
+import { db } from "../../../../lib/db";
+import { emailCampaignRecipients } from "../../../../lib/schema";
+import { requireAdminOrRedirect } from "../../../../lib/admin/guard";
+import { getEmailCampaignById } from "../../../../lib/broadcast/crud";
+import {
+  campaignStats, listRecipients, progressOf,
+  type RecipientStatusFilter,
+} from "../../../../lib/broadcast/stats";
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+
+// Route on-demand — guard cookie + data tabel per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const id = Astro.params.id ?? "";
+const campaign = await getEmailCampaignById(id);
+if (!campaign) return new Response(null, { status: 404 });
+
+const status = campaign.status;
+
+// ===== Statistik + progres (angka tabular, tanpa open rate / chart) =====
+const stats = await campaignStats(id);
+const progress = await progressOf(id);
+
+const [failedCount] = await db
+  .select({ n: sql<number>`count(*)::int` })
+  .from(emailCampaignRecipients)
+  .where(sql`${emailCampaignRecipients.campaignId} = ${id} and ${emailCampaignRecipients.status} = 'failed'`);
+
+// Resend gagal hanya untuk kampanye yang masih bisa diproses worker
+// (prinsip sama dengan retryFailedRecipients di lib).
+const retryAllowed = ["sending", "queued", "completed", "failed"].includes(status)
+  && (failedCount?.n ?? 0) > 0;
+
+// ===== Filter status + pagination (limit 50) =====
+const LIMIT = 50;
+const VALID_FILTERS: RecipientStatusFilter[] = ["pending", "sent", "failed", "cancelled"];
+const rawStatus = Astro.url.searchParams.get("status") ?? "";
+const statusFilter = VALID_FILTERS.includes(rawStatus as RecipientStatusFilter)
+  ? (rawStatus as RecipientStatusFilter)
+  : undefined;
+
+const rawPage = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10);
+const requestedPage = Number.isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+let recipients = await listRecipients(id, {
+  status: statusFilter,
+  limit: LIMIT,
+  offset: (requestedPage - 1) * LIMIT,
+});
+const totalPages = Math.max(1, Math.ceil(recipients.total / LIMIT));
+const page = Math.min(requestedPage, totalPages);
+// Halaman di luar rentang (mis. setelah filter berubah) → ambil ulang halaman terakhir yang valid.
+if (page !== requestedPage) {
+  recipients = await listRecipients(id, { status: statusFilter, limit: LIMIT, offset: (page - 1) * LIMIT });
+}
+
+function pageUrl(nextPage: number, nextStatus?: RecipientStatusFilter): string {
+  const params = new URLSearchParams();
+  if (nextStatus) params.set("status", nextStatus);
+  if (nextPage > 1) params.set("page", String(nextPage));
+  const qs = params.toString();
+  return `/admin/email-campaigns/${id}/laporan${qs ? `?${qs}` : ""}`;
+}
+const currentPageUrl = pageUrl(page, statusFilter);
+const noFilterUrl = pageUrl(1);
+
+// ===== Label + badge (ikon + teks, DESIGN.md §6) =====
+const statusLabel: Record<string, string> = {
+  draft: "Draft",
+  scheduled: "Terjadwal",
+  queued: "Antre",
+  sending: "Mengirim",
+  paused: "Dijeda",
+  completed: "Selesai",
+  failed: "Gagal",
+  cancelled: "Dibatalkan",
+};
+const statusTone: Record<string, string> = {
+  draft: "muted", scheduled: "warning", queued: "warning", sending: "warning",
+  paused: "warning", completed: "success", failed: "danger", cancelled: "muted",
+};
+const statusIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="m22 2-11 11"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`;
+
+// Recipient status: pending muted / sent info / failed danger / cancelled muted
+const recipLabel: Record<string, string> = {
+  pending: "Menunggu", sent: "Terkirim", failed: "Gagal", cancelled: "Dibatalkan",
+};
+const recipTone: Record<string, string> = {
+  pending: "muted", sent: "info", failed: "danger", cancelled: "muted",
+};
+const recipIcon: Record<string, string> = {
+  pending: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+  sent: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><path d="m22 2-11 11"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`,
+  failed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>`,
+  cancelled: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>`,
+};
+
+// Delivery status: delivered success / bounced danger / failed danger /
+// accepted info / suppressed warning (ikon + teks).
+const deliveryLabel: Record<string, string> = {
+  delivered: "Sampai", sent: "Terkirim", accepted: "Diterima provider",
+  bounced: "Bounce", failed: "Gagal", suppressed: "Ditekan",
+};
+const deliveryTone: Record<string, string> = {
+  delivered: "success", sent: "success", accepted: "info",
+  bounced: "danger", failed: "danger", suppressed: "warning",
+};
+const deliveryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`;
+
+const nf = new Intl.NumberFormat("id-ID");
+const dateTimeFmt = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+});
+function fmtDateTime(d: Date | null): string {
+  return d ? dateTimeFmt.format(d) : "—";
+}
+/** Error dipotong 80 karakter untuk sel tabel; teks penuh di title attr. */
+function truncateError(e: string | null): string {
+  if (!e) return "—";
+  return e.length > 80 ? `${e.slice(0, 80)}…` : e;
+}
+
+const kpis = [
+  { label: "Terkirim", value: stats.sent },
+  { label: "Sampai", value: stats.delivered },
+  { label: "Gagal", value: stats.failed },
+  { label: "Bounce", value: stats.bounced },
+  { label: "Berhenti", value: stats.unsubscribed },
+  { label: "Klik", value: stats.clicks },
+];
+
+const canPause = status === "sending";
+const canResume = status === "paused";
+const canCancel = ["scheduled", "queued", "paused"].includes(status);
+const showActions = canPause || canResume || canCancel || retryAllowed;
+---
+<AdminLayout title={`Laporan: ${campaign.subjectId}`} admin={admin}>
+  <p class="breadcrumb"><a href="/admin/email-campaigns">← Kembali ke daftar email campaign</a></p>
+
+  <div class="page-head" data-campaign-id={id}>
+    <div>
+      <p class="overline">Laporan Broadcast</p>
+      <h1 lang="id">{campaign.subjectId}</h1>
+      <p class="helper">
+        <span class={`badge tone-${statusTone[status] ?? "muted"}`}>
+          <span class="badge-icon" set:html={statusIcon} />
+          {statusLabel[status] ?? status}
+        </span>
+      </p>
+    </div>
+    {showActions && (
+      <div class="actions-area">
+        {canPause && <button type="button" id="pause-btn" class="btn-warning">Jeda</button>}
+        {canResume && <button type="button" id="resume-btn" class="btn-primary">Lanjutkan</button>}
+        {canCancel && <button type="button" id="cancel-btn" class="btn-secondary">Batalkan</button>}
+        {retryAllowed && <button type="button" id="retry-btn" class="btn-secondary">Kirim ulang yang gagal</button>}
+      </div>
+    )}
+  </div>
+
+  <p id="action-status" class="hint" role="status" aria-live="polite"></p>
+  <p id="action-error" class="field-error" role="alert" hidden></p>
+
+  <!-- Progres broadcast: status text, tanpa chart dekoratif -->
+  <section class="card" aria-labelledby="h-progress">
+    <h2 id="h-progress">Progres pengiriman</h2>
+    <p class="progress-line">
+      {progress.total > 0
+        ? <>Mengirim <strong class="num">{nf.format(progress.sentSoFar)}</strong> dari <strong class="num">{nf.format(progress.total)}</strong> penerima</>
+        : "Belum ada recipient — snapshot terbentuk saat campaign dijadwalkan."}
+    </p>
+    <p class="hint">
+      Limit aktif: {nf.format(campaign.maxPerMinute)} pesan/menit · {nf.format(campaign.maxPerHour)} pesan/jam
+      · Diperbarui: {fmtDateTime(campaign.snapshotAt ?? campaign.updatedAt)}
+    </p>
+  </section>
+
+  <!-- KPI row: Sent, Delivered, Failed, Bounced, Unsubscribed, Clicks -->
+  <section class="card" aria-labelledby="h-kpi">
+    <h2 id="h-kpi">Statistik</h2>
+    <dl class="kpi-row">
+      {kpis.map((k) => (
+        <div class="kpi">
+          <dt>{k.label}</dt>
+          <dd class="num">{nf.format(k.value)}</dd>
+        </div>
+      ))}
+    </dl>
+    <p class="hint">Total sejak campaign dikirim — tanpa open rate (pixel tidak andal).</p>
+  </section>
+
+  <!-- Tabel recipient -->
+  <section class="card" aria-labelledby="h-recipients">
+    <div class="card-head">
+      <h2 id="h-recipients">Penerima</h2>
+      <p class="hint">{nf.format(recipients.total)} penerima{statusFilter ? " (terfilter)" : ""}</p>
+    </div>
+
+    <!-- Filter chips: aktif dapat dihapus -->
+    <div class="filters" role="group" aria-label="Filter status penerima">
+      <a class={`chip${statusFilter ? "" : " chip-active"}`} href={noFilterUrl}
+        aria-current={statusFilter ? undefined : "true"}>Semua</a>
+      {VALID_FILTERS.map((f) => (
+        statusFilter === f ? (
+          <a class="chip chip-active chip-removable" href={noFilterUrl} aria-current="true">
+            {recipLabel[f]}
+            <span aria-hidden="true">×</span>
+            <span class="visually-hidden">— hapus filter</span>
+          </a>
+        ) : (
+          <a class="chip" href={pageUrl(1, f)}>{recipLabel[f]}</a>
+        )
+      ))}
+    </div>
+
+    {recipients.rows.length === 0 ? (
+      <p class="empty-hint">Tidak ada penerima untuk filter ini.</p>
+    ) : (
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Bahasa</th>
+              <th scope="col">Status</th>
+              <th scope="col">Status kirim</th>
+              <th scope="col">Klik</th>
+              <th scope="col">Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recipients.rows.map((r) => (
+              <tr>
+                <td class="email-cell">{r.email}</td>
+                <td lang={r.locale}>{r.locale === "en" ? "EN" : "ID"}</td>
+                <td>
+                  <span class={`badge tone-${recipTone[r.status] ?? "muted"}`}>
+                    <span class="badge-icon" set:html={recipIcon[r.status] ?? recipIcon.pending} />
+                    {recipLabel[r.status] ?? r.status}
+                  </span>
+                </td>
+                <td>
+                  {r.deliveryStatus ? (
+                    <span class={`badge tone-${deliveryTone[r.deliveryStatus] ?? "muted"}`}>
+                      <span class="badge-icon" set:html={deliveryIcon} />
+                      {deliveryLabel[r.deliveryStatus] ?? r.deliveryStatus}
+                    </span>
+                  ) : "—"}
+                </td>
+                <td>{r.clickedAt ? fmtDateTime(r.clickedAt) : "—"}</td>
+                <td class="error-cell" title={r.error ?? undefined}>
+                  {truncateError(r.error)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+
+    <!-- Pagination prev/next -->
+    <nav class="pagination" aria-label="Halaman penerima">
+      {page > 1
+        ? <a class="page-link" href={pageUrl(page - 1, statusFilter)} rel="prev">← Sebelumnya</a>
+        : <span class="page-link page-disabled" aria-disabled="true">← Sebelumnya</span>}
+      <span class="page-info">Halaman {nf.format(page)} dari {nf.format(totalPages)}</span>
+      {page < totalPages
+        ? <a class="page-link" href={pageUrl(page + 1, statusFilter)} rel="next">Berikutnya →</a>
+        : <span class="page-link page-disabled" aria-disabled="true">Berikutnya →</span>}
+    </nav>
+  </section>
+
+  <!-- Dialog batalkan (destructive — konfirmasi kedua) -->
+  <dialog id="cancel-modal" class="modal">
+    <h2>Batalkan campaign?</h2>
+    <p>
+      Campaign <strong>{campaign.subjectId}</strong> berstatus
+      "{statusLabel[status] ?? status}" akan dibatalkan. Penerima yang belum
+      terkirim tidak akan menerima email. Tindakan ini tidak dapat dibatalkan.
+    </p>
+    <p class="modal-confirm">Yakin ingin membatalkan?</p>
+    <p id="cancel-error" class="field-error" hidden></p>
+    <div class="modal-actions">
+      <button type="button" id="cancel-confirm" class="btn-danger">Ya, batalkan</button>
+      <button type="button" id="cancel-dismiss" class="btn-secondary">Tidak</button>
+    </div>
+  </dialog>
+
+  <!-- Dialog kirim ulang yang gagal -->
+  <dialog id="retry-modal" class="modal">
+    <h2>Kirim ulang yang gagal?</h2>
+    <p>
+      Sebanyak <strong class="num">{nf.format(failedCount?.n ?? 0)}</strong> penerima
+      yang gagal akan dikembalikan ke antrean dan dikirim ulang oleh worker pada
+      tick berikutnya dengan limit yang sama ({nf.format(campaign.maxPerMinute)}
+      pesan/menit · {nf.format(campaign.maxPerHour)} pesan/jam).
+    </p>
+    <p id="retry-error" class="field-error" hidden></p>
+    <div class="modal-actions">
+      <button type="button" id="retry-confirm" class="btn-primary">Kirim ulang</button>
+      <button type="button" id="retry-dismiss" class="btn-secondary">Batal</button>
+    </div>
+  </dialog>
+</AdminLayout>
+
+<style>
+  .breadcrumb { margin: 0 0 var(--space-4); }
+  .breadcrumb a { color: var(--color-primary); font-size: var(--text-body-sm); }
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+  }
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .actions-area { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+  .btn-primary, .btn-secondary, .btn-warning, .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-control);
+    padding: 12px 16px;
+    min-height: 44px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--color-primary); color: var(--color-canvas); border: none; }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+  /* Pause memakai Warning Amber (DESIGN.md §6) */
+  .btn-warning { background: var(--color-warning); color: var(--color-canvas); border: none; }
+  .btn-warning:hover { filter: brightness(0.95); }
+  .btn-danger { background: var(--color-danger); color: var(--color-canvas); border: none; }
+  .btn-danger:hover { filter: brightness(0.95); }
+  .btn-secondary { background: var(--color-surface-raised); border: var(--border-default); color: var(--color-ink); }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+  .card h2 { color: var(--color-ink); font-size: var(--text-h3); margin: 0 0 var(--space-4); }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+  .card-head h2 { margin: 0; }
+
+  .progress-line { color: var(--color-text); font-size: var(--text-body); margin: 0 0 var(--space-2); }
+  .progress-line strong { color: var(--color-ink); }
+  .num { font-variant-numeric: tabular-nums; }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-4);
+    margin: 0 0 var(--space-4);
+  }
+  @media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 480px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: var(--color-surface-subtle);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+  }
+  .kpi dt { color: var(--color-text-muted); font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold); }
+  .kpi dd { margin: var(--space-1) 0 0; color: var(--color-ink); font-size: var(--text-h3); font-variant-numeric: tabular-nums; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border: var(--border-default);
+    border-radius: var(--radius-pill);
+    padding: 8px 14px;
+    min-height: 44px;
+    font-size: var(--text-body-sm);
+    color: var(--color-text);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .chip:hover { background: var(--color-primary-subtle); }
+  .chip-active { background: var(--color-primary-subtle); border-color: var(--color-primary); color: var(--color-primary); font-weight: var(--font-weight-semibold); }
+  .chip-removable span[aria-hidden] { font-size: var(--text-body); line-height: 1; }
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .empty-hint { color: var(--color-text-muted); margin: var(--space-4) 0; }
+
+  .table-wrap {
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  thead tr { background: var(--color-surface-subtle); }
+  th {
+    text-align: left;
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    padding: var(--space-3) var(--space-4);
+  }
+  td {
+    padding: var(--space-3) var(--space-4);
+    border-top: var(--border-default);
+    font-size: var(--text-body-sm);
+    color: var(--color-text);
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: var(--color-primary-subtle); }
+  .email-cell { color: var(--color-ink); font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+  .error-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-danger); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    white-space: nowrap;
+  }
+  .badge :global(svg) { display: block; }
+  .tone-muted { background: var(--color-surface-subtle); color: var(--color-text-muted); }
+  .tone-success { background: var(--color-success-subtle); color: var(--color-success); }
+  .tone-warning { background: var(--color-warning-subtle); color: var(--color-warning); }
+  .tone-danger { background: var(--color-danger-subtle); color: var(--color-danger); }
+  .tone-info { background: var(--color-info-subtle); color: var(--color-info); }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .page-link { color: var(--color-primary); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+  a.page-link:hover { text-decoration: underline; }
+  .page-disabled { color: var(--color-text-muted); }
+  .page-info { color: var(--color-text-muted); font-size: var(--text-body-sm); }
+
+  .modal {
+    border: var(--border-default);
+    border-radius: var(--radius-modal);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    max-width: 480px;
+    width: calc(100vw - var(--space-8));
+  }
+  .modal::backdrop { background: rgba(54, 81, 75, 0.45); }
+  .modal h2 { color: var(--color-ink); font-size: var(--text-h3); margin: 0 0 var(--space-4); }
+  .modal p { color: var(--color-text); font-size: var(--text-body-sm); margin: 0 0 var(--space-3); }
+  .modal-confirm { font-weight: var(--font-weight-semibold); color: var(--color-danger); }
+  .modal-actions { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
+
+  .field-error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-body-sm);
+    margin: var(--space-2) 0;
+  }
+
+  @media (max-width: 640px) {
+    .page-head { flex-direction: column; }
+    .actions-area { width: 100%; }
+    .actions-area > * { flex: 1; }
+  }
+</style>
+
+<script>
+  const $ = <T extends HTMLElement>(sel: string): T | null => document.querySelector<T>(sel);
+
+  const campaignId = document.querySelector<HTMLElement>("[data-campaign-id]")?.dataset.campaignId ?? "";
+
+  const statusEl = $<HTMLElement>("#action-status");
+  const errorEl = $<HTMLElement>("#action-error");
+
+  function showError(msg: string): void {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+  function hideAll(): void {
+    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+    if (statusEl) statusEl.textContent = "";
+  }
+
+  const reasonText: Record<string, string> = {
+    unauthorized: "Sesi berakhir. Muat ulang halaman untuk masuk kembali.",
+    "not-found": "Campaign tidak ditemukan. Muat ulang halaman.",
+    "invalid-transition": "Status campaign sudah berubah. Muat ulang halaman.",
+    "invalid-state": "Status campaign tidak memungkinkan aksi ini. Muat ulang halaman.",
+  };
+
+  /** POST aksi → beri status, lalu muat ulang agar seluruh section segar. */
+  async function postAction(
+    path: string,
+    busyMsg: string,
+    doneMsg: string,
+    btn: HTMLButtonElement | null,
+  ): Promise<void> {
+    hideAll();
+    if (statusEl) statusEl.textContent = busyMsg;
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(path, { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        if (statusEl) statusEl.textContent = doneMsg;
+        window.location.reload();
+        return;
+      }
+      if (statusEl) statusEl.textContent = "";
+      showError(reasonText[data.reason as string] ?? "Terjadi kesalahan. Coba lagi.");
+    } catch {
+      if (statusEl) statusEl.textContent = "";
+      showError("Terjadi kesalahan jaringan. Coba lagi.");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  $<HTMLButtonElement>("#pause-btn")?.addEventListener("click", (ev) => {
+    void postAction(
+      `/admin/api/email-campaigns/${campaignId}/pause`,
+      "Menjeda…", "Campaign dijeda.", ev.currentTarget as HTMLButtonElement,
+    );
+  });
+
+  $<HTMLButtonElement>("#resume-btn")?.addEventListener("click", (ev) => {
+    void postAction(
+      `/admin/api/email-campaigns/${campaignId}/resume`,
+      "Melanjutkan…", "Campaign dilanjutkan.", ev.currentTarget as HTMLButtonElement,
+    );
+  });
+
+  // Cancel: dialog destructive dengan konfirmasi kedua.
+  const cancelModal = $<HTMLDialogElement>("#cancel-modal");
+  $<HTMLButtonElement>("#cancel-btn")?.addEventListener("click", () => cancelModal?.showModal());
+  $<HTMLButtonElement>("#cancel-dismiss")?.addEventListener("click", () => cancelModal?.close());
+  $<HTMLButtonElement>("#cancel-confirm")?.addEventListener("click", (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    void (async () => {
+      hideAll();
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/admin/api/email-campaigns/${campaignId}/cancel`, { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+          cancelModal?.close();
+          if (statusEl) statusEl.textContent = "Campaign dibatalkan.";
+          window.location.reload();
+          return;
+        }
+        showError(reasonText[data.reason as string] ?? "Terjadi kesalahan. Coba lagi.");
+      } catch {
+        showError("Terjadi kesalahan jaringan. Coba lagi.");
+      } finally {
+        btn.disabled = false;
+      }
+    })();
+  });
+
+  // Retry: dialog konfirmasi — resend lewat worker dengan limit yang sama.
+  const retryModal = $<HTMLDialogElement>("#retry-modal");
+  $<HTMLButtonElement>("#retry-btn")?.addEventListener("click", () => retryModal?.showModal());
+  $<HTMLButtonElement>("#retry-dismiss")?.addEventListener("click", () => retryModal?.close());
+  $<HTMLButtonElement>("#retry-confirm")?.addEventListener("click", (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    void (async () => {
+      hideAll();
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/admin/api/email-campaigns/${campaignId}/retry-failed`, { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+          retryModal?.close();
+          if (statusEl) statusEl.textContent = `${data.reset} penerima gagal dikembalikan ke antrean.`;
+          window.location.reload();
+          return;
+        }
+        showError(reasonText[data.reason as string] ?? "Terjadi kesalahan. Coba lagi.");
+      } catch {
+        showError("Terjadi kesalahan jaringan. Coba lagi.");
+      } finally {
+        btn.disabled = false;
+      }
+    })();
+  });
+</script>

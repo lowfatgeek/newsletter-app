@@ -1,8 +1,8 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { env } from "../env";
 import {
-  consentEvents, emailCampaignRecipients, emailCampaigns, emailDeliveries,
+  contacts, consentEvents, emailCampaignRecipients, emailCampaigns, emailDeliveries,
 } from "../schema";
 import { renderForRecipient, type CampaignContent } from "./content";
 import { enqueueTransactionalEmail } from "../outbox";
@@ -102,6 +102,130 @@ export async function progressOf(campaignId: string): Promise<{ total: number; s
     .from(emailCampaignRecipients)
     .where(eq(emailCampaignRecipients.campaignId, campaignId));
   return { total: row?.total ?? 0, sentSoFar: row?.sentSoFar ?? 0 };
+}
+
+// ===== Laporan: tabel recipient + resend yang gagal (Task 12) =====
+
+export type RecipientStatusFilter = "pending" | "sent" | "failed" | "cancelled";
+
+export type RecipientRow = {
+  id: string;
+  email: string;
+  locale: string;
+  status: string;
+  deliveryStatus: string | null;
+  clickedAt: Date | null;
+  error: string | null;
+};
+
+/**
+ * Daftar recipient kampanye untuk tabel laporan:
+ * - join contacts untuk email
+ * - left join emailDeliveries (email_type broadcast) untuk status kirim +
+ *   error — deliveryStatus/error null bila belum ada baris delivery
+ * - error dikembalikan UTUH (halaman yang memotong tampilan, tooltip penuh)
+ * - urutan deterministik berdasar email agar pagination stabil
+ * - filter status (query param laporan) + limit/offset
+ */
+export async function listRecipients(
+  campaignId: string,
+  opts: { status?: RecipientStatusFilter; limit: number; offset: number },
+): Promise<{ rows: RecipientRow[]; total: number }> {
+  const conds = [eq(emailCampaignRecipients.campaignId, campaignId)];
+  if (opts.status) conds.push(eq(emailCampaignRecipients.status, opts.status));
+  const where = and(...conds);
+
+  const rows: RecipientRow[] = await db
+    .select({
+      id: emailCampaignRecipients.id,
+      email: contacts.emailNormalized,
+      locale: emailCampaignRecipients.localeSelected,
+      status: emailCampaignRecipients.status,
+      deliveryStatus: emailDeliveries.status,
+      clickedAt: emailCampaignRecipients.clickedAt,
+      error: emailDeliveries.error,
+    })
+    .from(emailCampaignRecipients)
+    .innerJoin(contacts, eq(contacts.id, emailCampaignRecipients.contactId))
+    .leftJoin(emailDeliveries, and(
+      eq(emailDeliveries.campaignRecipientId, emailCampaignRecipients.id),
+      eq(emailDeliveries.emailType, "broadcast"),
+    ))
+    .where(where)
+    .orderBy(asc(contacts.emailNormalized))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [tot] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(emailCampaignRecipients)
+    .where(where);
+
+  return { rows, total: tot?.n ?? 0 };
+}
+
+export type RetryFailedResult =
+  | { ok: true; reset: number }
+  | { ok: false; reason: "not-found" | "invalid-state" };
+
+/**
+ * Status kampanye yang boleh di-retry (PRD §10: admin dapat resend sesuai
+ * throttle). draft/scheduled belum punya snapshot pengiriman; paused/cancelled
+ * adalah keputusan admin yang tidak boleh dibatalkan diam-diam.
+ */
+const RETRYABLE_STATUSES = new Set(["sending", "queued", "completed", "failed"]);
+
+/**
+ * Kirim ulang recipient gagal:
+ * - UPDATE status 'failed' → 'pending' (sent/pending/cancelled disentuh tidak)
+ * - kampanye completed/failed dikembalikan ke 'queued' agar worker tick
+ *   berikutnya mengirim ulang lewat limit yang sama (maxPerMinute/maxPerHour)
+ * - audit "campaign_retry_failed" detail {reset, requeued}
+ * - tolak draft/scheduled/paused/cancelled → invalid-state
+ */
+export async function retryFailedRecipients(
+  campaignId: string,
+  auditOpts?: AuditOpts,
+): Promise<RetryFailedResult> {
+  const [campaign] = await db
+    .select({ id: emailCampaigns.id, status: emailCampaigns.status })
+    .from(emailCampaigns)
+    .where(eq(emailCampaigns.id, campaignId));
+  if (!campaign) return { ok: false, reason: "not-found" };
+  if (!RETRYABLE_STATUSES.has(campaign.status)) return { ok: false, reason: "invalid-state" };
+
+  const resetRows = await db
+    .update(emailCampaignRecipients)
+    .set({ status: "pending" })
+    .where(and(
+      eq(emailCampaignRecipients.campaignId, campaignId),
+      eq(emailCampaignRecipients.status, "failed"),
+    ))
+    .returning({ id: emailCampaignRecipients.id });
+  const reset = resetRows.length;
+
+  // completed/failed tidak pernah diproses worker lagi — kembalikan ke
+  // 'queued' secara atomic agar resend benar-benar terjadi.
+  let requeued = false;
+  if (campaign.status === "completed" || campaign.status === "failed") {
+    const upd = await db
+      .update(emailCampaigns)
+      .set({ status: "queued", updatedAt: new Date() })
+      .where(and(
+        eq(emailCampaigns.id, campaignId),
+        inArray(emailCampaigns.status, ["completed", "failed"]),
+      ))
+      .returning({ id: emailCampaigns.id });
+    requeued = upd.length > 0;
+  }
+
+  await audit("campaign_retry_failed", {
+    adminUserId: auditOpts?.adminUserId,
+    ip: auditOpts?.ip,
+    detail: { reset, requeued },
+  });
+
+  return { ok: true, reset };
 }
 
 export type SendTestResult = { ok: true } | { ok: false; reason: "not-allowed" | "no-content" };
