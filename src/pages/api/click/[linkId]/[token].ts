@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { resolveClick } from "../../../lib/broadcast/links";
+import { resolveClick } from "../../../../lib/broadcast/links";
 
 /**
  * GET /api/click/<linkId>/<rawToken> — bentuk URL ini sudah ditanam di
