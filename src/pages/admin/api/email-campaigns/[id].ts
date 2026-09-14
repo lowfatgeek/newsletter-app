@@ -29,7 +29,7 @@ function num(v: unknown): number {
  * yang belum lengkap ([] | ["en"] | ["id", ...]) sebagai warning; kelengkapan
  * ID dipaksa ulang saat schedule oleh machine.scheduleCampaign.
  *
- * 200 { ok:true, missing } · 400 invalid/not-draft/invalid-filter · 404 not-found · 401.
+ * 200 { ok:true, missing } · 400 invalid/invalid-limits/not-draft/invalid-filter · 404 not-found · 401.
  */
 export const POST: APIRoute = async ({ request, cookies, params }) => {
   const admin = await getAdmin(cookies);
@@ -58,6 +58,15 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
   if (!Number.isInteger(maxPerMinute) || !Number.isInteger(maxPerHour)) {
     return json({ ok: false, reason: "invalid" }, 400);
   }
+  // Limit harus minimal 1 — `Number("")`/0/minus tidak diterima.
+  if (maxPerMinute < 1 || maxPerHour < 1) {
+    return json({ ok: false, reason: "invalid-limits" }, 400);
+  }
+
+  // Kunci audienceFilter harus EKSPLISIT: tidak dikirim → undefined → lib
+  // mempertahankan filter tersimpan. Server tidak pernah mensintesis
+  // {all:true}; payload ada tapi gagal validateFilter → 400 invalid-filter.
+  const hasFilter = "audienceFilter" in body;
 
   // Warning kelengkapan (draft boleh belum lengkap):
   // - "id" bila kolom ID wajib kosong (validateContent gagal);
@@ -69,7 +78,12 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
 
   const result = await updateEmailCampaignDraft(
     id,
-    { ...input, audienceFilter: body.audienceFilter, maxPerMinute, maxPerHour },
+    {
+      ...input,
+      ...(hasFilter ? { audienceFilter: body.audienceFilter } : {}),
+      maxPerMinute,
+      maxPerHour,
+    },
     { adminUserId: admin.id, ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined },
   );
   if (result.ok) return json({ ok: true, missing });

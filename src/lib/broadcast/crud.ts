@@ -34,7 +34,12 @@ export interface DraftPatch {
   subjectEn?: string | null;
   preheaderEn?: string | null;
   bodyHtmlEn?: string | null;
-  audienceFilter: unknown;
+  /**
+   * Filter audiens. `undefined` (kunci tidak dikirim client) → pertahankan
+   * nilai tersimpan — server TIDAK PERNAH mensintesis `{all:true}` sebagai
+   * fallback. Payload ada tapi tidak lolos `validateFilter` → invalid-filter.
+   */
+  audienceFilter?: unknown;
   maxPerMinute: number;
   maxPerHour: number;
 }
@@ -76,13 +81,23 @@ export async function updateEmailCampaignDraft(
   patch: DraftPatch,
   auditOpts?: AuditOpts,
 ): Promise<UpdateDraftResult> {
-  const [campaign] = await db.select({ status: emailCampaigns.status })
+  const [campaign] = await db
+    .select({ status: emailCampaigns.status, audienceFilter: emailCampaigns.audienceFilter })
     .from(emailCampaigns).where(eq(emailCampaigns.id, id));
   if (!campaign) return { ok: false, reason: "not-found" };
   if (campaign.status !== "draft") return { ok: false, reason: "not-draft" };
 
-  const filter = validateFilter(patch.audienceFilter);
-  if (!filter.ok) return { ok: false, reason: "invalid-filter" };
+  let filter: AudienceFilter;
+  if (patch.audienceFilter === undefined) {
+    // Kunci tidak dikirim → pertahankan filter tersimpan (bukan fallback
+    // {all:true}) — defense in depth terhadap client yang gagal membangun
+    // filter segmen.
+    filter = (campaign.audienceFilter ?? {}) as AudienceFilter;
+  } else {
+    const validated = validateFilter(patch.audienceFilter);
+    if (!validated.ok) return { ok: false, reason: "invalid-filter" };
+    filter = validated.filter;
+  }
 
   const trimOrNull = (v: string | null | undefined): string | null => {
     const t = v?.trim();
@@ -97,7 +112,7 @@ export async function updateEmailCampaignDraft(
     subjectEn: trimOrNull(patch.subjectEn),
     preheaderEn: trimOrNull(patch.preheaderEn),
     bodyHtmlEn: patch.bodyHtmlEn?.trim() ? sanitizeBody(patch.bodyHtmlEn) : null,
-    audienceFilter: filter.filter as AudienceFilter,
+    audienceFilter: filter,
     maxPerMinute: patch.maxPerMinute,
     maxPerHour: patch.maxPerHour,
     updatedAt: new Date(),

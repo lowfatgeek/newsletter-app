@@ -123,6 +123,20 @@ describe("updateEmailCampaignDraft", () => {
     expect(row!.subjectId).toBe("");
   });
 
+  it("keeps the stored filter when audienceFilter is omitted (no {all:true} synthesis)", async () => {
+    const id = await createEmailCampaign(AUDIT);
+    await updateEmailCampaignDraft(id, patch({ audienceFilter: { locales: ["id"] } }), AUDIT);
+
+    // Update berikutnya TANPA kunci audienceFilter — filter tersimpan harus
+    // tetap {locales:["id"]}, bukan tergantikan {all:true} atau kosong.
+    const { audienceFilter: _omitted, ...noFilter } = patch();
+    const res = await updateEmailCampaignDraft(id, noFilter, AUDIT);
+    expect(res).toEqual({ ok: true });
+
+    const row = await getEmailCampaignById(id);
+    expect(row!.audienceFilter).toEqual({ locales: ["id"] });
+  });
+
   it("rejects updates after schedule (content frozen)", async () => {
     const id = await createEmailCampaign(AUDIT);
     await db.update(emailCampaigns).set({ status: "scheduled", snapshotAt: new Date() }).where(eq(emailCampaigns.id, id));

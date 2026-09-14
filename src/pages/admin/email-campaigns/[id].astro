@@ -80,7 +80,7 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     </div>
     <div class="save-area">
       <span id="save-status" role="status" aria-live="polite"></span>
-      {isDraft && <button type="button" id="save-btn" class="btn-primary">Simpan</button>}
+      {isDraft && <button type="button" id="save-btn" class="btn-secondary">Simpan</button>}
     </div>
   </div>
 
@@ -646,6 +646,10 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
   // ===== Save draft =====
 
   function collectDraft() {
+    // Pemanggil wajib memastikan buildFilter() tidak null dulu (save menolak
+    // tanpa segmen) — tidak ada fallback {all:true} di sini.
+    const audienceFilter = buildFilter();
+    if (!audienceFilter) throw new Error("no-segment");
     return {
       subjectId: subjectId?.value ?? "",
       preheaderId: preheaderId?.value ?? "",
@@ -653,7 +657,7 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
       subjectEn: subjectEn?.value ?? "",
       preheaderEn: preheaderEn?.value ?? "",
       bodyHtmlEn: bodyEn?.value ?? "",
-      audienceFilter: buildFilter() ?? { all: true },
+      audienceFilter,
       maxPerMinute: Number(maxPerMinute?.value ?? 0),
       maxPerHour: Number(maxPerHour?.value ?? 0),
     };
@@ -665,6 +669,11 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     hideEl($<HTMLElement>("#subject-id-error"));
     hideEl($<HTMLElement>("#preheader-id-error"));
     hideEl($<HTMLElement>("#body-id-error"));
+    // Tolak simpan tanpa segmen — jangan pernah diam-diam "kirim ke semua".
+    if (!buildFilter()) {
+      showFieldError(segmentError, "Pilih minimal satu kriteria audiens.");
+      return false;
+    }
     if (saveStatus) saveStatus.textContent = "Menyimpan…";
     saveBtn.disabled = true;
     try {
@@ -682,6 +691,8 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
       }
       if (data.reason === "unauthorized") {
         showFieldError(globalError, "Sesi berakhir. Muat ulang halaman untuk masuk kembali.");
+      } else if (data.reason === "invalid-limits") {
+        showFieldError(globalError, "Limit harus minimal 1.");
       } else if (data.reason === "invalid-filter") {
         showFieldError(segmentError, "Kombinasi segmen tidak valid.");
       } else if (data.reason === "not-draft") {
@@ -718,9 +729,20 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     // Estimasi segar untuk review (jangan pakai angka basi).
     await refreshEstimate();
 
+    // Modal tidak boleh terbuka tanpa angka audiens — konfirmasi "kirim ke
+    // ? subscriber" dilarang keras.
+    if (lastAudienceCount === null) {
+      showFieldError(
+        estimateError,
+        "Pilih minimal satu kriteria audiens untuk menghitung penerima sebelum mengirim.",
+      );
+      return;
+    }
+
     const filter = buildFilter();
     const sendNow = sendMode() === "now";
     const scheduled = trim(scheduledAtInput?.value) !== "";
+    const audienceCount: number = lastAudienceCount;
 
     const rvName = $<HTMLElement>("#rv-name");
     const rvAudience = $<HTMLElement>("#rv-audience");
@@ -731,7 +753,7 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     const rvLimits = $<HTMLElement>("#rv-limits");
 
     if (rvName) rvName.textContent = trim(subjectId?.value) || "Draft campaign";
-    if (rvAudience) rvAudience.textContent = lastAudienceCount === null ? "—" : `${nf.format(lastAudienceCount)} subscriber`;
+    if (rvAudience) rvAudience.textContent = `${nf.format(audienceCount)} subscriber`;
     if (rvSegment) rvSegment.textContent = filter ? segmentSummary(filter) : "—";
     if (rvLang) {
       rvLang.textContent = enFilled() ? "ID + EN lengkap" : "EN belum lengkap — fallback ID";
@@ -752,7 +774,7 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
 
     if (reviewConfirm) {
       reviewConfirm.textContent = sendNow
-        ? `Kirim ke ${lastAudienceCount === null ? "?" : nf.format(lastAudienceCount)} subscriber`
+        ? `Kirim ke ${nf.format(audienceCount)} subscriber`
         : "Jadwalkan campaign";
     }
     reviewModal?.showModal();
@@ -763,6 +785,23 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
   reviewConfirm?.addEventListener("click", async () => {
     if (!reviewConfirm) return;
     hideEl(reviewError);
+    // Review modal boleh dibuka hanya dengan angka audiens riil; bila angka
+    // basi/hilang, coba hitung ulang dulu — jangan pernah konfirmasi buta.
+    if (lastAudienceCount === null) {
+      reviewConfirm.disabled = true;
+      await refreshEstimate();
+      reviewConfirm.disabled = false;
+      if (lastAudienceCount === null) {
+        showFieldError(reviewError, "Estimasi audiens tidak tersedia. Tutup modal, perbaiki segmen, lalu ulangi.");
+        return;
+      }
+      // Angka segar → perbarui modal agar CTA selalu memuat N riil.
+      const rvAudience = $<HTMLElement>("#rv-audience");
+      if (rvAudience) rvAudience.textContent = `${nf.format(lastAudienceCount)} subscriber`;
+      if (reviewConfirm.textContent?.startsWith("Kirim ke ")) {
+        reviewConfirm.textContent = `Kirim ke ${nf.format(lastAudienceCount)} subscriber`;
+      }
+    }
     reviewConfirm.disabled = true;
 
     const sendNow = sendMode() === "now";
