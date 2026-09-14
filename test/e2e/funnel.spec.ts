@@ -15,6 +15,8 @@ test("funnel: timer unlocks, submit shows generic check-email page", async ({ pa
   await page.click("#submit-btn");
   await expect(page).toHaveURL(/cek-email/);
   await expect(page.getByRole("heading", { name: "Cek emailmu" })).toBeVisible();
+  // Tombol "Kirim ulang" menaut kembali ke landing campaign asal (?s=<slug>).
+  await expect(page.getByRole("link", { name: "Kirim ulang" })).toHaveAttribute("href", "/r/starter-kit");
 });
 
 test("en fallback: /en/r/starter-kit renders ID content with lang=id + bilingual alternate links", async ({ page }) => {

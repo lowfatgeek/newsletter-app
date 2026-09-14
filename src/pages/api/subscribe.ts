@@ -9,8 +9,13 @@ import { clientIp } from "../../lib/ip";
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;
 
-function cekEmailPath(locale: "id" | "en", errorSuffix: string): string {
-  return `/${locale === "en" ? "en/cek-email" : "cek-email"}${errorSuffix}`;
+function cekEmailPath(locale: "id" | "en", errorSuffix: string, slug?: string): string {
+  const base = `/${locale === "en" ? "en/cek-email" : "cek-email"}`;
+  if (!slug) return `${base}${errorSuffix}`;
+  // Slug bersifat publik — dibawa sebagai ?s= agar tombol "Kirim ulang" di
+  // halaman cek-email menaut kembali ke landing campaign yang benar.
+  const sep = errorSuffix ? "&" : "?";
+  return `${base}${errorSuffix}${sep}s=${encodeURIComponent(slug)}`;
 }
 
 /**
@@ -52,5 +57,5 @@ export const POST: APIRoute = async ({ request }) => {
     locale,
   });
 
-  return redirect(cekEmailPath(locale, result.ok ? "" : `?e=${result.reason}`));
+  return redirect(cekEmailPath(locale, result.ok ? "" : `?e=${result.reason}`, slug));
 };
