@@ -4,6 +4,7 @@ import {
   accessTokens,
   consentEvents,
   contacts,
+  emailDeliveries,
   marketingSubscriptions,
   rewardCampaignLocales,
   rewardCampaigns,
@@ -44,6 +45,13 @@ export type ContactDetail = {
     campaignTitle: string;
     claimStatus: string;
     firstClaimedAt: Date;
+  }>;
+  deliveries: Array<{
+    emailType: string;
+    status: string;
+    sentAt: Date | null;
+    deliveredAt: Date | null;
+    bouncedAt: Date | null;
   }>;
 };
 
@@ -189,7 +197,22 @@ export async function getContactDetail(contactId: string): Promise<ContactDetail
     }
   }
 
-  return { contact, subscription: subscription ?? null, consents, claims };
+  // Riwayat email (semua tipe: broadcast, broadcast_test, transaksional) —
+  // 20 terbaru, createdAt desc.
+  const deliveries = await db
+    .select({
+      emailType: emailDeliveries.emailType,
+      status: emailDeliveries.status,
+      sentAt: emailDeliveries.sentAt,
+      deliveredAt: emailDeliveries.deliveredAt,
+      bouncedAt: emailDeliveries.bouncedAt,
+    })
+    .from(emailDeliveries)
+    .where(eq(emailDeliveries.contactId, contactId))
+    .orderBy(desc(emailDeliveries.createdAt))
+    .limit(20);
+
+  return { contact, subscription: subscription ?? null, consents, claims, deliveries };
 }
 
 function csvEscape(value: string): string {

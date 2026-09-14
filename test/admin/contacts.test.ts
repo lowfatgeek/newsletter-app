@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { listContacts, buildContactsCsv, anonymizeContact, getContactDetail } from "../../src/lib/admin/contacts";
 import { db } from "../../src/lib/db";
-import { contacts, marketingSubscriptions, rewardCampaigns, accessTokens } from "../../src/lib/schema";
+import {
+  contacts, marketingSubscriptions, rewardCampaigns, accessTokens, emailDeliveries,
+} from "../../src/lib/schema";
 import { eq } from "drizzle-orm";
 import { upsertClaim, issueClaimToken } from "../../src/lib/access";
 import { resetDb } from "../helpers";
@@ -77,6 +79,31 @@ describe("contacts admin", () => {
     expect(page3.rows).toHaveLength(0);
     expect(page3.total).toBe(2);
   });
+  it("contact detail includes email delivery history (desc, limit 20)", async () => {
+    const { c1 } = await seed();
+    // 21 baris: hanya 20 terbaru (createdAt desc) yang dikembalikan
+    for (let i = 0; i < 21; i++) {
+      await db.insert(emailDeliveries).values({
+        contactId: c1.id,
+        emailType: i === 0 ? "broadcast_test" : "broadcast",
+        status: i === 1 ? "delivered" : "sent",
+        sentAt: new Date(Date.now() - i * 60_000),
+        deliveredAt: i === 1 ? new Date() : null,
+        bouncedAt: null,
+        createdAt: new Date(Date.now() - i * 1000),
+      });
+    }
+    const detail = await getContactDetail(c1.id);
+    expect(detail).not.toBeNull();
+    expect(detail?.deliveries).toHaveLength(20);
+    const d = detail?.deliveries[0];
+    expect(d).toMatchObject({ emailType: "broadcast_test", status: "sent" });
+    expect(d?.sentAt).toBeInstanceOf(Date);
+    // baris kedua adalah broadcast delivered
+    expect(detail?.deliveries[1]).toMatchObject({ emailType: "broadcast", status: "delivered" });
+    expect(detail?.deliveries[1]?.deliveredAt).toBeInstanceOf(Date);
+  });
+
   it("csv escapes fields containing commas or quotes", async () => {
     await db.insert(contacts).values({ emailNormalized: "a,b@test.com" }).returning();
     const csv = await buildContactsCsv({ limit: 100, offset: 0 }, { adminUserId: null, ip: "1.1.1.1" });

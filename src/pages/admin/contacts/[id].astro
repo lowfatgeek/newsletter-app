@@ -13,7 +13,7 @@ const contactId = Astro.params.id ?? "";
 const detail = await getContactDetail(contactId);
 if (!detail) return Astro.redirect("/admin/contacts");
 
-const { contact, subscription, consents, claims } = detail;
+const { contact, subscription, consents, claims, deliveries } = detail;
 
 /** Badge gabungan seperti halaman daftar. */
 const rowStatus =
@@ -41,6 +41,30 @@ const consentText: Record<string, string> = {
   resubscribed: "Berlangganan ulang",
 };
 
+const emailTypeText: Record<string, string> = {
+  broadcast: "Broadcast",
+  broadcast_test: "Tes broadcast",
+};
+
+const deliveryStatusText: Record<string, string> = {
+  accepted: "Diterima provider",
+  sent: "Terkirim",
+  delivered: "Sampai",
+  bounced: "Bounce",
+  failed: "Gagal",
+  suppressed: "Ditekan",
+};
+
+/** Kelas badge status delivery — reuse pola badge halaman ini. */
+const deliveryBadgeClass: Record<string, string> = {
+  delivered: "badge-confirmed",
+  sent: "badge-confirmed",
+  accepted: "badge-pending",
+  suppressed: "badge-pending",
+  bounced: "badge-unsubscribed",
+  failed: "badge-unsubscribed",
+};
+
 const dateTimeFmt = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" });
 function fmtDateTime(d: Date | null): string {
   return d ? dateTimeFmt.format(d) : "—";
@@ -54,7 +78,7 @@ function fmtDateTime(d: Date | null): string {
       <p class="overline">Detail Kontak</p>
       <h1>{contact.emailNormalized}</h1>
       <p class="helper">
-        Profil kontak, riwayat klaim reward, dan riwayat persetujuan marketing.
+        Profil kontak, riwayat klaim reward, riwayat email, dan riwayat persetujuan marketing.
       </p>
     </div>
   </div>
@@ -137,6 +161,42 @@ function fmtDateTime(d: Date | null): string {
           </li>
         ))}
       </ul>
+    )}
+  </section>
+
+  <section class="card">
+    <h2>Riwayat email</h2>
+    {deliveries.length === 0 ? (
+      <p class="muted">Belum ada riwayat email.</p>
+    ) : (
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Jenis</th>
+              <th scope="col">Status</th>
+              <th scope="col">Dikirim</th>
+              <th scope="col">Sampai</th>
+              <th scope="col">Bounce</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deliveries.map((d) => (
+              <tr>
+                <td><strong>{emailTypeText[d.emailType] ?? d.emailType}</strong></td>
+                <td>
+                  <span class={`badge ${deliveryBadgeClass[d.status] ?? "badge-pending"}`}>
+                    {deliveryStatusText[d.status] ?? d.status}
+                  </span>
+                </td>
+                <td>{fmtDateTime(d.sentAt)}</td>
+                <td>{fmtDateTime(d.deliveredAt)}</td>
+                <td>{fmtDateTime(d.bouncedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     )}
   </section>
 
