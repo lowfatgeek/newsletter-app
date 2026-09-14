@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.worktrees
+.env
+.env.*
+test-results
+playwright-report
+*.log
+.DS_Store
