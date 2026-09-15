@@ -47,7 +47,7 @@ email/asset tidak keluar ke provider saat dev.
 | Command | Aksi |
 | --- | --- |
 | `npm run dev` | Dev server Astro (port 4321) |
-| `npm run build` | Build produksi (adapter Node) |
+| `npm run build` | Build produksi (adapter Node standalone; otomatis `@astrojs/vercel` di Vercel) |
 | `npm run preview` | Preview hasil build |
 | `npm run db:generate` | Generate migrasi Drizzle dari `src/lib/schema.ts` |
 | `npm run db:migrate` | Terapkan migrasi |
@@ -73,6 +73,11 @@ drizzle/            SQL migrasi
 ```
 
 ## Deploy ke Vercel
+
+Build mendeteksi target secara otomatis: di Vercel (`VERCEL=1` disuntik
+platform) `astro.config.mjs` memakai adapter `@astrojs/vercel`; di luar itu
+(Docker/Easypanel/VPS) memakai `@astrojs/node` mode standalone — tanpa flag
+konfigurasi tambahan.
 
 1. Import repo ke Vercel; framework preset Astro, build `npm run build`.
 2. Sediakan Postgres terkelola (Neon). Salin connection string ke

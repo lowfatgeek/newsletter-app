@@ -159,8 +159,11 @@ di produksi kecuali yang memang flag (`true`/`false`).
 
 ### B5. Jalankan migrasi database (sekali saja)
 
-Migrasi membuat semua tabel. Cara termudah: pakai fitur **Console/Terminal**
-di service `web` (Easypanel menyediakan tombol terminal ke container):
+Migrasi membuat semua tabel. Dua cara yang sama-sama didukung:
+
+**Cara 1 — di dalam console container** (paling mudah, karena image runtime
+sudah berisi `scripts/`, `src/`, folder `drizzle/`, plus `tsx` dan `dotenv`
+sebagai dependency produksi — `npm prune` di Dockerfile tidak membuangnya):
 
 1. Buka service `web` → cari tombol **Console** atau **Terminal**.
 2. Jalankan:
@@ -169,22 +172,32 @@ di service `web` (Easypanel menyediakan tombol terminal ke container):
    ```
    Tunggu sampai muncul `migrated`.
    > Perintah ini memakai `DATABASE_URL` yang sudah ada di environment service,
-   > jadi tidak perlu mengetik URL manual. Script `tsx` dan folder `drizzle/`
-   > sudah ikut di dalam image Docker.
-3. (Sekali saja, untuk data awal) Jalankan seed contoh:
-   ```bash
-   npm run seed
-   ```
-   Ini membuat campaign contoh `starter-kit`, template doa, dan allowlist domain.
-   Data contoh boleh dihapus/diedit lewat admin setelahnya.
-4. (Sekali saja) Buat akun admin pertama:
-   ```bash
-   npm run admin:bootstrap
-   ```
-   Memakai `ADMIN_EMAIL` + `ADMIN_PASSWORD` dari environment. Setelah berhasil,
-   login di `https://kado.kelaswfa.my.id/admin/login`.
-   > Kalau `ADMIN_PASSWORD` lupa di-set sebelum deploy: tambah variable-nya di
-   > tab Environment → **Redeploy/Restart** → jalankan bootstrap lagi.
+   > jadi tidak perlu mengetik URL manual.
+
+**Cara 2 — dari terminal lokal**, dengan `DATABASE_URL` diarahkan ke database
+yang sama (URL yang bisa dijangkau dari luar VPS; untuk Postgres Easypanel
+buka akses publik sementara atau jalankan lewat SSH tunnel):
+
+```bash
+DATABASE_URL="<connection-url-db>" npm run db:migrate
+```
+
+Setelah migrasi, dari salah satu lokasi di atas:
+
+- (Sekali saja, untuk data awal) Jalankan seed contoh:
+  ```bash
+  npm run seed
+  ```
+  Ini membuat campaign contoh `starter-kit`, template doa, dan allowlist domain.
+  Data contoh boleh dihapus/diedit lewat admin setelahnya.
+- (Sekali saja) Buat akun admin pertama:
+  ```bash
+  npm run admin:bootstrap
+  ```
+  Memakai `ADMIN_EMAIL` + `ADMIN_PASSWORD` dari environment. Setelah berhasil,
+  login di `https://kado.kelaswfa.my.id/admin/login`.
+  > Kalau `ADMIN_PASSWORD` lupa di-set sebelum deploy: tambah variable-nya di
+  > tab Environment → **Redeploy/Restart** → jalankan bootstrap lagi.
 
 ### B6. Pasang cron tiap menit
 
@@ -252,6 +265,12 @@ Buka satu per satu, harus semua hijau:
    (`astro build`) dan output directory.
 3. Node version: pastikan **22.x** (Project → Settings → General → Node.js
    Version). `package.json` sudah mensyaratkan `>=22.12.0`.
+
+> **Adapter terdeteksi otomatis.** `astro.config.mjs` memilih adapter saat
+> build: di lingkungan Vercel (`VERCEL=1` disuntik otomatis oleh platform)
+> build memakai `@astrojs/vercel`; di luar itu (Docker/Easypanel/VPS) memakai
+> `@astrojs/node` mode standalone. Tidak ada flag atau konfigurasi adapter
+> manual yang perlu ditambahkan di Vercel.
 
 ### C2. Isi environment variable
 

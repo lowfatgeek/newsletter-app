@@ -33,7 +33,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/drizzle ./drizzle
+# Salin source code yang dibutuhkan skrip migrasi/seed (tsx menjalankan
+# scripts/*.ts yang mengimpor src/lib/db.ts) di dalam container runtime.
 COPY --from=build /app/scripts ./scripts
+COPY --from=build /app/src ./src
 
 # Astro node-standalone membaca HOST dan PORT dari env.
 # 0.0.0.0 wajib agar bisa dijangkau dari luar container (reverse proxy Easypanel).
