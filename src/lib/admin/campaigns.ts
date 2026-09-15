@@ -369,5 +369,3 @@ export async function setDoaSelections(
   });
   return { ok: true };
 }
-
-export type { AuditOpts };

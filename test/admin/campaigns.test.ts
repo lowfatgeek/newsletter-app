@@ -95,7 +95,7 @@ describe("campaigns lib", () => {
     await setCampaignStatus(id, "pause");
     await setCampaignStatus(id, "unpause");
     const [second] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
-    expect(second.publishedAt.getTime()).toBe(first.publishedAt!.getTime());
+    expect(second.publishedAt!.getTime()).toBe(first.publishedAt!.getTime());
   });
 
   it("duplicate falls back to -copy-2 when -copy is taken", async () => {

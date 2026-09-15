@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../lib/admin/guard";
 import { createCampaign } from "../../../../lib/admin/campaigns";
+import { clientIp } from "../../../../lib/ip";
 
 export const prerender = false;
 
@@ -30,7 +31,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 400, headers: noStore });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  const ip = clientIp(request);
   const result = await createCampaign({ slug }, { adminUserId: admin.id, ip });
   if (!result.ok) {
     return new Response(JSON.stringify({ ok: false, reason: result.reason }), { status: 400, headers: noStore });

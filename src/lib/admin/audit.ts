@@ -5,7 +5,7 @@ import { hashIp } from "../ratelimit";
 
 export async function audit(
   action: string,
-  opts?: { adminUserId?: string; detail?: Record<string, unknown>; ip?: string },
+  opts?: { adminUserId?: string | null; detail?: Record<string, unknown>; ip?: string },
 ): Promise<void> {
   await db.insert(adminAuditLog).values({
     action,

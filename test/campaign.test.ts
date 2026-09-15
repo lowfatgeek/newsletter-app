@@ -37,7 +37,7 @@ async function insertLocaleRow(campaignId: string, locale: "id" | "en", override
   return row;
 }
 
-type TemplateOverrides = Partial<typeof doaTemplates.$inferInsert>;
+type TemplateOverrides = Pick<typeof doaTemplates.$inferInsert, "variant" | "locale" | "name" | "content">;
 
 async function insertDoaTemplate(overrides: TemplateOverrides) {
   const [tpl] = await db.insert(doaTemplates).values(overrides).returning();
@@ -77,8 +77,8 @@ describe("getPublishedCampaign", () => {
 
     const { row, fallbackToId } = data!.localeRow("id");
     expect(fallbackToId).toBe(false);
-    expect(row.title).toBe("Hadiah Spesial");
-    expect(row.rewardItems).toEqual([
+    expect(row!.title).toBe("Hadiah Spesial");
+    expect(row!.rewardItems).toEqual([
       { name: "E-book", benefit: "Panduan lengkap", format: "PDF", size: "2 MB" },
     ]);
 
@@ -104,8 +104,8 @@ describe("getPublishedCampaign", () => {
     expect(data).not.toBeNull();
     const { row, fallbackToId } = data!.localeRow("en");
     expect(fallbackToId).toBe(true);
-    expect(row.locale).toBe("id");
-    expect(row.title).toBe("Hadiah Spesial");
+    expect(row!.locale).toBe("id");
+    expect(row!.title).toBe("Hadiah Spesial");
 
     // id row tetap tanpa fallback
     const idRow = data!.localeRow("id");

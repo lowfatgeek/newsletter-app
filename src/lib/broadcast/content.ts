@@ -1,4 +1,4 @@
-import sanitizeHtml from "sanitize-html";
+import sanitizeHtml, { type Attributes, type Tag } from "sanitize-html";
 import { broadcastLayout, escapeHtml } from "../templates";
 
 /**
@@ -37,7 +37,7 @@ export function sanitizeBody(html: string): string {
     allowedAttributes: { a: ["href", "target", "rel"] },
     allowedSchemes: ["https"],
     transformTags: {
-      a: (_tagName, attribs) => {
+      a: (_tagName, attribs): Tag => {
         const href = typeof attribs.href === "string" && attribs.href.startsWith("https://")
           ? attribs.href
           : undefined;

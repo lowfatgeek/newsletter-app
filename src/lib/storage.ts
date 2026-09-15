@@ -48,12 +48,12 @@ export async function presignDownloadUrl(storageKey: string, expiresInSec = 3600
   const url = new URL(`https://${host}/${env("R2_BUCKET")}/${storageKey}`);
   url.searchParams.set("X-Amz-Expires", String(expiresInSec));
   const signer = new AwsV4Signer({
-    url,
+    url: url.toString(),
     method: "GET",
     accessKeyId: env("R2_ACCESS_KEY_ID"),
     secretAccessKey: env("R2_SECRET_ACCESS_KEY"),
     signQuery: true,
   });
   const signed = await signer.sign();
-  return signed.url;
+  return signed.url.toString();
 }

@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../lib/admin/guard";
+import { clientIp } from "../../../../lib/ip";
 import {
   changeSlug,
   getCampaignById,
@@ -76,7 +77,7 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
   }
 
   const locales = body.locales ?? {};
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  const ip = clientIp(request);
   const auditOpts = { adminUserId: admin.id, ip };
 
   // Validasi locale lebih dulu agar tidak ada tulisan sebelum error di slug.

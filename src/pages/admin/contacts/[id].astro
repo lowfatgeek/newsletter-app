@@ -155,7 +155,7 @@ function fmtDateTime(d: Date | null): string {
     ) : (
       <ul class="consent-list">
         {consents.map((c) => (
-          <li key={c.id}>
+          <li>
             <strong>{consentText[c.event] ?? c.event}</strong>
             <span class="muted"> · {fmtDateTime(c.createdAt)}</span>
           </li>

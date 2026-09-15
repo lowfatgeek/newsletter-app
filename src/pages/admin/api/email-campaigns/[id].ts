@@ -4,6 +4,7 @@ import type { APIRoute } from "astro";
 import { getAdmin } from "../../../../lib/admin/guard";
 import { updateEmailCampaignDraft } from "../../../../lib/broadcast/crud";
 import { validateContent } from "../../../../lib/broadcast/content";
+import { clientIp } from "../../../../lib/ip";
 
 export const prerender = false;
 
@@ -84,7 +85,7 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
       maxPerMinute,
       maxPerHour,
     },
-    { adminUserId: admin.id, ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined },
+    { adminUserId: admin.id, ip: clientIp(request) },
   );
   if (result.ok) return json({ ok: true, missing });
   return json({ ok: false, reason: result.reason }, result.reason === "not-found" ? 404 : 400);

@@ -4,6 +4,7 @@ import type { APIRoute } from "astro";
 import { getAdmin } from "../../../../../lib/admin/guard";
 import { scheduleCampaign } from "../../../../../lib/broadcast/machine";
 import { progressOf } from "../../../../../lib/broadcast/stats";
+import { clientIp } from "../../../../../lib/ip";
 
 export const prerender = false;
 
@@ -40,7 +41,7 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
     scheduledAt = d;
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  const ip = clientIp(request);
   const result = await scheduleCampaign(id, { scheduledAt }, { adminUserId: admin.id, ip });
   if (!result.ok) {
     return json(

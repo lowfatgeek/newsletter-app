@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../../lib/admin/guard";
 import { sendTestEmail } from "../../../../../lib/broadcast/stats";
+import { clientIp } from "../../../../../lib/ip";
 
 export const prerender = false;
 
@@ -35,7 +36,7 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
 
   const result = await sendTestEmail(
     id, address,
-    { adminUserId: admin.id, ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined },
+    { adminUserId: admin.id, ip: clientIp(request) },
   );
   if (result.ok) return json({ ok: true });
   return json({ ok: false, reason: result.reason }, 400);

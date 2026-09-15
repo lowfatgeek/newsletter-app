@@ -43,15 +43,19 @@ const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewa
 const enRow = data.locales.find((l) => l.locale === "en") as RewardCampaignLocale | null;
 const enComplete = Boolean(enRow?.title?.trim() && enRow?.description?.trim());
 
-// Teks doa dari pilihan preset (apa pun status campaign).
-async function doaContent(variant: "muslim" | "universal"): Promise<string> {
-  const sel = data.doaSelections.find((s) => s.variant === variant);
+// Teks doa dari pilihan preset (apa pun status campaign). `data` dilewatkan
+// sebagai argumen agar TS memakai tipe yang sudah dipersempit (non-null).
+async function doaContent(
+  d: Exclude<Awaited<ReturnType<typeof getCampaignById>>, null>,
+  variant: "muslim" | "universal",
+): Promise<string> {
+  const sel = d.doaSelections.find((s) => s.variant === variant);
   if (!sel) return "";
   const [tpl] = await db.select().from(doaTemplates).where(eq(doaTemplates.id, sel.templateId));
   return tpl?.content ?? "";
 }
-const muslimText = await doaContent("muslim");
-const universalText = await doaContent("universal");
+const muslimText = await doaContent(data, "muslim");
+const universalText = await doaContent(data, "universal");
 ---
 <!doctype html>
 <html lang="id">

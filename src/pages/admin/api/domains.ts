@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../lib/admin/guard";
 import { addDomain, listDomains, removeDomain, setDomainActive } from "../../../lib/admin/domains";
+import { clientIp } from "../../../lib/ip";
 
 export const prerender = false;
 
@@ -29,7 +30,7 @@ async function readBody(request: Request): Promise<Body> {
 function auditOpts(request: Request, adminId: string) {
   return {
     adminUserId: adminId,
-    ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
+    ip: clientIp(request),
   };
 }
 

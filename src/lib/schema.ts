@@ -1,3 +1,4 @@
+import { sql, desc } from "drizzle-orm";
 import { pgTable, uuid, varchar, text, timestamp, integer, bigint, boolean, uniqueIndex, index, jsonb } from "drizzle-orm/pg-core";
 
 export const contacts = pgTable("contact", {
@@ -23,7 +24,7 @@ export const consentEvents = pgTable("consent_event", {
   contactId: uuid("contact_id").notNull().references(() => contacts.id),
   event: varchar("event", { length: 30 }).notNull(), // subscribed | unsubscribed | resubscribed
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("consent_event_contact_idx").on(t.contactId)]);
 
 export const rewardCampaigns = pgTable("reward_campaign", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -116,7 +117,7 @@ export const emailOutbox = pgTable("email_outbox", {
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull().defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("email_outbox_status_sched_idx").on(t.status, t.scheduledAt)]);
 
 export const rateLimits = pgTable("rate_limit", {
   key: varchar("key", { length: 200 }).primaryKey(),
@@ -168,7 +169,7 @@ export const adminAuditLog = pgTable("admin_audit_log", {
   detail: jsonb("detail").notNull().default({}),
   ipHash: varchar("ip_hash", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("admin_audit_log_created_at_idx").on(desc(t.createdAt))]);
 
 export const campaignRedirects = pgTable("campaign_redirect", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -214,7 +215,15 @@ export const emailCampaigns = pgTable("email_campaigns", {
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // PRD §7.4: hanya boleh ada tepat satu campaign berstatus 'sending'.
+  // Partial unique index ini menjadi invariant di level DB; claimForSending
+  // menangkap unique_violation (23505) sebagai "klaim kalah".
+  uniqueIndex("email_campaigns_single_sending_uq")
+    .on(t.status)
+    .where(sql`${t.status} = 'sending'`),
+  index("email_campaigns_status_idx").on(t.status),
+]);
 
 export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -240,7 +249,11 @@ export const emailDeliveries = pgTable("email_deliveries", {
   deliveredAt: timestamp("delivered_at", { withTimezone: true }),
   bouncedAt: timestamp("bounced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("email_deliveries_recipient_idx").on(t.campaignRecipientId),
+  index("email_deliveries_contact_idx").on(t.contactId),
+  index("email_deliveries_sent_at_idx").on(t.sentAt),
+]);
 
 export const emailSuppressions = pgTable("email_suppressions", {
   emailNormalized: varchar("email_normalized", { length: 254 }).primaryKey(),

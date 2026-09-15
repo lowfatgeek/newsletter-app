@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { completeLogin, UUID_RE } from "../../../lib/admin/login";
 import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs } from "../../../lib/admin/sessions";
+import { clientIp } from "../../../lib/ip";
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
 
@@ -31,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 401, headers: noStore });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const ip = clientIp(request);
   const userAgent = request.headers.get("user-agent") ?? undefined;
   const result = await completeLogin({ challengeId, code, trustDevice, ip, userAgent });
 

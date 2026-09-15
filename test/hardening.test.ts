@@ -43,7 +43,7 @@ describe("hardening: clientIp trusted proxy parsing", () => {
 
 describe("hardening: security headers middleware", () => {
   it("sets CSP/nosniff/referrer on every response (no HSTS in non-prod)", async () => {
-    const out = await onRequest({} as never, (async () => new Response("ok")) as never);
+    const out = await onRequest({} as never, (async () => new Response("ok")) as never) as Response;
     expect(out.headers.get("Content-Security-Policy")).toBe(SECURITY_CSP);
     expect(out.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(out.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
@@ -52,7 +52,7 @@ describe("hardening: security headers middleware", () => {
 
   it("does NOT override an existing CSP (preview route frame-ancestors 'self')", async () => {
     const preview = new Response("ok", { headers: { "Content-Security-Policy": "frame-ancestors 'self'" } });
-    const out = await onRequest({} as never, (async () => preview) as never);
+    const out = await onRequest({} as never, (async () => preview) as never) as Response;
     expect(out.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'self'");
     // header lain tetap ditambahkan
     expect(out.headers.get("X-Content-Type-Options")).toBe("nosniff");

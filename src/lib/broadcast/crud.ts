@@ -17,7 +17,7 @@ import { audit } from "../admin/audit";
  * terkunci (update → not-draft).
  */
 
-export type AuditOpts = { adminUserId?: string; ip?: string };
+export type AuditOpts = { adminUserId?: string | null; ip?: string };
 
 /**
  * Default limit kampanye baru: 60/menit dan 600/jam — aman terhadap

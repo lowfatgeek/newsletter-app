@@ -24,7 +24,7 @@ describe("putObject (MOCK_R2=false, fetch di-mock)", () => {
     await putObject("rewards/e2e/guide.pdf", new ArrayBuffer(8), "application/pdf");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(new URL(url).pathname).toBe("/bucket/rewards/e2e/guide.pdf");
     expect(init.method).toBe("PUT");
     const headers = new Headers(init.headers);

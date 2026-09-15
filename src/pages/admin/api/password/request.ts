@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
 import { requestPasswordReset } from "../../../../lib/admin/login";
+import { clientIp } from "../../../../lib/ip";
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
 
@@ -23,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const email = typeof body.email === "string" ? body.email : "";
   if (email) {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+    const ip = clientIp(request);
     const result = await requestPasswordReset(email, ip);
     if (result.ok && "challengeId" in result && result.challengeId) {
       return new Response(JSON.stringify({ ok: true, challengeId: result.challengeId }), { headers: noStore });

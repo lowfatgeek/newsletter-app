@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../lib/admin/guard";
 import { removeAsset } from "../../../../lib/admin/assets";
+import { clientIp } from "../../../../lib/ip";
 
 export const prerender = false;
 
@@ -19,7 +20,7 @@ export const DELETE: APIRoute = async ({ cookies, params, request }) => {
     return new Response(JSON.stringify({ ok: false, reason: "unauthorized" }), { status: 401, headers: noStore });
   }
   const id = params.id ?? "";
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  const ip = clientIp(request);
   await removeAsset(id, { adminUserId: admin.id, ip });
   // removeAsset no-op untuk id tak dikenal — tetap ok agar klien idempotent;
   // klien akan me-refresh list dan row hilang sendiri.

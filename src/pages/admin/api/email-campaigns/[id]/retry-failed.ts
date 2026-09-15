@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../../lib/admin/guard";
 import { retryFailedRecipients } from "../../../../../lib/broadcast/stats";
+import { clientIp } from "../../../../../lib/ip";
 
 export const prerender = false;
 
@@ -20,7 +21,7 @@ export const POST: APIRoute = async ({ cookies, params, request }) => {
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  const ip = clientIp(request);
   const result = await retryFailedRecipients(params.id ?? "", { adminUserId: admin.id, ip });
   if (result.ok) return json({ ok: true, reset: result.reset });
   if (result.reason === "rate-limited") {

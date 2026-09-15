@@ -58,17 +58,18 @@ async function uploadSampleAsset(campaignId: string): Promise<void> {
 
   const buffer = samplePdf();
   const storageKey = "rewards/starter-kit/sample.pdf";
-  const url = new URL(`https://${accountId}.r2.cloudflarestorage.com/${bucket}/${storageKey}`);
+  const url = `https://${accountId}.r2.cloudflarestorage.com/${bucket}/${storageKey}`;
+  const payload = new Uint8Array(buffer);
   const signer = new AwsV4Signer({
     url,
     method: "PUT",
     accessKeyId,
     secretAccessKey,
-    body: buffer,
+    body: payload,
     headers: { "Content-Type": "application/pdf" },
   });
   const signed = await signer.sign();
-  const res = await fetch(signed.url, { method: "PUT", body: buffer, headers: signed.headers });
+  const res = await fetch(signed.url, { method: "PUT", body: payload, headers: signed.headers });
   if (!res.ok) throw new Error(`R2 upload gagal: ${res.status} ${await res.text()}`);
 
   await db.insert(rewardAssets).values({

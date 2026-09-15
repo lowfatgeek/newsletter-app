@@ -34,7 +34,7 @@ export type CampaignStats = {
   clicks: number;
 };
 
-export type AuditOpts = { adminUserId?: string; ip?: string };
+export type AuditOpts = { adminUserId?: string | null; ip?: string };
 
 export async function campaignStats(campaignId: string): Promise<CampaignStats> {
   const [recip] = await db

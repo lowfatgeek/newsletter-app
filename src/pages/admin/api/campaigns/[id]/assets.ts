@@ -5,6 +5,7 @@ import { getAdmin } from "../../../../../lib/admin/guard";
 import { listAssets, removeAsset, reorderAssets, storeAsset } from "../../../../../lib/admin/assets";
 import { getCampaignById } from "../../../../../lib/admin/campaigns";
 import { MAX_UPLOAD_BYTES } from "../../../../../lib/storage";
+import { clientIp } from "../../../../../lib/ip";
 
 export const prerender = false;
 
@@ -19,7 +20,7 @@ function unauthorized() {
 }
 
 function auditIp(request: Request) {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  return clientIp(request);
 }
 
 /** Shape asset untuk klien (tanpa checksum/storageKey penuh). */

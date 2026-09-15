@@ -4,7 +4,7 @@ import { db } from "../../src/lib/db";
 import { adminOtpChallenges } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
 
-function post(body: unknown): Promise<Response> {
+async function post(body: unknown): Promise<Response> {
   return POST({
     request: new Request("http://localhost:4321/admin/api/otp", {
       method: "POST",

@@ -114,7 +114,7 @@ describe("scheduleCampaign", () => {
     const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_scheduled"));
     expect(audits).toHaveLength(1);
     expect(audits[0].detail).toMatchObject({ campaignId: c.id, recipients: 2 });
-    expect(new Date(audits[0].detail.scheduledAt as string).getTime()).toBe(at.getTime());
+    expect(new Date((audits[0]!.detail as Record<string, unknown>).scheduledAt as string).getTime()).toBe(at.getTime());
   });
 
   it("send-now (scheduledAt null) goes straight to queued with snapshot", async () => {
@@ -208,6 +208,33 @@ describe("claimForSending", () => {
     expect(await claimForSending(a.id)).toBe(true);
     expect(await markCompleted(a.id, AUDIT)).toEqual({ ok: true });
     expect(await claimForSending(b.id)).toBe(true);
+  });
+
+  it("two concurrent claims on different queued campaigns: exactly one wins, no rejection", async () => {
+    const a = await seedCampaign();
+    const b = await seedCampaign();
+    await scheduleCampaign(a.id, { scheduledAt: null }, AUDIT);
+    await scheduleCampaign(b.id, { scheduledAt: null }, AUDIT);
+
+    // Klaim dilempar paralel — kalah oleh WHERE NOT EXISTS maupun partial
+    // unique index `email_campaigns_single_sending_uq` (23505) harus sama-sama
+    // menghasilkan `false`, bukan rejected promise.
+    const results = await Promise.all([claimForSending(a.id), claimForSending(b.id)]);
+    expect(results.filter((r) => r === true)).toHaveLength(1);
+    expect(results.filter((r) => r === false)).toHaveLength(1);
+
+    const rows = await db
+      .select({ id: emailCampaigns.id, status: emailCampaigns.status })
+      .from(emailCampaigns);
+    expect(rows).toHaveLength(2);
+    const sending = rows.filter((r) => r.status === "sending");
+    const queued = rows.filter((r) => r.status === "queued");
+    expect(sending).toHaveLength(1);
+    expect(queued).toHaveLength(1);
+    // Invariant PRD §7.4: tidak pernah ada dua campaign berstatus sending.
+    const [stillSending] = await db.select({ id: emailCampaigns.id })
+      .from(emailCampaigns).where(eq(emailCampaigns.status, "sending"));
+    expect(stillSending.id).toBe(sending[0].id);
   });
 });
 

@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../lib/admin/guard";
 import { buildContactsCsv } from "../../../../lib/admin/contacts";
+import { clientIp } from "../../../../lib/ip";
 
 export const prerender = false;
 
@@ -38,7 +39,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     { status, campaignId, search, limit, offset },
     {
       adminUserId: admin.id,
-      ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
+      ip: clientIp(request),
     },
   );
 

@@ -20,7 +20,7 @@ import { audit } from "../admin/audit";
  * Error kampanye TIDAK disimpan di baris kampanye — lihat emailDeliveries.
  */
 
-export type AuditOpts = { adminUserId?: string; ip?: string };
+export type AuditOpts = { adminUserId?: string | null; ip?: string };
 type TransitionResult = { ok: true } | { ok: false; reason: "not-found" | "invalid-transition" };
 
 /** Kapasitas provider dari env (dipakai validateLimits & worker Task 6). */
@@ -140,17 +140,44 @@ export async function scheduleCampaign(
  * campaign berbeda berstatus sending bersamaan (PRD §7.4). Campaign sendiri
  * dikecualikan agar retry klaim idempoten (klaim ulang campaign yang sudah
  * sending → false via status='queued', bukan via guard ini).
+ *
+ * Invariant single-sending juga ditegakkan di level DB lewat partial unique
+ * index `email_campaigns_single_sending_uq` (lihat schema.ts): di isolasi
+ * READ COMMITTED, klausa NOT EXISTS saja masih bisa dilewati dua runner yang
+ * benar-benar paralel. Klaim yang kalah oleh index tersebut melempar
+ * PostgresError code 23505 (unique_violation) — kita terjemahkan menjadi
+ * `false`, sama seperti kalah lewat WHERE clause. Catatan: drizzle-orm 0.45
+ * membungkus PostgresError dalam DrizzleQueryError (code ada di `.cause`),
+ * sedangkan postgres-js telanjang menyimpannya langsung di error.
  */
 export async function claimForSending(campaignId: string): Promise<boolean> {
-  const rows = await db.update(emailCampaigns)
-    .set({ status: "sending", updatedAt: new Date() })
-    .where(and(
-      eq(emailCampaigns.id, campaignId),
-      eq(emailCampaigns.status, "queued"),
-      sql`not exists (select 1 from email_campaigns ec where ec.status = 'sending' and ec.id <> ${campaignId})`,
-    ))
-    .returning({ id: emailCampaigns.id });
-  return rows.length > 0;
+  try {
+    const rows = await db.update(emailCampaigns)
+      .set({ status: "sending", updatedAt: new Date() })
+      .where(and(
+        eq(emailCampaigns.id, campaignId),
+        eq(emailCampaigns.status, "queued"),
+        sql`not exists (select 1 from email_campaigns ec where ec.status = 'sending' and ec.id <> ${campaignId})`,
+      ))
+      .returning({ id: emailCampaigns.id });
+    return rows.length > 0;
+  } catch (err) {
+    // 23505 = unique_violation: campaign lain menang klaim lebih dulu.
+    if (pgErrorCode(err) === "23505") return false;
+    throw err;
+  }
+}
+
+/** Ambil SQLSTATE dari error postgres-js, termasuk yang dibungkus drizzle. */
+function pgErrorCode(err: unknown): string | undefined {
+  const seen = new Set<unknown>();
+  let current = err as { code?: string; cause?: unknown } | null | undefined;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (typeof current.code === "string") return current.code;
+    current = current.cause as { code?: string; cause?: unknown } | undefined;
+  }
+  return undefined;
 }
 
 /** Transisi status atomic dengan audit; membedakan not-found vs invalid-transition. */

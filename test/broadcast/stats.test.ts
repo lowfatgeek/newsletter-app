@@ -46,7 +46,7 @@ async function seedCampaign() {
 
 type RecipFixture = {
   contactId: string;
-  status: "sent" | "failed";
+  status: "pending" | "sent" | "failed" | "cancelled";
   clicked?: boolean;
   delivery: { status: string; sentAt: Date } | null;
 };

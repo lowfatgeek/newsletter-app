@@ -219,7 +219,7 @@ describe("processEmailitEvent", () => {
 });
 
 describe("POST /api/webhooks/emailit", () => {
-  function post(body: string, signature: string | null): Promise<Response> {
+  async function post(body: string, signature: string | null): Promise<Response> {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (signature !== null) headers["x-emailit-signature"] = signature;
     return POST({

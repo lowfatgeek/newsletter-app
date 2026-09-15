@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../../lib/admin/guard";
 import { cancelCampaign } from "../../../../../lib/broadcast/machine";
+import { clientIp } from "../../../../../lib/ip";
 
 export const prerender = false;
 
@@ -19,7 +20,7 @@ export const POST: APIRoute = async ({ cookies, params, request }) => {
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+  const ip = clientIp(request);
   const result = await cancelCampaign(params.id ?? "", { adminUserId: admin.id, ip });
   if (result.ok) return json({ ok: true });
   return json({ ok: false, reason: result.reason }, result.reason === "not-found" ? 404 : 400);
