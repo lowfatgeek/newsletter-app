@@ -4,6 +4,7 @@ import type { APIRoute } from "astro";
 import { getAdmin, verifyAdminOrigin } from "../../../../lib/admin/guard";
 import { removeAsset } from "../../../../lib/admin/assets";
 import { clientIp } from "../../../../lib/ip";
+import { isValidUuid } from "../../../../lib/uuid";
 
 export const prerender = false;
 
@@ -23,6 +24,9 @@ export const DELETE: APIRoute = async ({ cookies, params, request }) => {
     return new Response(JSON.stringify({ ok: false, reason: "unauthorized" }), { status: 401, headers: noStore });
   }
   const id = params.id ?? "";
+  if (!isValidUuid(id)) {
+    return new Response(JSON.stringify({ ok: false, reason: "invalid-uuid" }), { status: 400, headers: noStore });
+  }
   const ip = clientIp(request);
   await removeAsset(id, { adminUserId: admin.id, ip });
   // removeAsset no-op untuk id tak dikenal — tetap ok agar klien idempotent;

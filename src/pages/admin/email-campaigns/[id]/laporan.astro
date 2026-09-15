@@ -5,7 +5,7 @@ import { emailCampaignRecipients } from "../../../../lib/schema";
 import { requireAdminOrRedirect } from "../../../../lib/admin/guard";
 import { getEmailCampaignById } from "../../../../lib/broadcast/crud";
 import {
-  campaignStats, listRecipients, progressOf,
+  campaignStats, listRecipients,
   type RecipientStatusFilter,
 } from "../../../../lib/broadcast/stats";
 import AdminLayout from "../../../../layouts/AdminLayout.astro";
@@ -17,19 +17,23 @@ const admin = await requireAdminOrRedirect(Astro);
 if (!admin) return Astro.redirect("/admin/login");
 
 const id = Astro.params.id ?? "";
-const campaign = await getEmailCampaignById(id);
+// Task 2.6 / 07-P3: jalan paralel — dulu serial 3 roundtrip (campaign,
+// stats, failedCount). progressOf dihapus karena total/sentSoFar identik
+// dengan stats.recipients/stats.sent.
+const [campaign, stats, [failedCount]] = await Promise.all([
+  getEmailCampaignById(id),
+  campaignStats(id),
+  db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(emailCampaignRecipients)
+    .where(sql`${emailCampaignRecipients.campaignId} = ${id} and ${emailCampaignRecipients.status} = 'failed'`),
+]);
 if (!campaign) return new Response(null, { status: 404 });
 
 const status = campaign.status;
 
-// ===== Statistik + progres (angka tabular, tanpa open rate / chart) =====
-const stats = await campaignStats(id);
-const progress = await progressOf(id);
-
-const [failedCount] = await db
-  .select({ n: sql<number>`count(*)::int` })
-  .from(emailCampaignRecipients)
-  .where(sql`${emailCampaignRecipients.campaignId} = ${id} and ${emailCampaignRecipients.status} = 'failed'`);
+// Progres pengiriman memakai angka dari stats (satunya sumber).
+const progress = { total: stats.recipients, sentSoFar: stats.sent };
 
 // Resend gagal hanya untuk kampanye yang masih bisa diproses worker
 // (prinsip sama dengan retryFailedRecipients di lib).

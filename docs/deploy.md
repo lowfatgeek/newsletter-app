@@ -278,9 +278,13 @@ Project → **Settings → Environment Variables** → masukkan SEMUA variable d
 tabel A4 (pilih environment **Production**; ulangi untuk **Preview** bila mau
 staging):
 
-- `DATABASE_URL` = connection string Neon. Untuk migrasi diperlukan koneksi
-  langsung (non-pooled); bila Neon memberi dua URL (pooled + direct), pakai
-  yang **direct** untuk `DATABASE_URL`.
+- `DATABASE_URL` = connection string Neon yang **pooled** (URL dengan `-pooler`
+  di host, atau centang "pooled" saat menyalin koneksi di Neon Console).
+  Aplikasi serverless membuka banyak koneksi singkat; pooled connection
+  melindungi batas koneksi Neon. Koneksi **direct** (non-pooled) hanya dipakai
+  saat menjalankan migrasi skema dari terminal lokal (langkah C3) karena
+  pooled connection menolak `CREATE/DROP` tertentu via PgBouncer transaction
+  mode.
 - `PUBLIC_SITE_URL` = `https://kado.kelaswfa.my.id` (atau URL
   `*.vercel.app` untuk staging).
 - `MOCK_EMAILIT=false`, `MOCK_R2` sesuai kesiapan R2.

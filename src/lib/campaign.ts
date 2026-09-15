@@ -12,10 +12,29 @@ export type PublishedCampaign = NonNullable<Awaited<ReturnType<typeof getPublish
 export async function getPublicCampaignState(
   slug: string,
 ): Promise<{ state: "hidden" | "paused" | "published" }> {
+  const r = await getPublicCampaignWithContent(slug);
+  return { state: r.state };
+}
+
+/**
+ * Sumber tunggal lifecycle + konten halaman reward (task 2.4 / 07-P1):
+ * dulu halaman r/[slug] memanggil getPublicCampaignState lalu
+ * getPublishedCampaign — dua query reward_campaign untuk slug yang sama.
+ * Sekarang satu query state; konten hanya dimuat bila perlu.
+ * Domain status reward_campaign = draft | published | paused | archived,
+ * sehingga "bukan published" ≡ hidden/published; published ⇒ konten non-null
+ * (localeRow tetap bisa kosong → halaman 404 via pengecekan localeRow).
+ */
+export async function getPublicCampaignWithContent(slug: string): Promise<
+  | { state: "hidden" }
+  | { state: "paused" }
+  | { state: "published"; data: PublishedCampaign }
+> {
   const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.slug, slug));
   if (!camp || camp.status === "draft" || camp.status === "archived") return { state: "hidden" };
   if (camp.status === "paused") return { state: "paused" };
-  return { state: "published" };
+  const data = await loadCampaignContent(camp);
+  return { state: "published", data };
 }
 
 export async function getPublishedCampaign(slug: string) {

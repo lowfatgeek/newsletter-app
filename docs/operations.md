@@ -19,6 +19,7 @@ Daftar isi:
 
 - [ ] Domain pengirim (`kelaswfa.my.id`) terverifikasi di Emailit; SPF/DKIM/DMARC lolos (§2).
 - [ ] `PUBLIC_SITE_URL`, `ADMIN_EMAIL`, `CRON_SECRET`, `EMAILIT_WEBHOOK_SECRET`, `TOKEN_SECRET`, `IP_HASH_SALT` terpasang di Vercel Production.
+- [ ] `DATABASE_URL` aplikasi memakai connection Neon **pooled**; migrasi dijalankan dengan connection **direct** (lihat catatan koneksi di bawah).
 - [ ] Migrasi terakhir sudah diterapkan ke database produksi (`npm run db:migrate` dengan direct URL).
 - [ ] Cron `vercel.json` aktif dan kedua endpoint membalas 200 (cek log Vercel).
 - [ ] Webhook Emailit menunjuk ke `https://<domain>/api/webhooks/emailit` dengan secret yang sama.
@@ -27,6 +28,19 @@ Daftar isi:
 - [ ] Kirim test-send ke beberapa mailbox (Gmail, Outlook, Yahoo) dan cek inbox/spam.
 - [ ] Emergency pause/cancel diuji sekali di staging (§5).
 - [ ] Semua secret produksi dirotasi dari nilai contoh (§6).
+
+### Catatan koneksi Neon (pooled vs direct)
+
+- **Runtime aplikasi** (`DATABASE_URL` di Vercel/Easypanel) wajib memakai
+  connection **pooled** (host berakhir `-pooler.neon.tech`). Deployment
+  serverless membuka banyak koneksi singkat; pooled connection menjaga batas
+  koneksi Neon tidak jebol.
+- **Koneksi direct** (non-pooled) hanya dipakai sekali-sekali dari terminal
+  lokal untuk `npm run db:migrate`, `npm run seed`, dan `npm run
+  admin:bootstrap` — DDL tertentu bisa gagal lewat pooler mode transaction.
+- **Ukuran pool** sisi aplikasi bisa disetel dengan `DB_POOL_MAX` (default
+  `5`, lihat `src/lib/db.ts`). Naikkan hanya bila plan Neon memallow lebih
+  banyak koneksi; simpan ≤ setengah batas koneksi instance.
 
 ---
 

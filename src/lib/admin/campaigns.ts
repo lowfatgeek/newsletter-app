@@ -9,6 +9,7 @@ import {
   rewardCampaigns,
 } from "../schema";
 import { audit } from "./audit";
+import { isValidUuid } from "../uuid";
 
 // Opsi audit untuk semua mutasi CMS. adminUserId boleh null (aksi sistem),
 // ip boleh kosong (hash disimpan null).
@@ -314,6 +315,9 @@ export async function duplicateCampaign(id: string, auditOpts?: AuditOpts): Prom
 }
 
 export async function getCampaignById(id: string) {
+  // Guard 1.9: id non-UUID dari path parameter → null (404), bukan 500 dari
+  // error syntax PostgreSQL 22P02.
+  if (!isValidUuid(id)) return null;
   const [campaign] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
   if (!campaign) return null;
   const locales = await db

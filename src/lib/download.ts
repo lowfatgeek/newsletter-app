@@ -3,6 +3,7 @@ import { db } from "./db";
 import { rewardAssets, rewardCampaigns, rewardClaims } from "./schema";
 import { consumeToken } from "./access";
 import { presignDownloadUrl, assertAssetDownloadable } from "./storage";
+import { isValidUuid } from "./uuid";
 
 export const DOWNLOAD_URL_TTL_SEC = 3600;
 
@@ -10,6 +11,8 @@ export async function resolveDownload(
   sessionToken: string,
   assetId: string,
 ): Promise<{ ok: true; url: string } | { ok: false }> {
+  // Guard 1.9: assetId non-UUID → tolak sebelum query (hindari 22P02 → 500).
+  if (!isValidUuid(assetId)) return { ok: false };
   const sess = await consumeToken(sessionToken, "session");
   if (!sess.ok) return { ok: false };
   const [claim] = await db.select().from(rewardClaims).where(eq(rewardClaims.id, sess.claimId));

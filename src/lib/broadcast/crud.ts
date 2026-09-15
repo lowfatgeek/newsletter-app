@@ -4,6 +4,7 @@ import { emailCampaigns, type EmailCampaign } from "../schema";
 import { validateFilter, type AudienceFilter } from "./audience";
 import { sanitizeBody } from "./content";
 import { audit } from "../admin/audit";
+import { isValidUuid } from "../uuid";
 
 /**
  * Persistence seam admin untuk email campaign (Task 11).
@@ -128,6 +129,8 @@ export async function updateEmailCampaignDraft(
 
 /** Baris kampanye lengkap untuk composer; null bila tidak ada. */
 export async function getEmailCampaignById(id: string): Promise<EmailCampaign | null> {
+  // Guard 1.9: id non-UUID → null, hindari error 22P02 (500) dari Postgres.
+  if (!isValidUuid(id)) return null;
   const [row] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
   return row ?? null;
 }

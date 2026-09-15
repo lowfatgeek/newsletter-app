@@ -6,7 +6,7 @@ import RewardItemList from "../../../components/RewardItemList.astro";
 import ReflectionTabs from "../../../components/ReflectionTabs.astro";
 import EmailForm from "../../../components/EmailForm.astro";
 import CampaignPaused from "../../../components/CampaignPaused.astro";
-import { getPublicCampaignState, getPublishedCampaign } from "../../../lib/campaign";
+import { getPublicCampaignWithContent } from "../../../lib/campaign";
 import { resolveSlugRedirect } from "../../../lib/admin/campaigns";
 import { notFoundResponse } from "../../../lib/notfound";
 import { t, type Locale } from "../../../lib/i18n";
@@ -19,15 +19,19 @@ const { slug } = Astro.params;
 
 // Lifecycle publik: draft/archived → 404 (atau 301 ke slug terkini bila
 // campaign pernah di-rename), paused → halaman ramah, published → normal.
-const state = await getPublicCampaignState(slug!);
-if (state.state === "hidden") {
+// Satu query state + konten (task 2.4), tanpa pemanggilan kedua.
+const result = await getPublicCampaignWithContent(slug!);
+if (result.state === "hidden") {
   const target = await resolveSlugRedirect(slug!);
   if (target) return Astro.redirect(`/en/r/${target}`, 301);
   return notFoundResponse();
 }
-const paused = state.state === "paused";
-const data = paused ? null : await getPublishedCampaign(slug!);
+const paused = result.state === "paused";
+const data = result.state === "published" ? result.data : null;
 if (!paused && !data) return notFoundResponse();
+
+// Cache publik (task 2.5 / 07-P2) — sama dengan halaman ID.
+if (!paused) Astro.response.headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
 
 const localeRow = (paused ? null : data!.localeRow("en").row) as RewardCampaignLocale | null;
 if (!paused && !localeRow) return notFoundResponse();

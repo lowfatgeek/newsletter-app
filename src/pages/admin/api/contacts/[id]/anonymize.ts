@@ -4,6 +4,7 @@ import type { APIRoute } from "astro";
 import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { anonymizeContact } from "../../../../../lib/admin/contacts";
 import { clientIp } from "../../../../../lib/ip";
+import { isValidUuid } from "../../../../../lib/uuid";
 
 export const prerender = false;
 
@@ -28,6 +29,9 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
   }
 
   const contactId = params.id ?? "";
+  if (!isValidUuid(contactId)) {
+    return new Response(JSON.stringify({ ok: false, reason: "invalid-uuid" }), { status: 400, headers: noStore });
+  }
   const result = await anonymizeContact(contactId, {
     adminUserId: admin.id,
     ip: clientIp(request),

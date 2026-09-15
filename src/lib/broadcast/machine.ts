@@ -7,6 +7,7 @@ import {
 import { validateContent } from "./content";
 import { snapshotRecipients } from "./snapshot";
 import { audit } from "../admin/audit";
+import { isValidUuid } from "../uuid";
 
 /**
  * Status machine kampanye broadcast.
@@ -61,6 +62,8 @@ export function validateLimits(
 
 /** Baca baris kampanye untuk machine/worker; null bila tidak ada. */
 export async function getCampaignForBroadcast(id: string): Promise<EmailCampaign | null> {
+  // Guard 1.9: id non-UUID → null, bukan error 22P02 dari Postgres.
+  if (!isValidUuid(id)) return null;
   const [row] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
   return row ?? null;
 }
@@ -189,6 +192,9 @@ async function transition(
   detail: Record<string, unknown>,
   auditOpts?: AuditOpts,
 ): Promise<TransitionResult> {
+  // Guard 1.9: id non-UUID = tidak mungkin ada barisnya; jangan sampai
+  // UPDATE menyentuh kolom uuid dengan nilai ilegal (22P02 → 500).
+  if (!isValidUuid(id)) return { ok: false, reason: "not-found" };
   const rows = await db.update(emailCampaigns)
     .set({ status: to, updatedAt: new Date() })
     .where(and(eq(emailCampaigns.id, id), inArray(emailCampaigns.status, from)))
