@@ -1,9 +1,25 @@
 ---
 import PublicLayout from "../layouts/PublicLayout.astro";
+import { asc, eq } from "drizzle-orm";
+import { db } from "../lib/db";
+import { rewardCampaigns } from "../lib/schema";
+
+// Root tidak lagi jadi stub terindeks (task 11-C1): redirect ke campaign
+// published teratas, atau fallback noindex bila belum ada campaign.
+export const prerender = false;
+
+const [featured] = await db
+  .select({ slug: rewardCampaigns.slug })
+  .from(rewardCampaigns)
+  .where(eq(rewardCampaigns.status, "published"))
+  .orderBy(asc(rewardCampaigns.sortOrder), asc(rewardCampaigns.createdAt))
+  .limit(1);
+
+if (featured) return Astro.redirect(`/r/${featured.slug}`, 302);
 ---
-<PublicLayout title="KelasWFA Kado">
-  <main style="padding: var(--space-20) var(--space-5); max-width: var(--funnel-content); margin: 0 auto;">
-    <h1 style="color: var(--color-ink);">KelasWFA Kado</h1>
-    <p>Halaman hadiah KelasWFA.</p>
+<PublicLayout title="KelasWFA Kado" noindex={true}>
+  <main style="max-width: var(--funnel-content); margin: var(--space-16) auto; text-align: center; padding: 0 var(--space-4);">
+    <h1 style="color: var(--color-ink); font-size: var(--text-h1);">KelasWFA Kado</h1>
+    <p style="color: var(--color-text-muted);">Gunakan tautan hadiah khusus yang Anda miliki untuk mengakses materi.</p>
   </main>
 </PublicLayout>

@@ -21,6 +21,8 @@ const copy = {
   tooFast: t(locale, "timerTooFast"),
   label: t(locale, "emailLabel"),
   consent: t(locale, "consentCopy"),
+  consentResubscribe: t(locale, "consentResubscribe"),
+  submitting: t(locale, "submittingCta"),
   privacy: t(locale, "privacyLink"),
   cta: t(locale, "submitCta"),
 };
@@ -69,6 +71,15 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   </p>
 
   <!--
+    Re-subscribe eksplisit (PRD 7.1): kontak berstatus unsubscribed hanya
+    diaktifkan kembali bila checkbox ini dicentang (task 01-F1).
+  -->
+  <label style="display: flex; align-items: flex-start; gap: var(--space-2); margin-top: var(--space-3); font-size: var(--text-body-sm); color: var(--color-text-muted); cursor: pointer; line-height: 1.58;">
+    <input type="checkbox" name="resubscribe_consent" value="yes" style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--color-primary); flex-shrink: 0;" />
+    <span>{copy.consentResubscribe}</span>
+  </label>
+
+  <!--
     Tombol dirender AKTIF di server: tanpa JS, user tetap bisa submit setelah
     menunggu (server menolak lewat verifyTimerToken jika terlalu cepat).
     Script menonaktifkan tombol saat timer berjalan, lalu mengaktifkannya lagi.
@@ -91,6 +102,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     done: string;
     ten: string;
     cta: string;
+    submitting: string;
   };
   const TOTAL = Number(form.dataset.timerMs) || 30_000;
   const TEN_LEFT = Math.max(0, TOTAL - 10_000);
@@ -142,7 +154,32 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   };
   requestAnimationFrame(tick);
 
+  // Guard double-submit (task 02-U2): kunci tombol begitu submit diterima,
+  // pulihkan setelah 8s bila browser membatalkan navigasi (mis. error jaringan).
+  let isSubmitting = false;
   form.addEventListener("submit", (e) => {
-    if (!tokenInput.value) e.preventDefault();
+    if (!tokenInput.value || isSubmitting) {
+      e.preventDefault();
+      return;
+    }
+    // Validitas bawaan HTML5 (email + required) dicek sebelum mengunci tombol;
+    // browser akan menampilkan pesan validasinya sendiri.
+    if (!form.checkValidity()) return;
+
+    isSubmitting = true;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.setAttribute("aria-disabled", "true");
+    btn.style.cursor = "wait";
+    btn.style.opacity = "0.7";
+    btn.textContent = copy.submitting;
+    setTimeout(() => {
+      isSubmitting = false;
+      btn.disabled = false;
+      btn.removeAttribute("aria-disabled");
+      btn.style.cursor = "pointer";
+      btn.style.opacity = "1";
+      btn.textContent = originalText;
+    }, 8000);
   });
 </script>

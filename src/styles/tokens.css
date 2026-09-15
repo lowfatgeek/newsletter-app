@@ -4,7 +4,7 @@
   --color-surface-raised: #FFFFFF;
   --color-ink: #153B35;
   --color-text: #36514B;
-  --color-text-muted: #6C7E79;
+  --color-text-muted: #566662; /* kontras 6,04:1 di atas putih (WCAG AA; task 06-A11y2) */
   --color-border: #E7DED0;
   --color-primary: #176B5B;
   --color-primary-hover: #105447;

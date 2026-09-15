@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db";
-import { contacts, rewardCampaignLocales, rewardCampaigns, rewardClaims } from "./schema";
+import { consentEvents, contacts, marketingSubscriptions, rewardCampaignLocales, rewardCampaigns, rewardClaims } from "./schema";
 import { verifyTimerToken } from "./timer";
 import { consumeRateLimit, hashIp } from "./ratelimit";
 import { normalizeEmail, emailDomain } from "./email";
@@ -18,6 +18,7 @@ export type SubscribeInput = {
   campaignId: string;
   siteUrl: string;
   locale: "id" | "en";
+  resubscribeConsent?: boolean;
 };
 
 export type SubscribeResult =
@@ -71,6 +72,23 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
   const claimId = await upsertClaim(contact.id, input.campaignId);
 
   if (contact.confirmationStatus === "confirmed") {
+    // Re-subscribe eksplisit (PRD 7.1, task 01-F1): kontak yang berhenti
+    // berlangganan hanya diaktifkan kembali lewat checkbox consent. Tanpa
+    // centang, reward access email tetap dikirim tapi status marketing
+    // 'unsubscribed' dihormati apa adanya.
+    if (input.resubscribeConsent) {
+      const [sub] = await db
+        .select()
+        .from(marketingSubscriptions)
+        .where(eq(marketingSubscriptions.contactId, contact.id));
+      if (sub?.status === "unsubscribed") {
+        await db
+          .update(marketingSubscriptions)
+          .set({ status: "active", subscribedAt: new Date(), unsubscribedAt: null })
+          .where(eq(marketingSubscriptions.contactId, contact.id));
+        await db.insert(consentEvents).values({ contactId: contact.id, event: "resubscribed" });
+      }
+    }
     // Already confirmed: hand out a fresh access link, no double opt-in again.
     const raw = await issueClaimToken(claimId, "access");
     const url = `${input.siteUrl}/${localizedPrefix(input.locale)}akses/${raw}`;

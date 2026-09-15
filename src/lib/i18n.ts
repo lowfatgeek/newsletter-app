@@ -27,6 +27,11 @@ const dict = {
     en: "By claiming this gift you also subscribe to the KelasWFA newsletter. See the",
   },
   privacyLink: { id: "kebijakan privasi", en: "privacy policy" },
+  consentResubscribe: {
+    id: "Saya bersedia kembali menerima newsletter dan update materi dari KelasWFA.",
+    en: "I agree to receive KelasWFA newsletter and updates again.",
+  },
+  submittingCta: { id: "Mengirim...", en: "Sending..." },
   submitCta: { id: "Kirim tautan hadiah", en: "Send my gift link" },
   errorDomain: {
     id: "Domain email ini belum didukung. Coba email lain ya.",

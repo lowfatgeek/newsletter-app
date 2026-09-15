@@ -84,7 +84,8 @@ export async function confirmContactByToken(
     await tx.update(rewardClaims).set({ status: "accessed" }).where(eq(rewardClaims.id, result.claimId));
     const [sub] = await tx.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, claim.contactId));
     // 'unsubscribed' TIDAK diaktifkan ulang di sini: consent berhenti berlangganan
-    // tetap dihormati. Re-subscribe hanya terjadi via halaman eksplisit
+    // tetap dihormati. Re-subscribe hanya terjadi lewat jalur eksplisit: checkbox
+    // consent di form klaim (processSubscribe) atau halaman
     // /subscribe-again/<token> (resubscribeByToken di lib/broadcast/unsubscribe.ts).
     if (!sub || (sub.status !== "active" && sub.status !== "unsubscribed")) {
       await tx.insert(marketingSubscriptions)

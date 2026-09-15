@@ -55,6 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
     campaignId: camp.id,
     siteUrl,
     locale,
+    resubscribeConsent: form.get("resubscribe_consent") === "yes",
   });
 
   return redirect(cekEmailPath(locale, result.ok ? "" : `?e=${result.reason}`, slug));

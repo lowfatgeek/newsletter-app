@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "../src/lib/db";
 import {
+  consentEvents,
   contacts,
   emailDomains,
   emailOutbox,
+  marketingSubscriptions,
   rewardCampaignLocales,
   rewardCampaigns,
 } from "../src/lib/schema";
@@ -134,5 +136,50 @@ describe("processSubscribe", () => {
     }
     const r = await processSubscribe(input({ timerToken: agedToken(camp.id) }));
     expect(r).toEqual({ ok: false, reason: "rate-limited" });
+  });
+
+  // Task 1.6 (01-F1): re-subscribe eksplisit via checkbox consent.
+  it("unsubscribed contact + consent checked: reactivated with resubscribed event", async () => {
+    const [c] = await db
+      .insert(contacts)
+      .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+      .returning();
+    await db.insert(marketingSubscriptions).values({
+      contactId: c.id,
+      status: "unsubscribed",
+      unsubscribedAt: new Date(Date.now() - 86_400_000),
+    });
+
+    const r = await processSubscribe(input({ timerToken: agedToken(camp.id), resubscribeConsent: true }));
+    expect(r).toEqual({ ok: true, alreadyConfirmed: true });
+
+    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, c.id));
+    expect(sub.status).toBe("active");
+    expect(sub.unsubscribedAt).toBeNull();
+    const events = await db.select().from(consentEvents).where(eq(consentEvents.contactId, c.id));
+    expect(events.map((e) => e.event)).toContain("resubscribed");
+    const mails = await db.select().from(emailOutbox);
+    expect(mails[0].emailType).toBe("reward_access");
+  });
+
+  it("unsubscribed contact without consent: stays unsubscribed, access email still sent", async () => {
+    const [c] = await db
+      .insert(contacts)
+      .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+      .returning();
+    await db.insert(marketingSubscriptions).values({
+      contactId: c.id,
+      status: "unsubscribed",
+      unsubscribedAt: new Date(Date.now() - 86_400_000),
+    });
+
+    const r = await processSubscribe(input({ timerToken: agedToken(camp.id) }));
+    expect(r).toEqual({ ok: true, alreadyConfirmed: true });
+
+    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, c.id));
+    expect(sub.status).toBe("unsubscribed");
+    expect(await db.select().from(consentEvents)).toHaveLength(0);
+    const mails = await db.select().from(emailOutbox);
+    expect(mails[0].emailType).toBe("reward_access");
   });
 });
