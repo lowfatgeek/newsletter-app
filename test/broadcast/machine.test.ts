@@ -1,15 +1,26 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  cancelCampaign,
+  claimForSending,
+  getCampaignForBroadcast,
+  markCompleted,
+  markFailed,
+  pauseCampaign,
+  resumeCampaign,
+  scheduleCampaign,
+  validateLimits,
+} from "../../src/lib/broadcast/machine";
 import { db } from "../../src/lib/db";
 import {
-  contacts, marketingSubscriptions, emailCampaigns, emailCampaignRecipients, adminAuditLog,
+  adminAuditLog,
   adminUsers,
+  contacts,
+  emailCampaignRecipients,
+  emailCampaigns,
+  marketingSubscriptions,
 } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
-import {
-  validateLimits, scheduleCampaign, claimForSending, markCompleted, markFailed,
-  pauseCampaign, resumeCampaign, cancelCampaign, getCampaignForBroadcast,
-} from "../../src/lib/broadcast/machine";
 
 const AUDIT = { adminUserId: "00000000-0000-0000-0000-000000000000", ip: "10.0.0.1" };
 
@@ -22,9 +33,14 @@ async function seedAdmin() {
 async function seedAudience(n = 2) {
   const out = [];
   for (let i = 0; i < n; i++) {
-    const [c] = await db.insert(contacts).values({
-      emailNormalized: `u${i}@gmail.com`, locale: "id", confirmationStatus: "confirmed",
-    }).returning();
+    const [c] = await db
+      .insert(contacts)
+      .values({
+        emailNormalized: `u${i}@gmail.com`,
+        locale: "id",
+        confirmationStatus: "confirmed",
+      })
+      .returning();
     await db.insert(marketingSubscriptions).values({ contactId: c.id, status: "active" });
     out.push(c);
   }
@@ -32,15 +48,18 @@ async function seedAudience(n = 2) {
 }
 
 async function seedCampaign(overrides: Partial<typeof emailCampaigns.$inferInsert> = {}) {
-  const [c] = await db.insert(emailCampaigns).values({
-    subjectId: "Halo",
-    preheaderId: "pratinjau",
-    bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a></p>',
-    audienceFilter: { all: true },
-    maxPerMinute: 60,
-    maxPerHour: 600,
-    ...overrides,
-  }).returning();
+  const [c] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "Halo",
+      preheaderId: "pratinjau",
+      bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a></p>',
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+      ...overrides,
+    })
+    .returning();
   return c;
 }
 
@@ -107,7 +126,9 @@ describe("scheduleCampaign", () => {
     expect(row.scheduledAt?.getTime()).toBe(at.getTime());
     expect(row.snapshotAt).not.toBeNull();
 
-    const recipients = await db.select().from(emailCampaignRecipients)
+    const recipients = await db
+      .select()
+      .from(emailCampaignRecipients)
       .where(eq(emailCampaignRecipients.campaignId, c.id));
     expect(recipients).toHaveLength(2);
 
@@ -126,7 +147,9 @@ describe("scheduleCampaign", () => {
     expect(row.status).toBe("queued");
     expect(row.scheduledAt).toBeNull();
     expect(row.snapshotAt).not.toBeNull();
-    const recipients = await db.select().from(emailCampaignRecipients)
+    const recipients = await db
+      .select()
+      .from(emailCampaignRecipients)
       .where(eq(emailCampaignRecipients.campaignId, c.id));
     expect(recipients).toHaveLength(1);
   });
@@ -155,7 +178,9 @@ describe("scheduleCampaign", () => {
     await scheduleCampaign(c.id, { scheduledAt: new Date(Date.now() + 60000) }, AUDIT);
     const res = await scheduleCampaign(c.id, { scheduledAt: new Date(Date.now() + 120000) }, AUDIT);
     expect(res).toEqual({ ok: false, reason: "not-draft" });
-    const recipients = await db.select().from(emailCampaignRecipients)
+    const recipients = await db
+      .select()
+      .from(emailCampaignRecipients)
       .where(eq(emailCampaignRecipients.campaignId, c.id));
     expect(recipients).toHaveLength(2);
   });
@@ -223,17 +248,17 @@ describe("claimForSending", () => {
     expect(results.filter((r) => r === true)).toHaveLength(1);
     expect(results.filter((r) => r === false)).toHaveLength(1);
 
-    const rows = await db
-      .select({ id: emailCampaigns.id, status: emailCampaigns.status })
-      .from(emailCampaigns);
+    const rows = await db.select({ id: emailCampaigns.id, status: emailCampaigns.status }).from(emailCampaigns);
     expect(rows).toHaveLength(2);
     const sending = rows.filter((r) => r.status === "sending");
     const queued = rows.filter((r) => r.status === "queued");
     expect(sending).toHaveLength(1);
     expect(queued).toHaveLength(1);
     // Invariant PRD §7.4: tidak pernah ada dua campaign berstatus sending.
-    const [stillSending] = await db.select({ id: emailCampaigns.id })
-      .from(emailCampaigns).where(eq(emailCampaigns.status, "sending"));
+    const [stillSending] = await db
+      .select({ id: emailCampaigns.id })
+      .from(emailCampaigns)
+      .where(eq(emailCampaigns.status, "sending"));
     expect(stillSending.id).toBe(sending[0].id);
   });
 });
@@ -278,10 +303,14 @@ describe("markCompleted / markFailed", () => {
   });
 
   it("returns not-found for unknown campaign ids", async () => {
-    expect(await markCompleted("00000000-0000-0000-0000-000000000000", AUDIT))
-      .toEqual({ ok: false, reason: "not-found" });
-    expect(await markFailed("00000000-0000-0000-0000-000000000000", "x", AUDIT))
-      .toEqual({ ok: false, reason: "not-found" });
+    expect(await markCompleted("00000000-0000-0000-0000-000000000000", AUDIT)).toEqual({
+      ok: false,
+      reason: "not-found",
+    });
+    expect(await markFailed("00000000-0000-0000-0000-000000000000", "x", AUDIT)).toEqual({
+      ok: false,
+      reason: "not-found",
+    });
   });
 });
 
@@ -322,7 +351,9 @@ describe("cancelCampaign", () => {
     expect(await cancelCampaign(c.id, AUDIT)).toEqual({ ok: true });
     const [row] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, c.id));
     expect(row.status).toBe("cancelled");
-    const recipients = await db.select().from(emailCampaignRecipients)
+    const recipients = await db
+      .select()
+      .from(emailCampaignRecipients)
       .where(eq(emailCampaignRecipients.campaignId, c.id));
     expect(recipients).toHaveLength(2);
     expect(recipients.every((r) => r.status === "cancelled")).toBe(true);

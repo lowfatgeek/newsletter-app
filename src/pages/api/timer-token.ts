@@ -1,10 +1,10 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
 import { db } from "../../lib/db";
-import { rewardCampaigns } from "../../lib/schema";
-import { issueTimerToken } from "../../lib/timer";
 import { clientIp } from "../../lib/ip";
 import { consumeRateLimit, hashIp } from "../../lib/ratelimit";
+import { rewardCampaigns } from "../../lib/schema";
+import { issueTimerToken } from "../../lib/timer";
 
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;

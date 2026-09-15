@@ -1,14 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { eq, sql } from "drizzle-orm";
-import { db } from "../../src/lib/db";
-import {
-  contacts, marketingSubscriptions, emailCampaigns, emailCampaignRecipients,
-  emailDeliveries, emailLinks, emailOutbox,
-} from "../../src/lib/schema";
-import { resetDb, setEnv } from "../helpers";
-import { scheduleCampaign, getCampaignForBroadcast } from "../../src/lib/broadcast/machine";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getCampaignForBroadcast, scheduleCampaign } from "../../src/lib/broadcast/machine";
 import { snapshotRecipients } from "../../src/lib/broadcast/snapshot";
 import { processBroadcast } from "../../src/lib/broadcast/worker";
+import { db } from "../../src/lib/db";
+import {
+  contacts,
+  emailCampaignRecipients,
+  emailCampaigns,
+  emailDeliveries,
+  emailLinks,
+  emailOutbox,
+  marketingSubscriptions,
+} from "../../src/lib/schema";
+import { resetDb, setEnv } from "../helpers";
 
 /**
  * Worker broadcast (Task 6).
@@ -55,29 +60,36 @@ function makeFetch(
 }
 
 async function seedContact(email: string, locale: "id" | "en" = "id") {
-  const [c] = await db.insert(contacts).values({
-    emailNormalized: email, locale, confirmationStatus: "confirmed",
-  }).returning();
+  const [c] = await db
+    .insert(contacts)
+    .values({
+      emailNormalized: email,
+      locale,
+      confirmationStatus: "confirmed",
+    })
+    .returning();
   await db.insert(marketingSubscriptions).values({ contactId: c.id, status: "active" });
   return c;
 }
 
 async function seedCampaign(overrides: Partial<typeof emailCampaigns.$inferInsert> = {}) {
-  const [c] = await db.insert(emailCampaigns).values({
-    subjectId: "Halo",
-    preheaderId: "pratinjau",
-    bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a></p>',
-    audienceFilter: { all: true },
-    maxPerMinute: 60,
-    maxPerHour: 600,
-    ...overrides,
-  }).returning();
+  const [c] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "Halo",
+      preheaderId: "pratinjau",
+      bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a></p>',
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+      ...overrides,
+    })
+    .returning();
   return c;
 }
 
 async function recipientsOf(campaignId: string) {
-  return db.select().from(emailCampaignRecipients)
-    .where(eq(emailCampaignRecipients.campaignId, campaignId));
+  return db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, campaignId));
 }
 
 beforeEach(() => {
@@ -159,8 +171,11 @@ describe("processBroadcast — rate limits", () => {
     const now = new Date();
     for (const r of recips) {
       await db.insert(emailDeliveries).values({
-        contactId: r.contactId, campaignRecipientId: r.id, emailType: "broadcast",
-        status: "accepted", sentAt: new Date(now.getTime() - 10_000),
+        contactId: r.contactId,
+        campaignRecipientId: r.id,
+        emailType: "broadcast",
+        status: "accepted",
+        sentAt: new Date(now.getTime() - 10_000),
       });
     }
     const res = await processBroadcast({ now, fetchImpl: makeFetch().fetchImpl });
@@ -175,8 +190,11 @@ describe("processBroadcast — rate limits", () => {
     const recips = await recipientsOf(c.id);
     const now = new Date();
     await db.insert(emailDeliveries).values({
-      contactId: recips[0].contactId, campaignRecipientId: recips[0].id, emailType: "broadcast",
-      status: "accepted", sentAt: new Date(now.getTime() - 30 * 60_000),
+      contactId: recips[0].contactId,
+      campaignRecipientId: recips[0].id,
+      emailType: "broadcast",
+      status: "accepted",
+      sentAt: new Date(now.getTime() - 30 * 60_000),
     });
     const res = await processBroadcast({ now, fetchImpl: makeFetch().fetchImpl });
     expect(res).toMatchObject({ campaignId: c.id, sent: 0, skipped: 0, stopped: "hour-limit" });
@@ -191,8 +209,12 @@ describe("processBroadcast — rate limits", () => {
     const contact = await seedContact("other@gmail.com");
     for (let i = 0; i < 5; i++) {
       await db.insert(emailDeliveries).values({
-        contactId: contact.id, campaignRecipientId: null, emailType: "broadcast_test",
-        status: "accepted", sentAt: new Date(), providerMessageId: `hist-${i}`,
+        contactId: contact.id,
+        campaignRecipientId: null,
+        emailType: "broadcast_test",
+        status: "accepted",
+        sentAt: new Date(),
+        providerMessageId: `hist-${i}`,
       });
     }
     // cap dibaca worker saat proses — turunkan SETELAH schedule (validateLimits
@@ -213,7 +235,8 @@ describe("processBroadcast — per-recipient failures", () => {
     await scheduleCampaign(c.id, { scheduledAt: null });
 
     const { calls, fetchImpl } = makeFetch((body) =>
-      body.to === "bad@gmail.com" ? { status: 500 } : { status: 200, id: `prov-${body.to}` });
+      body.to === "bad@gmail.com" ? { status: 500 } : { status: 200, id: `prov-${body.to}` },
+    );
 
     const res = await processBroadcast({ now: new Date(), fetchImpl });
     expect(res).toMatchObject({ campaignId: c.id, sent: 2, skipped: 1, stopped: "completed" });
@@ -242,8 +265,10 @@ describe("processBroadcast — per-recipient failures", () => {
     const c = await seedCampaign();
     await scheduleCampaign(c.id, { scheduledAt: null });
     const recips = await recipientsOf(c.id);
-    await db.update(emailCampaignRecipients)
-      .set({ lastRenderedHtml: null }).where(eq(emailCampaignRecipients.id, recips[0].id));
+    await db
+      .update(emailCampaignRecipients)
+      .set({ lastRenderedHtml: null })
+      .where(eq(emailCampaignRecipients.id, recips[0].id));
 
     setEnv({ MO_BROADCAST: "true" });
     const res = await processBroadcast();
@@ -267,10 +292,12 @@ describe("processBroadcast — single sending", () => {
     await scheduleCampaign(second.id, { scheduledAt: null });
 
     // pastikan urutan deterministik
-    await db.update(emailCampaigns)
+    await db
+      .update(emailCampaigns)
       .set({ createdAt: new Date("2026-01-01T00:00:00Z"), updatedAt: new Date("2026-01-01T00:00:00Z") })
       .where(eq(emailCampaigns.id, first.id));
-    await db.update(emailCampaigns)
+    await db
+      .update(emailCampaigns)
       .set({ createdAt: new Date("2026-01-02T00:00:00Z"), updatedAt: new Date("2026-01-02T00:00:00Z") })
       .where(eq(emailCampaigns.id, second.id));
 

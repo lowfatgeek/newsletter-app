@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { rewardClaims, rewardCampaigns } from "./schema";
 import { consumeToken, issueSessionToken } from "./access";
 import { getCampaignContent } from "./campaign";
+import { db } from "./db";
+import { rewardCampaigns, rewardClaims } from "./schema";
 
 type Content = NonNullable<Awaited<ReturnType<typeof getCampaignContent>>>;
 
@@ -42,10 +42,7 @@ export async function resolveAccess(rawToken: string): Promise<ResolvedAccess> {
   const [claim] = await db.select().from(rewardClaims).where(eq(rewardClaims.id, claimId));
   if (!claim) return { ok: false };
 
-  const [campaign] = await db
-    .select()
-    .from(rewardCampaigns)
-    .where(eq(rewardCampaigns.id, claim.campaignId));
+  const [campaign] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, claim.campaignId));
   if (!campaign) return { ok: false };
 
   const content = await getCampaignContent(campaign.slug);

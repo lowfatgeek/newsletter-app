@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { adminUsers } from "../schema";
-import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, resolveSession } from "./sessions";
 import { resolveTrustedDevice } from "./devices";
+import { ADMIN_DEVICE_COOKIE, ADMIN_SESSION_COOKIE, resolveSession } from "./sessions";
 
 type CookieBag = { get(name: string): { value: string } | undefined };
 
@@ -38,8 +38,10 @@ export async function getAdmin(cookies: CookieBag, _secure = false) {
   if (viaSession) return viaSession;
   const viaDevice = await resolveTrustedDevice(cookies.get(ADMIN_DEVICE_COOKIE)?.value);
   if (viaDevice) {
-    const [u] = await db.select({ id: adminUsers.id, email: adminUsers.email })
-      .from(adminUsers).where(eq(adminUsers.id, viaDevice.adminUserId));
+    const [u] = await db
+      .select({ id: adminUsers.id, email: adminUsers.email })
+      .from(adminUsers)
+      .where(eq(adminUsers.id, viaDevice.adminUserId));
     return u ?? null;
   }
   return null;
@@ -51,9 +53,11 @@ export async function getAdmin(cookies: CookieBag, _secure = false) {
  *   const admin = await requireAdminOrRedirect(Astro);
  *   if (!admin) return Astro.redirect("/admin/login");
  */
-export async function requireAdminOrRedirect(
-  astro: { cookies: CookieBag; url: URL; redirect(path: string, status?: number): unknown },
-) {
+export async function requireAdminOrRedirect(astro: {
+  cookies: CookieBag;
+  url: URL;
+  redirect(path: string, status?: number): unknown;
+}) {
   const secure = astro.url.protocol === "https:";
   const admin = await getAdmin(astro.cookies, secure);
   if (admin) return admin;

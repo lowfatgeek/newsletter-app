@@ -1,36 +1,38 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
-import { db } from "../../src/lib/db";
-import {
-  adminAuditLog,
-  adminOtpChallenges,
-  adminUsers,
-  emailOutbox,
-  trustedDevices,
-} from "../../src/lib/schema";
+import { beforeEach, describe, expect, it } from "vitest";
+import { completeLogin, completePasswordReset, requestPasswordReset, startLogin } from "../../src/lib/admin/login";
 import { hashPassword } from "../../src/lib/admin/password";
-import { requestPasswordReset, completePasswordReset } from "../../src/lib/admin/login";
-import { startLogin, completeLogin } from "../../src/lib/admin/login";
 import { resolveSession } from "../../src/lib/admin/sessions";
+import { db } from "../../src/lib/db";
+import { adminAuditLog, adminOtpChallenges, adminUsers, emailOutbox, trustedDevices } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
 
 async function seedAdmin() {
-  const [u] = await db.insert(adminUsers).values({
-    email: "kelaswfa@gmail.com", passwordHash: await hashPassword("GoodPassword123"),
-  }).returning();
+  const [u] = await db
+    .insert(adminUsers)
+    .values({
+      email: "kelaswfa@gmail.com",
+      passwordHash: await hashPassword("GoodPassword123"),
+    })
+    .returning();
   return u;
 }
 
 async function readCode(challengeId: string): Promise<string> {
   // idempotencyKey OTP = `otp-<challengeId>` — pilih email milik challenge ini.
-  const [mail] = await db.select().from(emailOutbox)
+  const [mail] = await db
+    .select()
+    .from(emailOutbox)
     .where(eq(emailOutbox.idempotencyKey, `otp-${challengeId}`));
   expect(mail).toBeDefined();
   return mail.text.match(/\d{6}/)![0];
 }
 
 describe("password reset via OTP", () => {
-  beforeEach(async () => { await resetDb(); setEnv({ MOCK_EMAILIT: "true" }); });
+  beforeEach(async () => {
+    await resetDb();
+    setEnv({ MOCK_EMAILIT: "true" });
+  });
 
   it("full flow: request → otp email → confirm updates hash and revokes sessions/devices", async () => {
     const u = await seedAdmin();
@@ -41,7 +43,8 @@ describe("password reset via OTP", () => {
     const done = await completeLogin({
       challengeId: (start as { challengeId: string }).challengeId,
       code: loginMail.text.match(/\d{6}/)![0],
-      trustDevice: true, ip: "1.1.1.1",
+      trustDevice: true,
+      ip: "1.1.1.1",
     });
     expect(done.ok).toBe(true);
 
@@ -49,7 +52,9 @@ describe("password reset via OTP", () => {
     expect(req.ok).toBe(true);
     const challengeId = (req as { challengeId?: string }).challengeId;
     expect(challengeId).toBeDefined();
-    const [challenge] = await db.select().from(adminOtpChallenges)
+    const [challenge] = await db
+      .select()
+      .from(adminOtpChallenges)
       .where(and(eq(adminOtpChallenges.adminUserId, u.id), isNull(adminOtpChallenges.consumedAt)));
     expect(challenge.id).toBe(challengeId);
     const code = await readCode(challenge.id);
@@ -58,18 +63,28 @@ describe("password reset via OTP", () => {
     expect(confirm).toEqual({ ok: true });
 
     const [updated] = await db.select().from(adminUsers).where(eq(adminUsers.id, u.id));
-    expect(await import("../../src/lib/admin/password").then((m) => m.verifyPassword(updated.passwordHash, "BrandNewPassword99"))).toBe(true);
+    expect(
+      await import("../../src/lib/admin/password").then((m) =>
+        m.verifyPassword(updated.passwordHash, "BrandNewPassword99"),
+      ),
+    ).toBe(true);
     // Sesi lama dicabut, perangkat tepercaya dicabut.
     expect(await resolveSession((done as { session: { raw: string } }).session.raw)).toBeNull();
-    expect(await db.select().from(trustedDevices)
-      .where(and(eq(trustedDevices.adminUserId, u.id), isNull(trustedDevices.revokedAt)))).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(trustedDevices)
+        .where(and(eq(trustedDevices.adminUserId, u.id), isNull(trustedDevices.revokedAt))),
+    ).toHaveLength(0);
     const audits = await db.select().from(adminAuditLog);
     expect(audits.some((a) => a.action === "password_reset_requested")).toBe(true);
     expect(audits.some((a) => a.action === "password_reset_completed")).toBe(true);
 
     // Login dengan password lama gagal, password baru berhasil.
-    expect(await startLogin({ email: u.email, password: "GoodPassword123", ip: "3.3.3.3" }))
-      .toEqual({ ok: false, reason: "invalid" });
+    expect(await startLogin({ email: u.email, password: "GoodPassword123", ip: "3.3.3.3" })).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
     const ok2 = await startLogin({ email: u.email, password: "BrandNewPassword99", ip: "3.3.3.3" });
     expect(ok2.ok).toBe(true);
   });
@@ -94,8 +109,7 @@ describe("password reset via OTP", () => {
   it("confirm rejects wrong code", async () => {
     const u = await seedAdmin();
     await requestPasswordReset(u.email, "2.2.2.2");
-    const [challenge] = await db.select().from(adminOtpChallenges)
-      .where(eq(adminOtpChallenges.adminUserId, u.id));
+    const [challenge] = await db.select().from(adminOtpChallenges).where(eq(adminOtpChallenges.adminUserId, u.id));
     const r = await completePasswordReset(challenge.id, "000000", "BrandNewPassword99");
     expect(r.ok).toBe(false);
   });
@@ -103,8 +117,7 @@ describe("password reset via OTP", () => {
   it("confirm rejects weak password", async () => {
     const u = await seedAdmin();
     await requestPasswordReset(u.email, "2.2.2.2");
-    const [challenge] = await db.select().from(adminOtpChallenges)
-      .where(eq(adminOtpChallenges.adminUserId, u.id));
+    const [challenge] = await db.select().from(adminOtpChallenges).where(eq(adminOtpChallenges.adminUserId, u.id));
     const code = await readCode(challenge.id);
     const r = await completePasswordReset(challenge.id, code, "short");
     expect(r).toEqual({ ok: false, reason: "weak-password" });
@@ -112,7 +125,10 @@ describe("password reset via OTP", () => {
 });
 
 describe("completePasswordReset input guards", () => {
-  beforeEach(async () => { await resetDb(); setEnv({ MOCK_EMAILIT: "true" }); });
+  beforeEach(async () => {
+    await resetDb();
+    setEnv({ MOCK_EMAILIT: "true" });
+  });
 
   it("malformed challengeId → invalid without touching DB", async () => {
     const r = await completePasswordReset("garbage-not-a-uuid", "123456", "BrandNewPassword99");

@@ -1,9 +1,9 @@
-import { verifyAdminOrigin } from "../../../lib/admin/guard";
 import type { APIRoute } from "astro";
+import { verifyAdminOrigin } from "../../../lib/admin/guard";
 
 // Route on-demand — tidak pernah diprerender.
 import { completeLogin, UUID_RE } from "../../../lib/admin/login";
-import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs } from "../../../lib/admin/sessions";
+import { ADMIN_DEVICE_COOKIE, ADMIN_SESSION_COOKIE, adminCookieAttrs } from "../../../lib/admin/sessions";
 import { clientIp } from "../../../lib/ip";
 
 const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json" };
@@ -17,7 +17,10 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   let body: { challengeId?: unknown; code?: unknown; trustDevice?: unknown };
   try {
@@ -48,7 +51,10 @@ export const POST: APIRoute = async ({ request }) => {
   const headers = new Headers(noStore);
   headers.append("Set-Cookie", `${ADMIN_SESSION_COOKIE}=${result.session.raw}${adminCookieAttrs(secure)}`);
   if (result.device) {
-    headers.append("Set-Cookie", `${ADMIN_DEVICE_COOKIE}=${result.device.raw}${adminCookieAttrs(secure)}; Max-Age=${30 * 86_400}`);
+    headers.append(
+      "Set-Cookie",
+      `${ADMIN_DEVICE_COOKIE}=${result.device.raw}${adminCookieAttrs(secure)}; Max-Age=${30 * 86_400}`,
+    );
   }
   return new Response(JSON.stringify({ ok: true }), { headers });
 };

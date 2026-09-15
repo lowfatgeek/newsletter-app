@@ -46,7 +46,11 @@ export function validateUpload(input: ValidateInput): ValidateResult {
 
 /** Sanitasi nama file untuk storage key: lowercase, non [a-z0-9.-] → "-", dibatasi panjang. */
 function sanitizeFilename(name: string): string {
-  const flat = name.toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/-{2,}/g, "-").replace(/^-+|-+$/g, "");
+  const flat = name
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "");
   return flat.slice(0, 80) || "file";
 }
 

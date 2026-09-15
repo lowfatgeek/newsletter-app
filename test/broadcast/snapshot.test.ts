@@ -1,35 +1,49 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { prepareLinks, snapshotRecipients } from "../../src/lib/broadcast/snapshot";
+import { hashToken } from "../../src/lib/crypto";
 import { db } from "../../src/lib/db";
 import {
-  contacts, marketingSubscriptions, emailCampaigns, emailCampaignRecipients, emailLinks,
+  contacts,
+  emailCampaignRecipients,
+  emailCampaigns,
+  emailLinks,
+  marketingSubscriptions,
 } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
-import { hashToken } from "../../src/lib/crypto";
-import { snapshotRecipients, prepareLinks } from "../../src/lib/broadcast/snapshot";
 
 const SITE = "https://kado.test";
 
 async function seedAudience() {
-  const [a] = await db.insert(contacts).values({ emailNormalized: "a@gmail.com", locale: "id", confirmationStatus: "confirmed" }).returning();
-  const [b] = await db.insert(contacts).values({ emailNormalized: "b@gmail.com", locale: "en", confirmationStatus: "confirmed" }).returning();
+  const [a] = await db
+    .insert(contacts)
+    .values({ emailNormalized: "a@gmail.com", locale: "id", confirmationStatus: "confirmed" })
+    .returning();
+  const [b] = await db
+    .insert(contacts)
+    .values({ emailNormalized: "b@gmail.com", locale: "en", confirmationStatus: "confirmed" })
+    .returning();
   await db.insert(marketingSubscriptions).values({ contactId: a.id, status: "active" });
   await db.insert(marketingSubscriptions).values({ contactId: b.id, status: "active" });
   return [a, b];
 }
 
 async function seedCampaign() {
-  const [c] = await db.insert(emailCampaigns).values({
-    subjectId: "Halo {{email}}",
-    subjectEn: "Hello {{email}}",
-    preheaderId: "pratinjau",
-    preheaderEn: "preview",
-    bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a> <a href="https://a.b/y">dua</a> <a href="https://a.b/x">ulang</a></p>',
-    bodyHtmlEn: '<p>Hi <a href="https://a.b/z">three</a></p>',
-    audienceFilter: { all: true },
-    maxPerMinute: 60,
-    maxPerHour: 600,
-  }).returning();
+  const [c] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "Halo {{email}}",
+      subjectEn: "Hello {{email}}",
+      preheaderId: "pratinjau",
+      preheaderEn: "preview",
+      bodyHtmlId:
+        '<p>Hai <a href="https://a.b/x">satu</a> <a href="https://a.b/y">dua</a> <a href="https://a.b/x">ulang</a></p>',
+      bodyHtmlEn: '<p>Hi <a href="https://a.b/z">three</a></p>',
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+    })
+    .returning();
   return c;
 }
 
@@ -69,15 +83,18 @@ describe("prepareLinks", () => {
   it("decodes entity-encoded hrefs before hashing/storing and renders the click route", async () => {
     await seedAudience();
     // body seperti keluaran sanitize-html: & di atribut di-escape jadi &amp;
-    const [c] = await db.insert(emailCampaigns).values({
-      subjectId: "s",
-      preheaderId: "p",
-      bodyHtmlId: '<p><a href="https://a.b/?x=1&amp;y=2">q</a></p>',
-      bodyHtmlEn: null,
-      audienceFilter: { all: true },
-      maxPerMinute: 60,
-      maxPerHour: 600,
-    }).returning();
+    const [c] = await db
+      .insert(emailCampaigns)
+      .values({
+        subjectId: "s",
+        preheaderId: "p",
+        bodyHtmlId: '<p><a href="https://a.b/?x=1&amp;y=2">q</a></p>',
+        bodyHtmlEn: null,
+        audienceFilter: { all: true },
+        maxPerMinute: 60,
+        maxPerHour: 600,
+      })
+      .returning();
     const map = await prepareLinks(c.id, c.bodyHtmlId, c.bodyHtmlEn);
     expect([...map.keys()]).toEqual(["https://a.b/?x=1&y=2"]);
     const linkRows = await db.select().from(emailLinks).where(eq(emailLinks.campaignId, c.id));
@@ -153,14 +170,18 @@ describe("snapshotRecipients", () => {
     const campaign = await seedCampaign();
     const first = await snapshotRecipients(campaign.id);
     // tamper html to prove existing rows are not re-rendered
-    await db.update(emailCampaignRecipients)
+    await db
+      .update(emailCampaignRecipients)
       .set({ lastRenderedHtml: "tampered" })
       .where(eq(emailCampaignRecipients.campaignId, campaign.id));
 
     const second = await snapshotRecipients(campaign.id);
     expect(second.recipients).toEqual([]);
 
-    const rows = await db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, campaign.id));
+    const rows = await db
+      .select()
+      .from(emailCampaignRecipients)
+      .where(eq(emailCampaignRecipients.campaignId, campaign.id));
     expect(rows).toHaveLength(2);
     expect(rows.every((r) => r.lastRenderedHtml === "tampered")).toBe(true);
     const hashes = new Set(rows.map((r) => r.clickTokenHash));

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import { db } from "./db";
 import { sha256Hex } from "./crypto";
+import { db } from "./db";
 import { env } from "./env";
 
 export function hashIp(ip: string): string {
@@ -8,7 +8,10 @@ export function hashIp(ip: string): string {
 }
 
 export async function consumeRateLimit(
-  scope: string, identity: string, limit: number, windowMs: number = 3_600_000,
+  scope: string,
+  identity: string,
+  limit: number,
+  windowMs: number = 3_600_000,
 ): Promise<boolean> {
   const key = `${scope}:${identity}:${Math.floor(Date.now() / windowMs)}`;
   const result = await db.execute(sql`

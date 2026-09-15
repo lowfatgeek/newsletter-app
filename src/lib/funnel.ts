@@ -1,12 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "./db";
-import {
-  accessTokens,
-  contacts,
-  emailOutbox,
-  marketingSubscriptions,
-  rewardClaims,
-} from "./schema";
+import { accessTokens, contacts, emailOutbox, marketingSubscriptions, rewardClaims } from "./schema";
 
 export type FunnelStats = {
   contactsTotal: number;
@@ -20,7 +14,12 @@ export type FunnelStats = {
 };
 
 async function count(
-  table: typeof contacts | typeof rewardClaims | typeof emailOutbox | typeof accessTokens | typeof marketingSubscriptions,
+  table:
+    | typeof contacts
+    | typeof rewardClaims
+    | typeof emailOutbox
+    | typeof accessTokens
+    | typeof marketingSubscriptions,
   where?: ReturnType<typeof eq> | ReturnType<typeof and> | ReturnType<typeof gte> | ReturnType<typeof sql>,
 ): Promise<number> {
   const rows = await db

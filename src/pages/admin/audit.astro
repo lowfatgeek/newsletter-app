@@ -1,7 +1,7 @@
 ---
-import { requireAdminOrRedirect } from "../../lib/admin/guard";
-import { listAuditEvents } from "../../lib/admin/audit";
 import AdminLayout from "../../layouts/AdminLayout.astro";
+import { listAuditEvents } from "../../lib/admin/audit";
+import { requireAdminOrRedirect } from "../../lib/admin/guard";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;

@@ -1,10 +1,10 @@
 import { eq, inArray } from "drizzle-orm";
+import { generateOpaqueToken, hashToken } from "../crypto";
 import { db } from "../db";
 import { env } from "../env";
-import { generateOpaqueToken, hashToken } from "../crypto";
-import { emailCampaigns, emailCampaignRecipients, emailLinks, contacts } from "../schema";
-import { resolveAudience, type AudienceFilter, type AudienceLocale } from "./audience";
-import { renderForRecipient, decodeEntities, type CampaignContent } from "./content";
+import { contacts, emailCampaignRecipients, emailCampaigns, emailLinks } from "../schema";
+import { type AudienceFilter, type AudienceLocale, resolveAudience } from "./audience";
+import { type CampaignContent, decodeEntities, renderForRecipient } from "./content";
 
 const HTTPS_HREF_RE = /href="(https:\/\/[^"]+)"/g;
 
@@ -65,9 +65,7 @@ export interface SnapshotRecipient {
  * disimpan di database (hanya ada di return value ini, tertanam di
  * lastRenderedHtml yang sudah dirender, dan URL email saat dikirim).
  */
-export async function snapshotRecipients(
-  campaignId: string,
-): Promise<{ recipients: SnapshotRecipient[] }> {
+export async function snapshotRecipients(campaignId: string): Promise<{ recipients: SnapshotRecipient[] }> {
   const [campaign] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, campaignId));
   if (!campaign) throw new Error(`Campaign not found: ${campaignId}`);
 

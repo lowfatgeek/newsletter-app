@@ -1,7 +1,7 @@
 ---
-import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import { getContactDetail } from "../../../lib/admin/contacts";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { getContactDetail } from "../../../lib/admin/contacts";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 
 // Route on-demand — guard cookie + data per-request.
 export const prerender = false;

@@ -1,4 +1,4 @@
-import { and, eq, asc } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "../db";
 import {
   campaignRedirects,
@@ -8,8 +8,8 @@ import {
   rewardCampaignLocales,
   rewardCampaigns,
 } from "../schema";
-import { audit } from "./audit";
 import { isValidUuid } from "../uuid";
+import { audit } from "./audit";
 
 // Opsi audit untuk semua mutasi CMS. adminUserId boleh null (aksi sistem),
 // ip boleh kosong (hash disimpan null).
@@ -105,12 +105,15 @@ export async function changeSlug(
   newSlug: string,
   confirmed: boolean,
   auditOpts?: AuditOpts,
-): Promise<{
-  ok: true;
-} | {
-  ok: false;
-  reason: "invalid-slug" | "slug-taken" | "not-found" | "published-requires-confirmation";
-}> {
+): Promise<
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      reason: "invalid-slug" | "slug-taken" | "not-found" | "published-requires-confirmation";
+    }
+> {
   if (!validateSlug(newSlug)) return { ok: false, reason: "invalid-slug" };
   const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
   if (!camp) return { ok: false, reason: "not-found" };
@@ -135,9 +138,9 @@ export async function changeSlug(
     // hapus redirect lama yang menunjuk ke diri sendiri agar resolver publik
     // tidak loop. Redirect milik campaign lain (slug diklaim kembali) dipindah
     // ke campaign ini lewat onConflictDoUpdate di bawah.
-    await tx.delete(campaignRedirects).where(
-      and(eq(campaignRedirects.oldSlug, newSlug), eq(campaignRedirects.campaignId, id)),
-    );
+    await tx
+      .delete(campaignRedirects)
+      .where(and(eq(campaignRedirects.oldSlug, newSlug), eq(campaignRedirects.campaignId, id)));
     await tx
       .insert(campaignRedirects)
       .values({ campaignId: id, oldSlug })
@@ -188,11 +191,7 @@ export async function setCampaignStatus(
   if (!allowed[action].includes(camp.status)) return { ok: false, reason: "invalid-transition" };
 
   const nextStatus =
-    action === "publish" || action === "unpause"
-      ? "published"
-      : action === "pause"
-        ? "paused"
-        : "archived";
+    action === "publish" || action === "unpause" ? "published" : action === "pause" ? "paused" : "archived";
 
   // publishedAt diset sekali saja — unpause tidak menimpanya.
   if (action === "publish" && camp.publishedAt === null) {
@@ -201,10 +200,7 @@ export async function setCampaignStatus(
       .set({ status: nextStatus, publishedAt: new Date() })
       .where(eq(rewardCampaigns.id, id));
   } else {
-    await db
-      .update(rewardCampaigns)
-      .set({ status: nextStatus })
-      .where(eq(rewardCampaigns.id, id));
+    await db.update(rewardCampaigns).set({ status: nextStatus }).where(eq(rewardCampaigns.id, id));
   }
 
   const auditAction =
@@ -252,10 +248,7 @@ export async function duplicateCampaign(id: string, auditOpts?: AuditOpts): Prom
       })
       .returning({ id: rewardCampaigns.id });
 
-    const locales = await tx
-      .select()
-      .from(rewardCampaignLocales)
-      .where(eq(rewardCampaignLocales.campaignId, id));
+    const locales = await tx.select().from(rewardCampaignLocales).where(eq(rewardCampaignLocales.campaignId, id));
     if (locales.length > 0) {
       await tx.insert(rewardCampaignLocales).values(
         locales.map((l) => ({
@@ -290,10 +283,7 @@ export async function duplicateCampaign(id: string, auditOpts?: AuditOpts): Prom
       );
     }
 
-    const selections = await tx
-      .select()
-      .from(doaSelections)
-      .where(eq(doaSelections.campaignId, id));
+    const selections = await tx.select().from(doaSelections).where(eq(doaSelections.campaignId, id));
     if (selections.length > 0) {
       await tx.insert(doaSelections).values(
         selections.map((s) => ({
@@ -320,10 +310,7 @@ export async function getCampaignById(id: string) {
   if (!isValidUuid(id)) return null;
   const [campaign] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
   if (!campaign) return null;
-  const locales = await db
-    .select()
-    .from(rewardCampaignLocales)
-    .where(eq(rewardCampaignLocales.campaignId, id));
+  const locales = await db.select().from(rewardCampaignLocales).where(eq(rewardCampaignLocales.campaignId, id));
   const assets = await db
     .select()
     .from(rewardAssets)

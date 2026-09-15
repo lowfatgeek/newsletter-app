@@ -5,6 +5,8 @@ import "@fontsource/plus-jakarta-sans/latin-400.css";
 import "@fontsource/plus-jakarta-sans/latin-600.css";
 import "@fontsource/plus-jakarta-sans/latin-700.css";
 import "../styles/tokens.css";
+import { t } from "../lib/i18n";
+
 interface Props {
   title: string;
   description?: string;
@@ -12,8 +14,11 @@ interface Props {
   noindex?: boolean;
   canonical?: string;
   alternates?: Array<{ hreflang: "id" | "en"; href: string }>;
+  // Task 2.11 / 06-A11y5: id target skip link (mis. "claim-form"). Hanya
+  // dilewati bila halaman punya target — halaman status singkat tidak.
+  skipTo?: string;
 }
-const { title, description = "", lang = "id", noindex = false, canonical, alternates = [] } = Astro.props;
+const { title, description = "", lang = "id", noindex = false, canonical, alternates = [], skipTo } = Astro.props;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -27,6 +32,7 @@ const { title, description = "", lang = "id", noindex = false, canonical, altern
     {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
   </head>
   <body>
+    {skipTo && <a href={`#${skipTo}`} class="skip-link">{t(lang, "skipToForm")}</a>}
     <slot name="header" />
     <slot />
   </body>

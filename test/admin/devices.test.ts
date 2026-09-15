@@ -1,8 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  mintTrustedDevice,
+  resolveTrustedDevice,
+  revokeAllDevices,
+  revokeTrustedDevice,
+} from "../../src/lib/admin/devices";
 import { db } from "../../src/lib/db";
 import { adminUsers, trustedDevices } from "../../src/lib/schema";
-import { mintTrustedDevice, resolveTrustedDevice, revokeTrustedDevice, revokeAllDevices } from "../../src/lib/admin/devices";
 import { resetDb } from "../helpers";
 
 async function seedAdmin() {

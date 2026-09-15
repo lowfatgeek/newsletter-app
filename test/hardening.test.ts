@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
-import { db } from "../src/lib/db";
-import { adminUsers, contacts, emailOutbox, trustedDevices } from "../src/lib/schema";
-import { hashPassword } from "../src/lib/admin/password";
-import { startLogin } from "../src/lib/admin/login";
-import { mintTrustedDevice, resolveTrustedDevice } from "../src/lib/admin/devices";
-import { ADMIN_DEVICE_COOKIE } from "../src/lib/admin/sessions";
+import { beforeEach, describe, expect, it } from "vitest";
 import { csvEscape, listContacts } from "../src/lib/admin/contacts";
-import { clientIp } from "../src/lib/ip";
-import { cronAuthorized } from "../src/lib/cron-auth";
+import { mintTrustedDevice, resolveTrustedDevice } from "../src/lib/admin/devices";
 import { verifyAdminOrigin } from "../src/lib/admin/guard";
-import { onRequest, applySecurityHeaders, SECURITY_CSP } from "../src/middleware";
+import { startLogin } from "../src/lib/admin/login";
+import { hashPassword } from "../src/lib/admin/password";
+import { ADMIN_DEVICE_COOKIE } from "../src/lib/admin/sessions";
+import { cronAuthorized } from "../src/lib/cron-auth";
+import { db } from "../src/lib/db";
+import { clientIp } from "../src/lib/ip";
+import { adminUsers, contacts, emailOutbox, trustedDevices } from "../src/lib/schema";
+import { applySecurityHeaders, onRequest, SECURITY_CSP } from "../src/middleware";
 import { POST as logoutPOST } from "../src/pages/admin/api/logout";
 import { resetDb, setEnv } from "./helpers";
 
@@ -46,7 +46,7 @@ describe("hardening: clientIp trusted proxy parsing", () => {
 
 describe("hardening: security headers middleware", () => {
   it("sets CSP/nosniff/referrer on every response (no HSTS in non-prod)", async () => {
-    const out = await onRequest({} as never, (async () => new Response("ok")) as never) as Response;
+    const out = (await onRequest({} as never, (async () => new Response("ok")) as never)) as Response;
     expect(out.headers.get("Content-Security-Policy")).toBe(SECURITY_CSP);
     expect(out.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(out.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
@@ -55,7 +55,7 @@ describe("hardening: security headers middleware", () => {
 
   it("does NOT override an existing CSP (preview route frame-ancestors 'self')", async () => {
     const preview = new Response("ok", { headers: { "Content-Security-Policy": "frame-ancestors 'self'" } });
-    const out = await onRequest({} as never, (async () => preview) as never) as Response;
+    const out = (await onRequest({} as never, (async () => preview) as never)) as Response;
     expect(out.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'self'");
     // header lain tetap ditambahkan
     expect(out.headers.get("X-Content-Type-Options")).toBe("nosniff");
@@ -83,20 +83,32 @@ describe("hardening: cron auth accepts x-cron-secret and Vercel Bearer", () => {
 
   it("rejects missing/wrong secret", () => {
     expect(cronAuthorized(new Request("http://x/api/cron/outbox"))).toBe(false);
-    expect(cronAuthorized(new Request("http://x/api/cron/outbox", {
-      headers: { "x-cron-secret": "wrong", authorization: "Bearer wrong" },
-    }))).toBe(false);
+    expect(
+      cronAuthorized(
+        new Request("http://x/api/cron/outbox", {
+          headers: { "x-cron-secret": "wrong", authorization: "Bearer wrong" },
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Bearer with a different-length secret without leaking via throw (task 2.3)", () => {
     // Sebelum fix, secret beda panjang tetap return false; setelah fix,
     // hash-then-compare memberi hasil sama TANPA perbandingan string langsung.
-    expect(cronAuthorized(new Request("http://x/api/cron/outbox", {
-      headers: { authorization: "Bearer test-cron-secret-EXTREME-LONG" },
-    }))).toBe(false);
-    expect(cronAuthorized(new Request("http://x/api/cron/outbox", {
-      headers: { authorization: "Bearer short" },
-    }))).toBe(false);
+    expect(
+      cronAuthorized(
+        new Request("http://x/api/cron/outbox", {
+          headers: { authorization: "Bearer test-cron-secret-EXTREME-LONG" },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      cronAuthorized(
+        new Request("http://x/api/cron/outbox", {
+          headers: { authorization: "Bearer short" },
+        }),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -112,14 +124,16 @@ describe("hardening: admin mutation same-origin guard (task 2.2)", () => {
   it("accepts request whose Origin matches PUBLIC_SITE_URL behind a proxy", () => {
     setEnv({ PUBLIC_SITE_URL: "https://kado.test" });
     const req = new Request("http://127.0.0.1:4321/admin/api/domains", {
-      method: "POST", headers: { origin: "https://kado.test" },
+      method: "POST",
+      headers: { origin: "https://kado.test" },
     });
     expect(verifyAdminOrigin(req)).toBe(true);
   });
 
   it("rejects a foreign origin", () => {
     const req = new Request("https://kado.test/admin/api/domains", {
-      method: "POST", headers: { origin: "https://evil.test" },
+      method: "POST",
+      headers: { origin: "https://evil.test" },
     });
     expect(verifyAdminOrigin(req)).toBe(false);
   });
@@ -183,10 +197,13 @@ describe("hardening: db-backed behaviors", () => {
   });
 
   it("logout revokes the trusted device token from the cookie (by hash)", async () => {
-    const [admin] = await db.insert(adminUsers).values({
-      email: "kelaswfa@gmail.com",
-      passwordHash: await hashPassword("GoodPassword123"),
-    }).returning();
+    const [admin] = await db
+      .insert(adminUsers)
+      .values({
+        email: "kelaswfa@gmail.com",
+        passwordHash: await hashPassword("GoodPassword123"),
+      })
+      .returning();
     const device = await mintTrustedDevice(admin.id, "vitest");
     expect(await resolveTrustedDevice(device.raw)).not.toBeNull();
 

@@ -1,8 +1,7 @@
 import type { APIRoute } from "astro";
-
+import { duplicateCampaign, setCampaignStatus } from "../../../../../lib/admin/campaigns";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
-import { duplicateCampaign, setCampaignStatus } from "../../../../../lib/admin/campaigns";
 import { clientIp } from "../../../../../lib/ip";
 
 export const prerender = false;
@@ -19,7 +18,10 @@ const ACTIONS = new Set(["publish", "pause", "unpause", "archive", "duplicate"])
  */
 export const POST: APIRoute = async ({ request, cookies, params }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) {
@@ -46,11 +48,7 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
       const newId = await duplicateCampaign(id, auditOpts);
       return new Response(JSON.stringify({ ok: true, newId }), { headers: noStore });
     }
-    const result = await setCampaignStatus(
-      id,
-      action as "publish" | "pause" | "unpause" | "archive",
-      auditOpts,
-    );
+    const result = await setCampaignStatus(id, action as "publish" | "pause" | "unpause" | "archive", auditOpts);
     if (!result.ok) {
       const status = result.reason === "not-found" ? 404 : 400;
       return new Response(JSON.stringify({ ok: false, reason: result.reason }), { status, headers: noStore });

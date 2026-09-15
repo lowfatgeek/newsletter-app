@@ -1,14 +1,11 @@
 ---
 import { eq, sql } from "drizzle-orm";
-import { db } from "../../../../lib/db";
-import { emailCampaignRecipients } from "../../../../lib/schema";
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
 import { requireAdminOrRedirect } from "../../../../lib/admin/guard";
 import { getEmailCampaignById } from "../../../../lib/broadcast/crud";
-import {
-  campaignStats, listRecipients,
-  type RecipientStatusFilter,
-} from "../../../../lib/broadcast/stats";
-import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { campaignStats, listRecipients, type RecipientStatusFilter } from "../../../../lib/broadcast/stats";
+import { db } from "../../../../lib/db";
+import { emailCampaignRecipients } from "../../../../lib/schema";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;
@@ -37,8 +34,7 @@ const progress = { total: stats.recipients, sentSoFar: stats.sent };
 
 // Resend gagal hanya untuk kampanye yang masih bisa diproses worker
 // (prinsip sama dengan retryFailedRecipients di lib).
-const retryAllowed = ["sending", "queued", "completed", "failed"].includes(status)
-  && (failedCount?.n ?? 0) > 0;
+const retryAllowed = ["sending", "queued", "completed", "failed"].includes(status) && (failedCount?.n ?? 0) > 0;
 
 // ===== Filter status + pagination (limit 50) =====
 const LIMIT = 50;
@@ -84,17 +80,29 @@ const statusLabel: Record<string, string> = {
   cancelled: "Dibatalkan",
 };
 const statusTone: Record<string, string> = {
-  draft: "muted", scheduled: "warning", queued: "warning", sending: "warning",
-  paused: "warning", completed: "success", failed: "danger", cancelled: "muted",
+  draft: "muted",
+  scheduled: "warning",
+  queued: "warning",
+  sending: "warning",
+  paused: "warning",
+  completed: "success",
+  failed: "danger",
+  cancelled: "muted",
 };
 const statusIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="m22 2-11 11"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`;
 
 // Recipient status: pending muted / sent info / failed danger / cancelled muted
 const recipLabel: Record<string, string> = {
-  pending: "Menunggu", sent: "Terkirim", failed: "Gagal", cancelled: "Dibatalkan",
+  pending: "Menunggu",
+  sent: "Terkirim",
+  failed: "Gagal",
+  cancelled: "Dibatalkan",
 };
 const recipTone: Record<string, string> = {
-  pending: "muted", sent: "info", failed: "danger", cancelled: "muted",
+  pending: "muted",
+  sent: "info",
+  failed: "danger",
+  cancelled: "muted",
 };
 const recipIcon: Record<string, string> = {
   pending: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
@@ -106,18 +114,30 @@ const recipIcon: Record<string, string> = {
 // Delivery status: delivered success / bounced danger / failed danger /
 // accepted info / suppressed warning (ikon + teks).
 const deliveryLabel: Record<string, string> = {
-  delivered: "Sampai", sent: "Terkirim", accepted: "Diterima provider",
-  bounced: "Bounce", failed: "Gagal", suppressed: "Ditekan",
+  delivered: "Sampai",
+  sent: "Terkirim",
+  accepted: "Diterima provider",
+  bounced: "Bounce",
+  failed: "Gagal",
+  suppressed: "Ditekan",
 };
 const deliveryTone: Record<string, string> = {
-  delivered: "success", sent: "success", accepted: "info",
-  bounced: "danger", failed: "danger", suppressed: "warning",
+  delivered: "success",
+  sent: "success",
+  accepted: "info",
+  bounced: "danger",
+  failed: "danger",
+  suppressed: "warning",
 };
 const deliveryIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`;
 
 const nf = new Intl.NumberFormat("id-ID");
 const dateTimeFmt = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
 });
 function fmtDateTime(d: Date | null): string {
   return d ? dateTimeFmt.format(d) : "—";

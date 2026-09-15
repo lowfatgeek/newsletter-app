@@ -1,8 +1,6 @@
 import { and, eq, exists, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
-import {
-  contacts, emailSuppressions, marketingSubscriptions, rewardClaims,
-} from "../schema";
+import { contacts, emailSuppressions, marketingSubscriptions, rewardClaims } from "../schema";
 
 export type AudienceLocale = "id" | "en";
 export type AudienceClaimMode = "ANY" | "ALL";
@@ -14,9 +12,7 @@ export interface AudienceFilter {
   claimMode?: AudienceClaimMode;
 }
 
-export type ValidateFilterResult =
-  | { ok: true; filter: AudienceFilter }
-  | { ok: false };
+export type ValidateFilterResult = { ok: true; filter: AudienceFilter } | { ok: false };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCALES: AudienceLocale[] = ["id", "en"];
@@ -39,10 +35,7 @@ export function validateFilter(f: unknown): ValidateFilterResult {
   let locales: AudienceLocale[] | undefined;
   if (hasLocales) {
     const raw = obj.locales;
-    if (
-      !Array.isArray(raw) || raw.length === 0 ||
-      raw.some((l) => l !== "id" && l !== "en")
-    ) return { ok: false };
+    if (!Array.isArray(raw) || raw.length === 0 || raw.some((l) => l !== "id" && l !== "en")) return { ok: false };
     locales = raw as AudienceLocale[];
   }
 
@@ -50,10 +43,8 @@ export function validateFilter(f: unknown): ValidateFilterResult {
   let claimMode: AudienceClaimMode | undefined;
   if (hasClaims) {
     const raw = obj.claimCampaignIds;
-    if (
-      !Array.isArray(raw) || raw.length === 0 ||
-      raw.some((id) => typeof id !== "string" || !UUID_RE.test(id))
-    ) return { ok: false };
+    if (!Array.isArray(raw) || raw.length === 0 || raw.some((id) => typeof id !== "string" || !UUID_RE.test(id)))
+      return { ok: false };
     if (obj.claimMode !== "ANY" && obj.claimMode !== "ALL") return { ok: false };
     claimCampaignIds = raw as string[];
     claimMode = obj.claimMode as AudienceClaimMode;
@@ -92,9 +83,10 @@ function audienceQuery(filter: AudienceFilter) {
         and(
           ...ids.map((id) =>
             exists(
-              db.select({ one: sql`1` }).from(rewardClaims).where(
-                and(eq(rewardClaims.contactId, contacts.id), eq(rewardClaims.campaignId, id)),
-              ),
+              db
+                .select({ one: sql`1` })
+                .from(rewardClaims)
+                .where(and(eq(rewardClaims.contactId, contacts.id), eq(rewardClaims.campaignId, id))),
             ),
           ),
         )!,
@@ -103,9 +95,10 @@ function audienceQuery(filter: AudienceFilter) {
       // ANY: cukup claim pada salah satu campaign terpilih.
       conds.push(
         exists(
-          db.select({ one: sql`1` }).from(rewardClaims).where(
-            and(eq(rewardClaims.contactId, contacts.id), inArray(rewardClaims.campaignId, ids)),
-          ),
+          db
+            .select({ one: sql`1` })
+            .from(rewardClaims)
+            .where(and(eq(rewardClaims.contactId, contacts.id), inArray(rewardClaims.campaignId, ids))),
         ),
       );
     }

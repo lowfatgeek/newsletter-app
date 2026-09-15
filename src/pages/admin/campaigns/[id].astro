@@ -1,10 +1,10 @@
 ---
 import { asc } from "drizzle-orm";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { getCampaignById } from "../../../lib/admin/campaigns";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 import { db } from "../../../lib/db";
 import { doaTemplates } from "../../../lib/schema";
-import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import { getCampaignById } from "../../../lib/admin/campaigns";
-import AdminLayout from "../../../layouts/AdminLayout.astro";
 
 // Route on-demand — guard cookie + data per-request.
 export const prerender = false;
@@ -30,7 +30,11 @@ const statusLabel: Record<string, string> = {
 function fmtDateTime(d: Date | null): string {
   if (!d) return "—";
   return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(d);
 }
 
@@ -52,10 +56,7 @@ const assetCount = data.assets.length;
 const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount >= 1;
 
 // Preset doa dikelompokkan per variant untuk section Doa.
-const allTemplates = await db
-  .select()
-  .from(doaTemplates)
-  .orderBy(asc(doaTemplates.variant), asc(doaTemplates.name));
+const allTemplates = await db.select().from(doaTemplates).orderBy(asc(doaTemplates.variant), asc(doaTemplates.name));
 const muslimTemplates = allTemplates.filter((t) => t.variant === "muslim");
 const universalTemplates = allTemplates.filter((t) => t.variant === "universal");
 const selectedMuslim = data.doaSelections.find((s) => s.variant === "muslim")?.templateId ?? null;
@@ -147,7 +148,7 @@ function excerpt(text: string, max = 80): string {
     <section class="card" aria-labelledby="h-en">
       <div class="card-head">
         <h2 id="h-en">Content EN</h2>
-        <span id="en-fallback" class="fallback-badge" hidden>EN kosong — fallback ID</span>
+        <span id="en-fallback" class="fallback-badge" role="status" aria-live="polite" hidden>EN kosong — fallback ID</span>
       </div>
       <div class="field">
         <label for="f-title-en">Title</label>
@@ -385,7 +386,7 @@ function excerpt(text: string, max = 80): string {
     text-decoration: underline; cursor: pointer; font-family: inherit; font-size: var(--text-body-sm);
     min-height: 44px;
   }
-  .btn-small { min-height: 36px; padding: 8px 12px; }
+  .btn-small { min-height: 44px; padding: 8px 12px; }
 
   .card {
     background: var(--color-surface-raised);

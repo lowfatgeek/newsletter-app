@@ -1,9 +1,9 @@
 ---
-import { desc, asc, eq, and } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 import { db } from "../../../lib/db";
 import { rewardCampaignLocales, rewardCampaigns } from "../../../lib/schema";
-import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import AdminLayout from "../../../layouts/AdminLayout.astro";
 
 // Route on-demand — data tabel + guard cookie bersifat per-request.
 export const prerender = false;

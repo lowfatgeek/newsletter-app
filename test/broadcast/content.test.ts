@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { sanitizeBody, validateContent, renderForRecipient, htmlToText } from "../../src/lib/broadcast/content";
+import { describe, expect, it } from "vitest";
+import { htmlToText, renderForRecipient, sanitizeBody, validateContent } from "../../src/lib/broadcast/content";
 
 describe("sanitizeBody", () => {
   it("strips scripts, handlers, and non-https hrefs, forces rel/target", () => {
@@ -54,12 +54,11 @@ describe("validateContent", () => {
     });
   });
   it("ok complete when en filled", () => {
-    expect(validateContent({ ...id, subjectEn: "s", preheaderEn: "p", bodyHtmlEn: "<p>b</p>" }))
-      .toEqual({
-        ok: true,
-        missing: [],
-        sanitized: { bodyHtmlId: "<p>b</p>", bodyHtmlEn: "<p>b</p>" },
-      });
+    expect(validateContent({ ...id, subjectEn: "s", preheaderEn: "p", bodyHtmlEn: "<p>b</p>" })).toEqual({
+      ok: true,
+      missing: [],
+      sanitized: { bodyHtmlId: "<p>b</p>", bodyHtmlEn: "<p>b</p>" },
+    });
   });
   it("rejects incomplete id", () => {
     expect(validateContent({ subjectId: "s", preheaderId: "", bodyHtmlId: "" }).ok).toBe(false);
@@ -87,12 +86,18 @@ describe("validateContent", () => {
 
 describe("renderForRecipient", () => {
   const campaign = {
-    subjectId: "Halo {{email}}", preheaderId: "p", bodyHtmlId: '<p>Hai <a href="https://a.b">link</a> {{locale}}</p>',
-    subjectEn: "Hello {{email}}", preheaderEn: "pe", bodyHtmlEn: '<p>Hi {{locale}} <a href="https://a.b">link</a></p>',
+    subjectId: "Halo {{email}}",
+    preheaderId: "p",
+    bodyHtmlId: '<p>Hai <a href="https://a.b">link</a> {{locale}}</p>',
+    subjectEn: "Hello {{email}}",
+    preheaderEn: "pe",
+    bodyHtmlEn: '<p>Hi {{locale}} <a href="https://a.b">link</a></p>',
   };
   it("uses en locale and rewrites links + unsubscribe footer", () => {
     const r = renderForRecipient({
-      campaign, locale: "en", email: "a@b.c",
+      campaign,
+      locale: "en",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
       linkRewrite: (u) => `https://kado.test/api/click/L1/tok`,
     });
@@ -104,7 +109,9 @@ describe("renderForRecipient", () => {
   });
   it("falls back to id when en empty for that field", () => {
     const r = renderForRecipient({
-      campaign: { ...campaign, subjectEn: "" }, locale: "en", email: "a@b.c",
+      campaign: { ...campaign, subjectEn: "" },
+      locale: "en",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
@@ -112,7 +119,9 @@ describe("renderForRecipient", () => {
   });
   it("renders id locale with id footer and replaced variables", () => {
     const r = renderForRecipient({
-      campaign, locale: "id", email: "a@b.c",
+      campaign,
+      locale: "id",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
       linkRewrite: (u) => `https://kado.test/api/click/L1/${u.includes("a.b") ? "tok" : "x"}`,
     });
@@ -124,7 +133,8 @@ describe("renderForRecipient", () => {
   it("text version strips tags, decodes entities, and includes unsubscribe url", () => {
     const r = renderForRecipient({
       campaign: { subjectId: "s", preheaderId: "p", bodyHtmlId: "<p>Tips &amp; trik &lt;b&gt;</p>" },
-      locale: "id", email: "a@b.c",
+      locale: "id",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/tok",
       linkRewrite: (u) => u,
     });
@@ -135,7 +145,8 @@ describe("renderForRecipient", () => {
   it("replaces {{email}} safely even with $-patterns in the email", () => {
     const r = renderForRecipient({
       campaign: { subjectId: "Hai $& $1 {{email}}", preheaderId: "p", bodyHtmlId: "<p>x</p>" },
-      locale: "id", email: "a$&b@c.d",
+      locale: "id",
+      email: "a$&b@c.d",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
@@ -144,7 +155,8 @@ describe("renderForRecipient", () => {
   it("replaces {{locale}} via the safe split/join helper (no regex expansion)", () => {
     const r = renderForRecipient({
       campaign: { subjectId: "Bahasa {{locale}} {{email}}", preheaderId: "p", bodyHtmlId: "<p>{{locale}}</p>" },
-      locale: "id", email: "a$&b@c.d",
+      locale: "id",
+      email: "a$&b@c.d",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
@@ -159,7 +171,9 @@ describe("renderForRecipient", () => {
     };
     for (const locale of ["id", "en"] as const) {
       const r = renderForRecipient({
-        campaign: escapeCampaign, locale, email: "a@b.c",
+        campaign: escapeCampaign,
+        locale,
+        email: "a@b.c",
         unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
         linkRewrite: (u) => u,
       });
@@ -168,13 +182,17 @@ describe("renderForRecipient", () => {
       expect(r.html).toContain("&quot;q&quot;");
     }
     const id = renderForRecipient({
-      campaign: escapeCampaign, locale: "id", email: "a@b.c",
+      campaign: escapeCampaign,
+      locale: "id",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
     expect(id.html).toContain("&lt;script&gt;x()&lt;/script&gt;");
     const en = renderForRecipient({
-      campaign: escapeCampaign, locale: "en", email: "a@b.c",
+      campaign: escapeCampaign,
+      locale: "en",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => u,
     });
@@ -184,7 +202,8 @@ describe("renderForRecipient", () => {
     const seen: string[] = [];
     const r = renderForRecipient({
       campaign: { subjectId: "s", preheaderId: "p", bodyHtmlId: '<p><a href="https://a.b/?x=1&amp;y=2">q</a></p>' },
-      locale: "id", email: "a@b.c",
+      locale: "id",
+      email: "a@b.c",
       unsubscribeUrl: "https://kado.test/api/unsubscribe/t",
       linkRewrite: (u) => {
         seen.push(u);
@@ -199,7 +218,7 @@ describe("renderForRecipient", () => {
 describe("htmlToText", () => {
   it("strips tags, converts block ends and br to newlines, decodes entities, collapses whitespace", () => {
     const out = htmlToText(
-      "<h2>Judul</h2><p>Hai <strong>budi</strong> &amp; <a href=\"https://a.b\">klik</a><br>baris dua</p><p>Paragraf dua</p>",
+      '<h2>Judul</h2><p>Hai <strong>budi</strong> &amp; <a href="https://a.b">klik</a><br>baris dua</p><p>Paragraf dua</p>',
     );
     expect(out).toBe("Judul\nHai budi & klik\nbaris dua\nParagraf dua");
     expect(out).not.toContain("<");

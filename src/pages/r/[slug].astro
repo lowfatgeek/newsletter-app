@@ -1,16 +1,16 @@
 ---
-import PublicLayout from "../../layouts/PublicLayout.astro";
+import CampaignPaused from "../../components/CampaignPaused.astro";
+import EmailForm from "../../components/EmailForm.astro";
 import LocaleSwitch from "../../components/LocaleSwitch.astro";
+import ReflectionTabs from "../../components/ReflectionTabs.astro";
 import RewardHero from "../../components/RewardHero.astro";
 import RewardItemList from "../../components/RewardItemList.astro";
-import ReflectionTabs from "../../components/ReflectionTabs.astro";
-import EmailForm from "../../components/EmailForm.astro";
-import CampaignPaused from "../../components/CampaignPaused.astro";
-import { getPublicCampaignWithContent } from "../../lib/campaign";
+import PublicLayout from "../../layouts/PublicLayout.astro";
 import { resolveSlugRedirect } from "../../lib/admin/campaigns";
-import { notFoundResponse } from "../../lib/notfound";
-import { t } from "../../lib/i18n";
+import { getPublicCampaignWithContent } from "../../lib/campaign";
 import { env } from "../../lib/env";
+import { t } from "../../lib/i18n";
+import { notFoundResponse } from "../../lib/notfound";
 import type { RewardCampaignLocale } from "../../lib/schema";
 
 export const prerender = false;
@@ -57,11 +57,9 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
   noindex={!isIndexable}
   canonical={`${siteUrl}/r/${slug}`}
   alternates={alternates}
+  skipTo={!paused && localeRow ? "claim-form" : undefined}
 >
-  <header
-    slot="header"
-    style="display: flex; align-items: center; justify-content: space-between; height: 64px; max-width: var(--funnel-content); margin: 0 auto; padding: 0 var(--space-5); border-bottom: var(--border-default);"
-  >
+  <header slot="header" class="reward-header">
     <a href="/" style="color: var(--color-ink); font-weight: var(--font-weight-bold); font-size: var(--text-body-lg); text-decoration: none;">KelasWFA</a>
     <LocaleSwitch current="id" idHref={`/r/${slug}`} enHref={`/en/r/${slug}`} />
   </header>

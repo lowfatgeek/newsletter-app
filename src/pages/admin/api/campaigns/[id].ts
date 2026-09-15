@@ -1,14 +1,8 @@
 import type { APIRoute } from "astro";
-
+import { changeSlug, getCampaignById, updateCampaignMeta, upsertCampaignLocale } from "../../../../lib/admin/campaigns";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../lib/admin/guard";
 import { clientIp } from "../../../../lib/ip";
-import {
-  changeSlug,
-  getCampaignById,
-  updateCampaignMeta,
-  upsertCampaignLocale,
-} from "../../../../lib/admin/campaigns";
 
 export const prerender = false;
 
@@ -52,7 +46,10 @@ function parseItems(raw: unknown) {
  */
 export const POST: APIRoute = async ({ request, cookies, params }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) {

@@ -1,14 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { adminOtpChallenges, adminUsers } from "../schema";
-import { assertPasswordStrength, hashPassword, verifyPassword } from "./password";
-import { issueOtpChallenge, verifyOtpChallenge } from "./otp";
-import { createAdminSession, revokeAllSessions } from "./sessions";
-import { mintTrustedDevice, revokeAllDevices } from "./devices";
-import { audit } from "./audit";
-import { consumeRateLimit, hashIp } from "../ratelimit";
 import { env } from "../env";
+import { consumeRateLimit, hashIp } from "../ratelimit";
+import { adminOtpChallenges, adminUsers } from "../schema";
+import { audit } from "./audit";
+import { mintTrustedDevice, revokeAllDevices } from "./devices";
+import { issueOtpChallenge, verifyOtpChallenge } from "./otp";
+import { assertPasswordStrength, hashPassword, verifyPassword } from "./password";
+import { createAdminSession, revokeAllSessions } from "./sessions";
 
 const LOGIN_ATTEMPTS_PER_HOUR = 10;
 const RESET_ATTEMPTS_PER_HOUR = 5;
@@ -24,9 +24,7 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 const DUMMY_PASSWORD_HASH =
   "$argon2id$v=19$m=19456,t=2,p=1$+aD6KISWEgcIzl9bb/EBvw$hhBilZF15VP/yqxoC4dQ0ktCYT+RmNbE0h11iy+uHWI";
 
-export type StartLoginResult =
-  | { ok: true; challengeId: string }
-  | { ok: false; reason: "invalid" | "rate-limited" };
+export type StartLoginResult = { ok: true; challengeId: string } | { ok: false; reason: "invalid" | "rate-limited" };
 
 export type CompleteLoginResult =
   | { ok: true; session: { raw: string }; device?: { raw: string } }
@@ -35,8 +33,10 @@ export type CompleteLoginResult =
 export async function startLogin(input: { email: string; password: string; ip: string }): Promise<StartLoginResult> {
   const email = input.email.trim().toLowerCase();
   // Rate limit BEFORE any credential check, per IP and per email.
-  if (!(await consumeRateLimit("admin-login-ip", hashIp(input.ip), LOGIN_ATTEMPTS_PER_HOUR))
-    || !(await consumeRateLimit("admin-login-email", email, LOGIN_ATTEMPTS_PER_HOUR))) {
+  if (
+    !(await consumeRateLimit("admin-login-ip", hashIp(input.ip), LOGIN_ATTEMPTS_PER_HOUR)) ||
+    !(await consumeRateLimit("admin-login-email", email, LOGIN_ATTEMPTS_PER_HOUR))
+  ) {
     return { ok: false, reason: "rate-limited" };
   }
   // Singleton admin (task 2.9, 01-F3): hanya ADMIN_EMAIL yang boleh login —
@@ -64,7 +64,11 @@ export async function startLogin(input: { email: string; password: string; ip: s
 }
 
 export async function completeLogin(input: {
-  challengeId: string; code: string; trustDevice: boolean; ip: string; userAgent?: string;
+  challengeId: string;
+  code: string;
+  trustDevice: boolean;
+  ip: string;
+  userAgent?: string;
 }): Promise<CompleteLoginResult> {
   const otp = await verifyOtpChallenge(input.challengeId, input.code);
   if (!otp.ok) {
@@ -91,7 +95,9 @@ export async function completeLogin(input: {
 
 export async function changePassword(adminUserId: string, newPassword: string): Promise<void> {
   assertPasswordStrength(newPassword);
-  await db.update(adminUsers).set({ passwordHash: await hashPassword(newPassword) })
+  await db
+    .update(adminUsers)
+    .set({ passwordHash: await hashPassword(newPassword) })
     .where(eq(adminUsers.id, adminUserId));
   await revokeAllSessions(adminUserId);
   await revokeAllDevices(adminUserId);
@@ -112,8 +118,10 @@ export type CompletePasswordResetResult =
  */
 export async function requestPasswordReset(email: string, ip: string): Promise<RequestPasswordResetResult> {
   const normalized = email.trim().toLowerCase();
-  if (!(await consumeRateLimit("admin-reset-ip", hashIp(ip), RESET_ATTEMPTS_PER_HOUR))
-    || !(await consumeRateLimit("admin-reset-email", normalized, RESET_ATTEMPTS_PER_HOUR))) {
+  if (
+    !(await consumeRateLimit("admin-reset-ip", hashIp(ip), RESET_ATTEMPTS_PER_HOUR)) ||
+    !(await consumeRateLimit("admin-reset-email", normalized, RESET_ATTEMPTS_PER_HOUR))
+  ) {
     return { ok: true }; // generik — jangan bocorkan pembatasan
   }
   const adminEmail = env("ADMIN_EMAIL", "kelaswfa@gmail.com").toLowerCase();
@@ -123,7 +131,8 @@ export async function requestPasswordReset(email: string, ip: string): Promise<R
   if (!user) {
     // Admin belum ada (bootstrap belum jalan) — buat dengan password acak
     // yang tidak diketahui siapa pun; pemilik email men-set password via OTP.
-    const [created] = await db.insert(adminUsers)
+    const [created] = await db
+      .insert(adminUsers)
       .values({ email: adminEmail, passwordHash: await hashPassword(randomBytes(24).toString("base64url")) })
       .onConflictDoNothing({ target: adminUsers.email })
       .returning();

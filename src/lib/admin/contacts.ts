@@ -72,7 +72,10 @@ function filterConditions(filter: ContactsFilter) {
     conds.push(
       inArray(
         contacts.id,
-        db.select({ id: rewardClaims.contactId }).from(rewardClaims).where(eq(rewardClaims.campaignId, filter.campaignId)),
+        db
+          .select({ id: rewardClaims.contactId })
+          .from(rewardClaims)
+          .where(eq(rewardClaims.campaignId, filter.campaignId)),
       ),
     );
   }
@@ -128,7 +131,12 @@ export async function listContacts(filter: ContactsFilter): Promise<{ rows: Cont
     })
     .from(rewardClaims)
     .innerJoin(rewardCampaigns, eq(rewardCampaigns.id, rewardClaims.campaignId))
-    .where(inArray(rewardClaims.contactId, base.map((b) => b.id)))
+    .where(
+      inArray(
+        rewardClaims.contactId,
+        base.map((b) => b.id),
+      ),
+    )
     .groupBy(rewardClaims.contactId);
   const aggById = new Map(claimAgg.map((a) => [a.contactId, a]));
 
@@ -187,7 +195,12 @@ export async function getContactDetail(contactId: string): Promise<ContactDetail
     const locales = await db
       .select()
       .from(rewardCampaignLocales)
-      .where(inArray(rewardCampaignLocales.campaignId, claimRows.map((c) => c.campaignId)));
+      .where(
+        inArray(
+          rewardCampaignLocales.campaignId,
+          claimRows.map((c) => c.campaignId),
+        ),
+      );
     const titleBy = new Map<string, string>();
     for (const l of locales) {
       // locale id menang; simpan locale pertama apa pun sebagai fallback.
@@ -265,7 +278,15 @@ export async function buildContactsCsv(filter: ContactsFilter, auditOpts?: Audit
   await audit("contacts_exported", {
     adminUserId: auditOpts?.adminUserId ?? undefined,
     ip: auditOpts?.ip,
-    detail: { filter: { status: filter.status ?? null, campaignId: filter.campaignId ?? null, search: filter.search ?? null, limit: filter.limit, offset: filter.offset } },
+    detail: {
+      filter: {
+        status: filter.status ?? null,
+        campaignId: filter.campaignId ?? null,
+        search: filter.search ?? null,
+        limit: filter.limit,
+        offset: filter.offset,
+      },
+    },
   });
   return lines.join("\n");
 }
@@ -276,7 +297,10 @@ export async function buildContactsCsv(filter: ContactsFilter, auditOpts?: Audit
  * claim dan consent DIPERTAHANKAN (agregat/analytics tetap valid). Ter-audit
  * sebagai `contact_anonymized`.
  */
-export async function anonymizeContact(contactId: string, auditOpts?: AuditOpts): Promise<{ ok: true } | { ok: false; reason: "not-found" }> {
+export async function anonymizeContact(
+  contactId: string,
+  auditOpts?: AuditOpts,
+): Promise<{ ok: true } | { ok: false; reason: "not-found" }> {
   const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactId));
   if (!contact) return { ok: false, reason: "not-found" };
 

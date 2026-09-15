@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
+import { hashToken } from "../crypto";
 import { db } from "../db";
 import { emailCampaignRecipients, emailLinks } from "../schema";
-import { hashToken } from "../crypto";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

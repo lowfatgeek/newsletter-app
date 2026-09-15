@@ -1,7 +1,7 @@
 ---
+import AdminLayout from "../../layouts/AdminLayout.astro";
 import { getAdmin } from "../../lib/admin/guard";
 import { getFunnelStats } from "../../lib/funnel";
-import AdminLayout from "../../layouts/AdminLayout.astro";
 
 // Route on-demand — guard cookie + agregat funnel bersifat per-request.
 export const prerender = false;
@@ -17,13 +17,16 @@ function fmtNum(n: number): string {
 }
 
 // Reward access rate = unduhan / email reward_access terkirim.
-const accessRate = stats.rewardAccessSent > 0
-  ? `${fmt.format((stats.downloadsIssued / stats.rewardAccessSent) * 100)}%`
-  : "—";
+const accessRate =
+  stats.rewardAccessSent > 0 ? `${fmt.format((stats.downloadsIssued / stats.rewardAccessSent) * 100)}%` : "—";
 
 const cards: { label: string; value: string; helper: string }[] = [
   { label: "Total kontak", value: fmtNum(stats.contactsTotal), helper: "Semua email yang pernah submit" },
-  { label: "Terkonfirmasi 30 hari", value: fmtNum(stats.contactsConfirmed30d), helper: "confirmed_at ≥ 30 hari terakhir" },
+  {
+    label: "Terkonfirmasi 30 hari",
+    value: fmtNum(stats.contactsConfirmed30d),
+    helper: "confirmed_at ≥ 30 hari terakhir",
+  },
   { label: "Subscriber aktif", value: fmtNum(stats.activeSubscribers), helper: "marketing_subscription aktif" },
   { label: "Total klaim", value: fmtNum(stats.claimsTotal), helper: "reward_claim tercatat" },
   { label: "Email konfirmasi", value: fmtNum(stats.confirmationsSent), helper: "outbox tipe confirmation" },

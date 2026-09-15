@@ -1,7 +1,9 @@
 import "dotenv/config";
-import { and, eq, like, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { AwsV4Signer } from "aws4fetch";
+import { and, eq, like, or, sql } from "drizzle-orm";
+import { ensureAdmin } from "../src/lib/admin/bootstrap";
+import { DEFAULT_DOMAINS } from "../src/lib/allowlist";
 import { db, sqlClient } from "../src/lib/db";
 import {
   doaSelections,
@@ -12,14 +14,36 @@ import {
   rewardCampaignLocales,
   rewardCampaigns,
 } from "../src/lib/schema";
-import { DEFAULT_DOMAINS } from "../src/lib/allowlist";
-import { ensureAdmin } from "../src/lib/admin/bootstrap";
 
 const DOA = [
-  { variant: "muslim", locale: "id", name: "Doa Muslim v1", content: "Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin." },
-  { variant: "muslim", locale: "en", name: "Doa Muslim v1", content: "O Allah, bless every effort and hard work we put in today. Ease every step, smooth every matter, and make the knowledge we gain beneficial for us and for many. Ameen." },
-  { variant: "universal", locale: "id", name: "Harapan Baik v1", content: "Semoga setiap langkah kecilmu hari ini membawamu lebih dekat ke tujuan besarmu. Semoga usahamu yang konsisten melunakkan jalan di depan — pelan-pelan, tapi pasti." },
-  { variant: "universal", locale: "en", name: "Harapan Baik v1", content: "May every small step you take today bring you closer to your big goal. May your consistent effort soften the road ahead — slowly, but surely." },
+  {
+    variant: "muslim",
+    locale: "id",
+    name: "Doa Muslim v1",
+    content:
+      "Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin.",
+  },
+  {
+    variant: "muslim",
+    locale: "en",
+    name: "Doa Muslim v1",
+    content:
+      "O Allah, bless every effort and hard work we put in today. Ease every step, smooth every matter, and make the knowledge we gain beneficial for us and for many. Ameen.",
+  },
+  {
+    variant: "universal",
+    locale: "id",
+    name: "Harapan Baik v1",
+    content:
+      "Semoga setiap langkah kecilmu hari ini membawamu lebih dekat ke tujuan besarmu. Semoga usahamu yang konsisten melunakkan jalan di depan — pelan-pelan, tapi pasti.",
+  },
+  {
+    variant: "universal",
+    locale: "en",
+    name: "Harapan Baik v1",
+    content:
+      "May every small step you take today bring you closer to your big goal. May your consistent effort soften the road ahead — slowly, but surely.",
+  },
 ] as const;
 
 // PDF kecil yang valid (±1 KB) untuk asset contoh.
@@ -91,7 +115,9 @@ async function main() {
   // Pelindung produksi (task 2.10 / 10-DEP3): seed menulis data uji & aset
   // sample; di production hanya boleh jalan lewat opt-in eksplisit.
   if (process.env.NODE_ENV === "production" && process.env.ALLOW_PRODUCTION_SEED !== "true") {
-    console.error("ERROR: Dilarang mengeksekusi seed pada environment production! Set ALLOW_PRODUCTION_SEED=true untuk mengizinkan.");
+    console.error(
+      "ERROR: Dilarang mengeksekusi seed pada environment production! Set ALLOW_PRODUCTION_SEED=true untuk mengizinkan.",
+    );
     process.exit(1);
   }
   // 1. Domain allowlist default — hanya bila tabel masih kosong.
@@ -137,8 +163,18 @@ async function main() {
       description:
         "Kumpulan template dan checklist untuk memulai perjalanan menuju kebebasan finansial lewat kerja dan skill.",
       rewardItems: [
-        { name: "Checklist 30 Hari", benefit: "Rencana harian yang bisa langsung dijalankan.", format: "PDF", size: "2 MB" },
-        { name: "Template Budget", benefit: "Kelola pemasukan dan penghematan dengan rapi.", format: "XLSX", size: "1 MB" },
+        {
+          name: "Checklist 30 Hari",
+          benefit: "Rencana harian yang bisa langsung dijalankan.",
+          format: "PDF",
+          size: "2 MB",
+        },
+        {
+          name: "Template Budget",
+          benefit: "Kelola pemasukan dan penghematan dengan rapi.",
+          format: "XLSX",
+          size: "1 MB",
+        },
       ],
       metaTitle: "Starter Kit KelasWFA — Hadiah Gratis",
       metaDescription:
@@ -152,18 +188,9 @@ async function main() {
     const [row] = await db
       .select()
       .from(doaTemplates)
-      .where(
-        and(
-          eq(doaTemplates.variant, variant),
-          eq(doaTemplates.locale, "id"),
-          eq(doaTemplates.name, tpl.name),
-        ),
-      );
+      .where(and(eq(doaTemplates.variant, variant), eq(doaTemplates.locale, "id"), eq(doaTemplates.name, tpl.name)));
     if (row) {
-      await db
-        .insert(doaSelections)
-        .values({ campaignId: camp.id, variant, templateId: row.id })
-        .onConflictDoNothing();
+      await db.insert(doaSelections).values({ campaignId: camp.id, variant, templateId: row.id }).onConflictDoNothing();
     }
   }
 

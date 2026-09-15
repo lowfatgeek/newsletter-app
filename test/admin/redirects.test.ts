@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { createCampaign, changeSlug, setCampaignStatus, resolveSlugRedirect } from "../../src/lib/admin/campaigns";
+import { beforeEach, describe, expect, it } from "vitest";
+import { changeSlug, createCampaign, resolveSlugRedirect, setCampaignStatus } from "../../src/lib/admin/campaigns";
 import { resetDb } from "../helpers";
 
 describe("resolveSlugRedirect", () => {

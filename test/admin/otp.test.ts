@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { issueOtpChallenge, verifyOtpChallenge } from "../../src/lib/admin/otp";
 import { db } from "../../src/lib/db";
 import { adminOtpChallenges, adminUsers, emailOutbox } from "../../src/lib/schema";
-import { issueOtpChallenge, verifyOtpChallenge } from "../../src/lib/admin/otp";
 import { resetDb } from "../helpers";
 
 async function seedAdmin() {
@@ -48,7 +48,10 @@ describe("otp", () => {
   it("expired challenge rejected", async () => {
     const u = await seedAdmin();
     const id = await issueOtpChallenge(u.id, u.email);
-    await db.update(adminOtpChallenges).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(adminOtpChallenges.id, id));
+    await db
+      .update(adminOtpChallenges)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(adminOtpChallenges.id, id));
     expect(await verifyOtpChallenge(id, "123456")).toEqual({ ok: false, reason: "expired" });
   });
 });

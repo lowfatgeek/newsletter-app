@@ -1,19 +1,23 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
-import { db } from "../src/lib/db";
-import {
-  contacts, rewardCampaigns, rewardAssets, rewardClaims,
-  emailCampaigns, emailCampaignRecipients,
-} from "../src/lib/schema";
+import { beforeEach, describe, expect, it } from "vitest";
 import { issueSessionToken, upsertClaim } from "../src/lib/access";
+import { generateOpaqueToken, hashToken } from "../src/lib/crypto";
+import { db } from "../src/lib/db";
 import { consumeRateLimit } from "../src/lib/ratelimit";
-import { hashToken, generateOpaqueToken } from "../src/lib/crypto";
-import { resetDb, setEnv } from "./helpers";
+import {
+  contacts,
+  emailCampaignRecipients,
+  emailCampaigns,
+  rewardAssets,
+  rewardCampaigns,
+  rewardClaims,
+} from "../src/lib/schema";
 import { GET as downloadGET } from "../src/pages/api/download/[session]/[assetId]";
 import { POST as timerPOST } from "../src/pages/api/timer-token";
 import { GET as unsubGET } from "../src/pages/api/unsubscribe/[token]";
 import { POST as resubPOST } from "../src/pages/api/unsubscribe/resubscribe";
 import { POST as webhookPOST } from "../src/pages/api/webhooks/emailit";
+import { resetDb, setEnv } from "./helpers";
 
 const SECRET = "whsec-test-123";
 function sign(body: string): string {
@@ -29,24 +33,43 @@ function req(url: string, init?: RequestInit & { ip?: string }): Request {
 async function seedReward() {
   const [c] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com" }).returning();
   const [camp] = await db.insert(rewardCampaigns).values({ slug: "t6", status: "published" }).returning();
-  const [asset] = await db.insert(rewardAssets).values({
-    campaignId: camp.id, storageKey: "rewards/a.pdf", nameId: "File A",
-    mimeType: "application/pdf", sizeBytes: 1024, checksum: "x",
-  }).returning();
+  const [asset] = await db
+    .insert(rewardAssets)
+    .values({
+      campaignId: camp.id,
+      storageKey: "rewards/a.pdf",
+      nameId: "File A",
+      mimeType: "application/pdf",
+      sizeBytes: 1024,
+      checksum: "x",
+    })
+    .returning();
   const claimId = await upsertClaim(c.id, camp.id);
   const session = await issueSessionToken(claimId);
   return { camp, asset, session };
 }
 
 async function seedRecipientToken() {
-  const [contact] = await db.insert(contacts).values({ emailNormalized: "u@gmail.com", confirmationStatus: "confirmed" }).returning();
-  const [camp] = await db.insert(emailCampaigns).values({
-    subjectId: "Halo", preheaderId: "p", bodyHtmlId: "<p>hai</p>",
-    audienceFilter: { all: true }, maxPerMinute: 60, maxPerHour: 600,
-  }).returning();
+  const [contact] = await db
+    .insert(contacts)
+    .values({ emailNormalized: "u@gmail.com", confirmationStatus: "confirmed" })
+    .returning();
+  const [camp] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "Halo",
+      preheaderId: "p",
+      bodyHtmlId: "<p>hai</p>",
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+    })
+    .returning();
   const token = generateOpaqueToken();
   await db.insert(emailCampaignRecipients).values({
-    campaignId: camp.id, contactId: contact.id, localeSelected: "id",
+    campaignId: camp.id,
+    contactId: contact.id,
+    localeSelected: "id",
     clickTokenHash: hashToken(token),
   });
   return { token };
@@ -55,8 +78,11 @@ async function seedRecipientToken() {
 beforeEach(async () => {
   await resetDb();
   setEnv({
-    R2_ACCOUNT_ID: "acct", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s",
-    R2_BUCKET: "b", EMAILIT_WEBHOOK_SECRET: SECRET,
+    R2_ACCOUNT_ID: "acct",
+    R2_ACCESS_KEY_ID: "k",
+    R2_SECRET_ACCESS_KEY: "s",
+    R2_BUCKET: "b",
+    EMAILIT_WEBHOOK_SECRET: SECRET,
   });
 });
 
@@ -66,21 +92,31 @@ describe("T6 rate limits", () => {
     const good = `http://localhost/api/download/${session}/${asset.id}`;
     const bad = `http://localhost/api/download/bad/${asset.id}`;
     // token invalid sebelum limit → 403
-    const r403 = await downloadGET({ params: { session: "bad", assetId: asset.id }, request: req(bad, { ip: "10.9.9.9" }) } as never);
+    const r403 = await downloadGET({
+      params: { session: "bad", assetId: asset.id },
+      request: req(bad, { ip: "10.9.9.9" }),
+    } as never);
     expect(r403.status).toBe(403);
     // habiskan budget 30 dengan IP lain
     for (let i = 0; i < 30; i++) {
-      const r = await downloadGET({ params: { session, assetId: asset.id }, request: req(good, { ip: "10.8.8.8" }) } as never);
+      const r = await downloadGET({
+        params: { session, assetId: asset.id },
+        request: req(good, { ip: "10.8.8.8" }),
+      } as never);
       expect(r.status).toBe(302);
     }
-    const limited = await downloadGET({ params: { session, assetId: asset.id }, request: req(good, { ip: "10.8.8.8" }) } as never);
+    const limited = await downloadGET({
+      params: { session, assetId: asset.id },
+      request: req(good, { ip: "10.8.8.8" }),
+    } as never);
     expect(limited.status).toBe(429);
   });
 
   it("timer-token: 60/jam per IP lalu 429", async () => {
     const { camp } = await seedReward();
     const body = JSON.stringify({ slug: camp.slug });
-    const mk = (ip: string) => timerPOST({ request: req("http://localhost/api/timer-token", { method: "POST", body, ip }) } as never);
+    const mk = (ip: string) =>
+      timerPOST({ request: req("http://localhost/api/timer-token", { method: "POST", body, ip }) } as never);
     expect((await mk("10.7.7.7")).status).toBe(200);
     for (let i = 0; i < 59; i++) await mk("10.7.7.7");
     expect((await mk("10.7.7.7")).status).toBe(429);
@@ -141,13 +177,23 @@ describe("T6 rate limits", () => {
     }
     const flood = JSON.stringify({ type: "email.sent", message_id: "t6-flood" });
     const limited = await webhookPOST({
-      request: req(url, { method: "POST", body: flood, ip: "10.4.4.4", headers: { "x-emailit-signature": sign(flood) } }),
+      request: req(url, {
+        method: "POST",
+        body: flood,
+        ip: "10.4.4.4",
+        headers: { "x-emailit-signature": sign(flood) },
+      }),
     } as never);
     expect(limited.status).toBe(429);
     // message_id lain tidak kena
     const other = JSON.stringify({ type: "email.sent", message_id: "t6-lain" });
     const okOther = await webhookPOST({
-      request: req(url, { method: "POST", body: other, ip: "10.4.4.4", headers: { "x-emailit-signature": sign(other) } }),
+      request: req(url, {
+        method: "POST",
+        body: other,
+        ip: "10.4.4.4",
+        headers: { "x-emailit-signature": sign(other) },
+      }),
     } as never);
     expect(okOther.status).toBe(200);
     void consumeRateLimit;

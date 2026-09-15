@@ -1,5 +1,5 @@
-import { verifyAdminOrigin } from "../../../../lib/admin/guard";
 import type { APIRoute } from "astro";
+import { verifyAdminOrigin } from "../../../../lib/admin/guard";
 
 // Route on-demand — tidak pernah diprerender.
 import { requestPasswordReset } from "../../../../lib/admin/login";
@@ -18,7 +18,10 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   let body: { email?: unknown };
   try {

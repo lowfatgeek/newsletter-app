@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { countAudience, resolveAudience, validateFilter } from "../../src/lib/broadcast/audience";
 import { db } from "../../src/lib/db";
 import {
-  contacts, marketingSubscriptions, rewardCampaigns, rewardClaims, emailSuppressions,
+  contacts,
+  emailSuppressions,
+  marketingSubscriptions,
+  rewardCampaigns,
+  rewardClaims,
 } from "../../src/lib/schema";
 import { resetDb } from "../helpers";
-import { countAudience, resolveAudience, validateFilter } from "../../src/lib/broadcast/audience";
 
 const UUID_A = "11111111-1111-1111-1111-111111111111";
 const UUID_B = "22222222-2222-2222-2222-222222222222";
@@ -43,8 +47,14 @@ describe("validateFilter", () => {
   it("accepts filters with at least one criterion", () => {
     expect(validateFilter({ all: true })).toEqual({ ok: true, filter: { all: true } });
     expect(validateFilter({ locales: ["en"] })).toEqual({ ok: true, filter: { locales: ["en"] } });
-    expect(validateFilter({ claimCampaignIds: [UUID_A], claimMode: "ANY" })).toEqual({ ok: true, filter: { claimCampaignIds: [UUID_A], claimMode: "ANY" } });
-    expect(validateFilter({ claimCampaignIds: [UUID_A, UUID_B], claimMode: "ALL" })).toEqual({ ok: true, filter: { claimCampaignIds: [UUID_A, UUID_B], claimMode: "ALL" } });
+    expect(validateFilter({ claimCampaignIds: [UUID_A], claimMode: "ANY" })).toEqual({
+      ok: true,
+      filter: { claimCampaignIds: [UUID_A], claimMode: "ANY" },
+    });
+    expect(validateFilter({ claimCampaignIds: [UUID_A, UUID_B], claimMode: "ALL" })).toEqual({
+      ok: true,
+      filter: { claimCampaignIds: [UUID_A, UUID_B], claimMode: "ALL" },
+    });
   });
   it("rejects empty, malformed, or incomplete filters", () => {
     expect(validateFilter({}).ok).toBe(false);
@@ -86,7 +96,10 @@ describe("audience resolution", () => {
   });
 
   it("falls back to id locale when contact locale is not offered by the filter", async () => {
-    const [c] = await db.insert(contacts).values({ emailNormalized: "weird@gmail.com", locale: "xx", confirmationStatus: "confirmed" }).returning();
+    const [c] = await db
+      .insert(contacts)
+      .values({ emailNormalized: "weird@gmail.com", locale: "xx", confirmationStatus: "confirmed" })
+      .returning();
     await db.insert(marketingSubscriptions).values({ contactId: c.id, status: "active" });
     const rows = await resolveAudience({ all: true });
     expect(rows).toEqual([{ contactId: c.id, locale: "id" }]);

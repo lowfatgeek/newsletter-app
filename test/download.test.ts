@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "../src/lib/db";
-import { contacts, rewardCampaigns, rewardAssets, rewardClaims } from "../src/lib/schema";
+import { beforeEach, describe, expect, it } from "vitest";
 import { issueSessionToken, upsertClaim } from "../src/lib/access";
+import { db } from "../src/lib/db";
 import { resolveDownload, resolveFeaturedImage } from "../src/lib/download";
+import { contacts, rewardAssets, rewardCampaigns, rewardClaims } from "../src/lib/schema";
 import { resetDb, setEnv } from "./helpers";
 
 beforeEach(async () => {
@@ -12,11 +12,21 @@ beforeEach(async () => {
 
 async function seed() {
   const [c] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com" }).returning();
-  const [camp] = await db.insert(rewardCampaigns).values({ slug: "s", status: "published", featuredImageKey: "img/cover.png" }).returning();
-  const [asset] = await db.insert(rewardAssets).values({
-    campaignId: camp.id, storageKey: "rewards/a.pdf", nameId: "File A", mimeType: "application/pdf",
-    sizeBytes: 1024, checksum: "x",
-  }).returning();
+  const [camp] = await db
+    .insert(rewardCampaigns)
+    .values({ slug: "s", status: "published", featuredImageKey: "img/cover.png" })
+    .returning();
+  const [asset] = await db
+    .insert(rewardAssets)
+    .values({
+      campaignId: camp.id,
+      storageKey: "rewards/a.pdf",
+      nameId: "File A",
+      mimeType: "application/pdf",
+      sizeBytes: 1024,
+      checksum: "x",
+    })
+    .returning();
   const claimId = await upsertClaim(c.id, camp.id);
   return { camp, asset, claimId };
 }

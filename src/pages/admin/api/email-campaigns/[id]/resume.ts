@@ -16,7 +16,10 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
  */
 export const POST: APIRoute = async ({ cookies, params, request }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);

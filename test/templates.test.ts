@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { maskedEmail, confirmationEmail, rewardAccessEmail, otpEmail, EMAIL_FROM, escapeHtml } from "../src/lib/templates";
+import { describe, expect, it } from "vitest";
+import {
+  confirmationEmail,
+  EMAIL_FROM,
+  escapeHtml,
+  maskedEmail,
+  otpEmail,
+  rewardAccessEmail,
+} from "../src/lib/templates";
 
 describe("maskedEmail", () => {
   it("masks local part", () => {
@@ -13,11 +20,11 @@ describe("confirmationEmail", () => {
     const m = confirmationEmail("id", "https://kado.kelaswfa.my.id/konfirmasi/tok");
     expect(m.subject).toContain("Konfirmasi");
     expect(m.html).toContain("https://kado.kelaswfa.my.id/konfirmasi/tok");
-    expect(m.html).toContain("lang=\"id\"");
+    expect(m.html).toContain('lang="id"');
   });
   it("en content falls back structure", () => {
     const m = confirmationEmail("en", "https://x/konfirmasi/t");
-    expect(m.html).toContain("lang=\"en\"");
+    expect(m.html).toContain('lang="en"');
     expect(m.subject).not.toContain("Konfirmasi");
   });
 });

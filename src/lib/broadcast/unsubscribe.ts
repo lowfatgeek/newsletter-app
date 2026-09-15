@@ -1,32 +1,34 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "../db";
-import {
-  contacts,
-  consentEvents,
-  emailCampaignRecipients,
-  emailSuppressions,
-  marketingSubscriptions,
-} from "../schema";
 import { hashToken } from "../crypto";
-
-// Executor DB: koneksi biasa atau transaksi (tipe transaksi drizzle) —
-// pola yang sama dengan access.ts.
-type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+import { db } from "../db";
+import { consentEvents, contacts, emailCampaignRecipients, emailSuppressions, marketingSubscriptions } from "../schema";
 
 /**
  * Resolve raw click token (dari URL unsubscribe di email) ke recipient:
  * lookup hash di emailCampaignRecipients.clickTokenHash. Raw token tidak
  * pernah disimpan — hanya hash (lihat snapshotRecipients).
+ * Locale kontak ikut dikembalikan (task 2.14 / 11-C4) supaya halaman
+ * re-subscribe tahu bahasa mana yang dipakai saat me-redirect.
  */
 export async function resolveUnsubscribeToken(
   raw: string,
-): Promise<{ recipientId: string; contactId: string } | null> {
+): Promise<{ recipientId: string; contactId: string; locale: "id" | "en" } | null> {
   if (!raw) return null;
   const [row] = await db
-    .select({ id: emailCampaignRecipients.id, contactId: emailCampaignRecipients.contactId })
+    .select({
+      id: emailCampaignRecipients.id,
+      contactId: emailCampaignRecipients.contactId,
+      locale: contacts.locale,
+    })
     .from(emailCampaignRecipients)
+    .innerJoin(contacts, eq(contacts.id, emailCampaignRecipients.contactId))
     .where(eq(emailCampaignRecipients.clickTokenHash, hashToken(raw)));
-  return row ? { recipientId: row.id, contactId: row.contactId } : null;
+  if (!row) return null;
+  return {
+    recipientId: row.id,
+    contactId: row.contactId,
+    locale: row.locale === "en" ? "en" : "id",
+  };
 }
 
 /**
@@ -55,9 +57,12 @@ export async function unsubscribeByToken(raw: string): Promise<{ ok: boolean }> 
         .set({ status: "unsubscribed", unsubscribedAt: new Date() })
         .where(eq(marketingSubscriptions.contactId, target.contactId));
     } else {
-      await tx
-        .insert(marketingSubscriptions)
-        .values({ contactId: target.contactId, status: "unsubscribed", unsubscribedAt: new Date(), source: "unsubscribe_link" });
+      await tx.insert(marketingSubscriptions).values({
+        contactId: target.contactId,
+        status: "unsubscribed",
+        unsubscribedAt: new Date(),
+        source: "unsubscribe_link",
+      });
     }
 
     const [contact] = await tx
@@ -95,7 +100,12 @@ export async function resubscribeByToken(raw: string): Promise<{ ok: boolean }> 
 
     await tx
       .delete(emailSuppressions)
-      .where(and(eq(emailSuppressions.emailNormalized, contact.emailNormalized), eq(emailSuppressions.reason, "unsubscribe")));
+      .where(
+        and(
+          eq(emailSuppressions.emailNormalized, contact.emailNormalized),
+          eq(emailSuppressions.reason, "unsubscribe"),
+        ),
+      );
 
     // Idempotensi (task 2.7 / 08-N3): refresh/replay halaman subscribe-again
     // tidak boleh mempolusi consent_events — catat event hanya bila status
@@ -114,9 +124,7 @@ export async function resubscribeByToken(raw: string): Promise<{ ok: boolean }> 
       });
 
     if (existing?.status !== "active") {
-      await tx
-        .insert(consentEvents)
-        .values({ contactId: target.contactId, event: "resubscribed" });
+      await tx.insert(consentEvents).values({ contactId: target.contactId, event: "resubscribed" });
     }
     return { ok: true } as const;
   });

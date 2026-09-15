@@ -1,13 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createEmailCampaign, getEmailCampaignById, updateEmailCampaignDraft } from "../../src/lib/broadcast/crud";
 import { db } from "../../src/lib/db";
-import { emailCampaigns, adminUsers } from "../../src/lib/schema";
+import { adminUsers, emailCampaigns } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
-import {
-  createEmailCampaign,
-  updateEmailCampaignDraft,
-  getEmailCampaignById,
-} from "../../src/lib/broadcast/crud";
 
 /**
  * CRUD seam admin untuk email campaign (Task 11).
@@ -60,7 +56,8 @@ describe("createEmailCampaign", () => {
 });
 
 describe("updateEmailCampaignDraft", () => {
-  const RAW_BODY = '<p>Hai <a href="https://a.b/x">satu</a><script>alert(1)</script><a href="http://insecure.y">dua</a></p>';
+  const RAW_BODY =
+    '<p>Hai <a href="https://a.b/x">satu</a><script>alert(1)</script><a href="http://insecure.y">dua</a></p>';
 
   function patch(overrides: Partial<Parameters<typeof updateEmailCampaignDraft>[1]> = {}) {
     return {
@@ -95,11 +92,15 @@ describe("updateEmailCampaignDraft", () => {
 
   it("sanitizes EN body only when provided", async () => {
     const id = await createEmailCampaign(AUDIT);
-    await updateEmailCampaignDraft(id, patch({
-      subjectEn: "Hello subscriber",
-      preheaderEn: "short preview",
-      bodyHtmlEn: "<p>Hi <b onclick='x()'>one</b> <strong>two</strong></p>",
-    }), AUDIT);
+    await updateEmailCampaignDraft(
+      id,
+      patch({
+        subjectEn: "Hello subscriber",
+        preheaderEn: "short preview",
+        bodyHtmlEn: "<p>Hi <b onclick='x()'>one</b> <strong>two</strong></p>",
+      }),
+      AUDIT,
+    );
     const row = await getEmailCampaignById(id);
     expect(row!.subjectEn).toBe("Hello subscriber");
     // <b> bukan tag allowlist → dibuang; strong dipertahankan.
@@ -139,7 +140,10 @@ describe("updateEmailCampaignDraft", () => {
 
   it("rejects updates after schedule (content frozen)", async () => {
     const id = await createEmailCampaign(AUDIT);
-    await db.update(emailCampaigns).set({ status: "scheduled", snapshotAt: new Date() }).where(eq(emailCampaigns.id, id));
+    await db
+      .update(emailCampaigns)
+      .set({ status: "scheduled", snapshotAt: new Date() })
+      .where(eq(emailCampaigns.id, id));
     const res = await updateEmailCampaignDraft(id, patch(), AUDIT);
     expect(res).toEqual({ ok: false, reason: "not-draft" });
     const row = await getEmailCampaignById(id);
@@ -156,9 +160,7 @@ describe("updateEmailCampaignDraft", () => {
   });
 
   it("returns not-found for unknown id", async () => {
-    const res = await updateEmailCampaignDraft(
-      "00000000-0000-0000-0000-000000000000", patch(), AUDIT,
-    );
+    const res = await updateEmailCampaignDraft("00000000-0000-0000-0000-000000000000", patch(), AUDIT);
     expect(res).toEqual({ ok: false, reason: "not-found" });
   });
 

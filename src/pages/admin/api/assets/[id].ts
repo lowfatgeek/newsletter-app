@@ -1,8 +1,7 @@
 import type { APIRoute } from "astro";
-
+import { removeAsset } from "../../../../lib/admin/assets";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../lib/admin/guard";
-import { removeAsset } from "../../../../lib/admin/assets";
 import { clientIp } from "../../../../lib/ip";
 import { isValidUuid } from "../../../../lib/uuid";
 
@@ -17,7 +16,10 @@ const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json
  */
 export const DELETE: APIRoute = async ({ cookies, params, request }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) {

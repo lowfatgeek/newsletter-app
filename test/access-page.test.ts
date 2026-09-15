@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../src/lib/db";
-import { contacts, rewardAssets, rewardCampaignLocales, rewardCampaigns } from "../src/lib/schema";
-import { upsertClaim, issueClaimToken, issueSessionToken } from "../src/lib/access";
+import { beforeEach, describe, expect, it } from "vitest";
+import { issueClaimToken, issueSessionToken, upsertClaim } from "../src/lib/access";
 import { resolveAccess } from "../src/lib/access-page";
+import { db } from "../src/lib/db";
 import { resolveDownload } from "../src/lib/download";
+import { contacts, rewardAssets, rewardCampaignLocales, rewardCampaigns } from "../src/lib/schema";
 import { resetDb, setEnv } from "./helpers";
 
 beforeEach(async () => {
@@ -16,12 +16,22 @@ async function seed(status: "published" | "paused" = "published") {
   const [c] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com" }).returning();
   const [camp] = await db.insert(rewardCampaigns).values({ slug: "s", status }).returning();
   await db.insert(rewardCampaignLocales).values({
-    campaignId: camp.id, locale: "id", title: "KelasWFA", description: "Deskripsi.",
+    campaignId: camp.id,
+    locale: "id",
+    title: "KelasWFA",
+    description: "Deskripsi.",
   });
-  const [asset] = await db.insert(rewardAssets).values({
-    campaignId: camp.id, storageKey: "rewards/a.pdf", nameId: "File A", mimeType: "application/pdf",
-    sizeBytes: 1024, checksum: "x",
-  }).returning();
+  const [asset] = await db
+    .insert(rewardAssets)
+    .values({
+      campaignId: camp.id,
+      storageKey: "rewards/a.pdf",
+      nameId: "File A",
+      mimeType: "application/pdf",
+      sizeBytes: 1024,
+      checksum: "x",
+    })
+    .returning();
   const claimId = await upsertClaim(c.id, camp.id);
   return { camp, asset, claimId };
 }

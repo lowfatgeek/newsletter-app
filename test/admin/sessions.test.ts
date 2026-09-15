@@ -1,13 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createAdminSession, resolveSession, revokeAllSessions, revokeSession } from "../../src/lib/admin/sessions";
 import { db } from "../../src/lib/db";
 import { adminSessions, adminUsers } from "../../src/lib/schema";
-import {
-  createAdminSession,
-  resolveSession,
-  revokeSession,
-  revokeAllSessions,
-} from "../../src/lib/admin/sessions";
 import { resetDb } from "../helpers";
 
 async function seedAdmin() {
@@ -29,7 +24,10 @@ describe("admin sessions", () => {
   it("expired session resolves null", async () => {
     const u = await seedAdmin();
     const s = await createAdminSession(u.id);
-    await db.update(adminSessions).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(adminSessions.id, s.id));
+    await db
+      .update(adminSessions)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(adminSessions.id, s.id));
     expect(await resolveSession(s.raw)).toBeNull();
   });
 

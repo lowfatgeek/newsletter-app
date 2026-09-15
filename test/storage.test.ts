@@ -1,11 +1,16 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { presignDownloadUrl, assertAssetDownloadable } from "../src/lib/storage";
+import { beforeEach, describe, expect, it } from "vitest";
+import { assertAssetDownloadable, presignDownloadUrl } from "../src/lib/storage";
 import { setEnv } from "./helpers";
 
 describe("presignDownloadUrl", () => {
-  beforeEach(() => setEnv({
-    R2_ACCOUNT_ID: "acct", R2_ACCESS_KEY_ID: "key", R2_SECRET_ACCESS_KEY: "sec", R2_BUCKET: "bucket",
-  }));
+  beforeEach(() =>
+    setEnv({
+      R2_ACCOUNT_ID: "acct",
+      R2_ACCESS_KEY_ID: "key",
+      R2_SECRET_ACCESS_KEY: "sec",
+      R2_BUCKET: "bucket",
+    }),
+  );
   it("produces signed url with 1h expiry", async () => {
     const url = await presignDownloadUrl("rewards/2026/file.pdf");
     const u = new URL(url);

@@ -16,7 +16,9 @@
     "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
-    "check": "astro check"
+    "check": "astro check",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@biomejs/biome": "^2.5.13",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.5.1",
     "@types/sanitize-html": "^2.16.1",

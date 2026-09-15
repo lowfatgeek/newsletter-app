@@ -1,13 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../src/lib/db";
-import {
-  doaSelections,
-  doaTemplates,
-  rewardCampaignLocales,
-  rewardCampaigns,
-} from "../src/lib/schema";
+import { beforeEach, describe, expect, it } from "vitest";
 import { getPublishedCampaign } from "../src/lib/campaign";
+import { db } from "../src/lib/db";
+import { doaSelections, doaTemplates, rewardCampaignLocales, rewardCampaigns } from "../src/lib/schema";
 import { resetDb } from "./helpers";
 
 type CampaignOverrides = Partial<typeof rewardCampaigns.$inferInsert>;
@@ -78,9 +73,7 @@ describe("getPublishedCampaign", () => {
     const { row, fallbackToId } = data!.localeRow("id");
     expect(fallbackToId).toBe(false);
     expect(row!.title).toBe("Hadiah Spesial");
-    expect(row!.rewardItems).toEqual([
-      { name: "E-book", benefit: "Panduan lengkap", format: "PDF", size: "2 MB" },
-    ]);
+    expect(row!.rewardItems).toEqual([{ name: "E-book", benefit: "Panduan lengkap", format: "PDF", size: "2 MB" }]);
 
     expect(await data!.doaText("muslim", "id")).toBe("Ya Allah, berkahilah...");
     expect(await data!.doaText("universal", "id")).toBe("Semoga harapan baikmu terkabul.");
@@ -88,7 +81,10 @@ describe("getPublishedCampaign", () => {
 
   it("returns null for a draft campaign", async () => {
     await insertCampaign({ status: "draft" });
-    await insertLocaleRow((await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.slug, "test-campaign")))[0].id, "id");
+    await insertLocaleRow(
+      (await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.slug, "test-campaign")))[0].id,
+      "id",
+    );
     expect(await getPublishedCampaign("test-campaign")).toBeNull();
   });
 

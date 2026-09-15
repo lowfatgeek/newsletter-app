@@ -19,9 +19,7 @@ export function escapeHtml(s: string): string {
  */
 export function broadcastLayout(lang: "id" | "en", bodyHtml: string, unsubscribeUrl: string): string {
   const unsubLabel = lang === "id" ? "Berhenti berlangganan" : "Unsubscribe";
-  const replyNote = lang === "id"
-    ? "Balas email ini jika butuh bantuan."
-    : "Reply to this email if you need help.";
+  const replyNote = lang === "id" ? "Balas email ini jika butuh bantuan." : "Reply to this email if you need help.";
   return `<!doctype html><html lang="${lang}"><body style="font-family:Arial,Helvetica,sans-serif;color:#36514B;background:#FFFCF5;padding:24px;">
 <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E7DED0;border-radius:20px;padding:32px;">
 <div style="font-size:16px;line-height:1.6;">${bodyHtml}</div>
@@ -31,9 +29,7 @@ export function broadcastLayout(lang: "id" | "en", bodyHtml: string, unsubscribe
 }
 
 function layout(lang: "id" | "en", title: string, bodyHtml: string, linkLabel: string, url: string): string {
-  const replyNote = lang === "id"
-    ? "Balas email ini jika butuh bantuan."
-    : "Reply to this email if you need help.";
+  const replyNote = lang === "id" ? "Balas email ini jika butuh bantuan." : "Reply to this email if you need help.";
   const cta = url
     ? `<p style="margin:24px 0;"><a href="${url}" style="background:#176B5B;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:12px;display:inline-block;">${linkLabel}</a></p>`
     : "";
@@ -50,17 +46,25 @@ export function confirmationEmail(locale: "id" | "en", confirmUrl: string) {
   if (locale === "en") {
     return {
       subject: "Confirm your email to open your KelasWFA gift",
-      html: layout("en", "Confirm your email",
+      html: layout(
+        "en",
+        "Confirm your email",
         "<p>Tap the button below to confirm your email and unlock your reward.</p><p>Your link is valid for 7 days.</p>",
-        "Confirm my email", confirmUrl),
+        "Confirm my email",
+        confirmUrl,
+      ),
       text: "Confirm your email to open your KelasWFA gift: " + confirmUrl + " (valid 7 days)",
     };
   }
   return {
     subject: "Konfirmasi email untuk membuka hadiah KelasWFA",
-    html: layout("id", "Satu langkah lagi",
+    html: layout(
+      "id",
+      "Satu langkah lagi",
       "<p>Klik tombol di bawah untuk mengonfirmasi emailmu dan membuka hadiah dari KelasWFA.</p><p>Tautan berlaku 7 hari.</p>",
-      "Konfirmasi emailku", confirmUrl),
+      "Konfirmasi emailku",
+      confirmUrl,
+    ),
     text: "Konfirmasi email untuk membuka hadiah KelasWFA: " + confirmUrl + " (berlaku 7 hari)",
   };
 }
@@ -74,17 +78,25 @@ export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, rawRew
   if (locale === "en") {
     return {
       subject: `Your KelasWFA gift: ${rawRewardTitle}`,
-      html: layout("en", "Your gift is ready",
+      html: layout(
+        "en",
+        "Your gift is ready",
         `<p>Your reward <strong>${rewardTitle}</strong> is ready to download.</p><p>This access link is valid for 7 days. The download link itself is valid for 1 hour.</p>`,
-        "Open my gift", accessUrl),
+        "Open my gift",
+        accessUrl,
+      ),
       text: `Your KelasWFA gift "${rawRewardTitle}" is ready: ${accessUrl} (valid 7 days)`,
     };
   }
   return {
     subject: `Hadiah KelasWFA-mu: ${rawRewardTitle}`,
-    html: layout("id", "Kadonya siap dibuka",
+    html: layout(
+      "id",
+      "Kadonya siap dibuka",
       `<p>Hadiah <strong>${rewardTitle}</strong> sudah siap diunduh.</p><p>Tautan akses berlaku 7 hari. Link unduhan berlaku 1 jam.</p>`,
-      "Buka hadiahku", accessUrl),
+      "Buka hadiahku",
+      accessUrl,
+    ),
     text: `Hadiah KelasWFA "${rawRewardTitle}" sudah siap: ${accessUrl} (berlaku 7 hari)`,
   };
 }
@@ -92,9 +104,13 @@ export function rewardAccessEmail(locale: "id" | "en", accessUrl: string, rawRew
 export function otpEmail(code: string) {
   return {
     subject: "Kode login KelasWFA Admin",
-    html: layout("id", "Kode login Anda",
+    html: layout(
+      "id",
+      "Kode login Anda",
       `<p>Kode OTP Anda:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px;color:#153B35;">${code}</p><p>Berlaku 10 menit. Jangan bagikan kode ini.</p>`,
-      "", ""),
+      "",
+      "",
+    ),
     text: `Kode OTP KelasWFA Admin: ${code} (berlaku 10 menit)`,
   };
 }

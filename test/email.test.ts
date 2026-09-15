@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { normalizeEmail, emailDomain } from "../src/lib/email";
+import { describe, expect, it } from "vitest";
+import { emailDomain, normalizeEmail } from "../src/lib/email";
 
 describe("normalizeEmail", () => {
   it("trims and lowercases", () => {

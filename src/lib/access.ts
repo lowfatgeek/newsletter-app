@@ -1,7 +1,7 @@
-import { and, eq, isNull, gt, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { generateOpaqueToken, hashToken } from "./crypto";
 import { db } from "./db";
 import { accessTokens, consentEvents, contacts, marketingSubscriptions, rewardClaims } from "./schema";
-import { generateOpaqueToken, hashToken } from "./crypto";
 
 const SEVEN_DAYS_MS = 7 * 24 * 3600_000;
 const ONE_HOUR_MS = 3_600_000;
@@ -10,12 +10,11 @@ const ONE_HOUR_MS = 3_600_000;
 type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function upsertClaim(contactId: string, campaignId: string): Promise<string> {
-  const inserted = await db.insert(rewardClaims)
-    .values({ contactId, campaignId })
-    .onConflictDoNothing()
-    .returning();
+  const inserted = await db.insert(rewardClaims).values({ contactId, campaignId }).onConflictDoNothing().returning();
   if (inserted.length > 0) return inserted[0].id;
-  const [existing] = await db.select().from(rewardClaims)
+  const [existing] = await db
+    .select()
+    .from(rewardClaims)
     .where(and(eq(rewardClaims.contactId, contactId), eq(rewardClaims.campaignId, campaignId)));
   return existing.id;
 }
@@ -47,30 +46,31 @@ export async function consumeToken(
   const tokenHash = hashToken(rawToken);
   if (type === "session") {
     // session tokens are reusable until expiry
-    const [row] = await exec.select().from(accessTokens)
-      .where(and(
-        eq(accessTokens.tokenHash, tokenHash),
-        eq(accessTokens.type, type),
-        gt(accessTokens.expiresAt, new Date()),
-      ));
+    const [row] = await exec
+      .select()
+      .from(accessTokens)
+      .where(
+        and(eq(accessTokens.tokenHash, tokenHash), eq(accessTokens.type, type), gt(accessTokens.expiresAt, new Date())),
+      );
     return row ? { ok: true, claimId: row.claimId } : { ok: false };
   }
   // confirm/access tokens are one-time: atomic UPDATE ... WHERE unused AND unexpired RETURNING
-  const rows = await exec.update(accessTokens)
+  const rows = await exec
+    .update(accessTokens)
     .set({ usedAt: new Date() })
-    .where(and(
-      eq(accessTokens.tokenHash, tokenHash),
-      eq(accessTokens.type, type),
-      isNull(accessTokens.usedAt),
-      gt(accessTokens.expiresAt, new Date()),
-    ))
+    .where(
+      and(
+        eq(accessTokens.tokenHash, tokenHash),
+        eq(accessTokens.type, type),
+        isNull(accessTokens.usedAt),
+        gt(accessTokens.expiresAt, new Date()),
+      ),
+    )
     .returning();
   return rows.length > 0 ? { ok: true, claimId: rows[0].claimId } : { ok: false };
 }
 
-export async function confirmContactByToken(
-  rawToken: string,
-): Promise<{ ok: true; claimId: string } | { ok: false }> {
+export async function confirmContactByToken(rawToken: string): Promise<{ ok: true; claimId: string } | { ok: false }> {
   // Seluruh sekuen — konsumsi token, update contact, update claim, upsert
   // subscription, event consent — atomik dalam satu transaksi: gagal di tengah
   // tidak meninggalkan setengah konfirmasi.
@@ -78,17 +78,22 @@ export async function confirmContactByToken(
     const result = await consumeToken(rawToken, "confirm", tx);
     if (!result.ok) return { ok: false } as const;
     const [claim] = await tx.select().from(rewardClaims).where(eq(rewardClaims.id, result.claimId));
-    await tx.update(contacts)
+    await tx
+      .update(contacts)
       .set({ confirmationStatus: "confirmed", confirmedAt: sql`coalesce(${contacts.confirmedAt}, now())` })
       .where(eq(contacts.id, claim.contactId));
     await tx.update(rewardClaims).set({ status: "accessed" }).where(eq(rewardClaims.id, result.claimId));
-    const [sub] = await tx.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, claim.contactId));
+    const [sub] = await tx
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, claim.contactId));
     // 'unsubscribed' TIDAK diaktifkan ulang di sini: consent berhenti berlangganan
     // tetap dihormati. Re-subscribe hanya terjadi lewat jalur eksplisit: checkbox
     // consent di form klaim (processSubscribe) atau halaman
     // /subscribe-again/<token> (resubscribeByToken di lib/broadcast/unsubscribe.ts).
     if (!sub || (sub.status !== "active" && sub.status !== "unsubscribed")) {
-      await tx.insert(marketingSubscriptions)
+      await tx
+        .insert(marketingSubscriptions)
         .values({ contactId: claim.contactId, status: "active", subscribedAt: new Date(), source: "reward_claim" })
         .onConflictDoUpdate({
           target: marketingSubscriptions.contactId,

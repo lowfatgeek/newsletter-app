@@ -1,10 +1,10 @@
 ---
 import { desc } from "drizzle-orm";
-import { db } from "../../../lib/db";
-import { emailCampaigns } from "../../../lib/schema";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 import { progressOf } from "../../../lib/broadcast/stats";
-import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { db } from "../../../lib/db";
+import { emailCampaigns } from "../../../lib/schema";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;
@@ -54,7 +54,11 @@ const icons: Record<string, string> = {
 };
 
 const dateTimeFmt = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
 });
 function fmtDateTime(d: Date | null): string {
   return d ? dateTimeFmt.format(d) : "—";

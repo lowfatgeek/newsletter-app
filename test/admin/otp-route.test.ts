@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { POST } from "../../src/pages/admin/api/otp";
+import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../../src/lib/db";
 import { adminOtpChallenges } from "../../src/lib/schema";
+import { POST } from "../../src/pages/admin/api/otp";
 import { resetDb, setEnv } from "../helpers";
 
 async function post(body: unknown): Promise<Response> {

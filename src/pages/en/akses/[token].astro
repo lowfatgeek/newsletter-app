@@ -1,10 +1,10 @@
 ---
+import { eq } from "drizzle-orm";
 import PublicLayout from "../../../layouts/PublicLayout.astro";
 import { resolveAccess } from "../../../lib/access-page";
 import { humanSize } from "../../../lib/admin/format";
 import { db } from "../../../lib/db";
 import { rewardAssets } from "../../../lib/schema";
-import { eq } from "drizzle-orm";
 
 export const prerender = false;
 
@@ -17,7 +17,9 @@ const { sessionToken, campaignId, content } = resolved;
 const { fallbackToId } = content.localeRow("en");
 const locale = fallbackToId ? "id" : "en";
 
-const assets = await db.select().from(rewardAssets)
+const assets = await db
+  .select()
+  .from(rewardAssets)
   .where(eq(rewardAssets.campaignId, campaignId))
   .orderBy(rewardAssets.sortOrder);
 ---
@@ -34,7 +36,7 @@ const assets = await db.select().from(rewardAssets)
             <strong style="color: var(--color-ink);">{locale === "en" && a.nameEn ? a.nameEn : a.nameId}</strong>
             <p style="margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-body-sm);">{a.mimeType} · {humanSize(Number(a.sizeBytes))}</p>
           </div>
-          <a href={`/api/download/${sessionToken}/${a.id}`} referrerpolicy="no-referrer" style="background: var(--color-primary); color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">{locale === "en" ? "Secure download" : "Unduh aman"}</a>
+          <a href={`/api/download/${sessionToken}/${a.id}`} referrerpolicy="no-referrer" style="background: var(--color-primary); color: var(--color-surface-raised); text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">{locale === "en" ? "Secure download" : "Unduh aman"}</a>
         </li>
       ))}
     </ul>

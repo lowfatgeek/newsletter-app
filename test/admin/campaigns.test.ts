@@ -1,12 +1,18 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  changeSlug,
+  createCampaign,
+  duplicateCampaign,
+  getCampaignById,
+  setCampaignStatus,
+  setDoaSelections,
+  updateCampaignMeta,
+  upsertCampaignLocale,
+  validateSlug,
+} from "../../src/lib/admin/campaigns";
 import { db } from "../../src/lib/db";
 import { adminAuditLog, campaignRedirects, doaTemplates, rewardAssets, rewardCampaigns } from "../../src/lib/schema";
-import { eq } from "drizzle-orm";
-import {
-  createCampaign, validateSlug, upsertCampaignLocale, changeSlug,
-  setCampaignStatus, duplicateCampaign, getCampaignById, updateCampaignMeta,
-  setDoaSelections,
-} from "../../src/lib/admin/campaigns";
 import { resetDb } from "../helpers";
 
 const AUDIT = { adminUserId: null, ip: "127.0.0.1" };
@@ -37,8 +43,10 @@ describe("campaigns lib", () => {
     const { id } = (await createCampaign({ slug: "draft-camp" })) as { ok: true; id: string };
     expect((await changeSlug(id, "draft-renamed", false)).ok).toBe(true);
     await setCampaignStatus(id, "publish");
-    expect(await changeSlug(id, "published-renamed", false))
-      .toEqual({ ok: false, reason: "published-requires-confirmation" });
+    expect(await changeSlug(id, "published-renamed", false)).toEqual({
+      ok: false,
+      reason: "published-requires-confirmation",
+    });
     expect((await changeSlug(id, "published-renamed", true)).ok).toBe(true);
     const redirects = await db.select().from(campaignRedirects);
     expect(redirects.map((r) => r.oldSlug)).toContain("draft-renamed");
@@ -112,8 +120,24 @@ describe("campaigns lib", () => {
     expect(await getCampaignById("00000000-0000-0000-0000-000000000000")).toBeNull();
     const { id } = (await createCampaign({ slug: "ordered" })) as { ok: true; id: string };
     await db.insert(rewardAssets).values([
-      { campaignId: id, storageKey: "a/second.pdf", nameId: "B", mimeType: "application/pdf", sizeBytes: 2, checksum: "c2", sortOrder: 2 },
-      { campaignId: id, storageKey: "a/first.pdf", nameId: "A", mimeType: "application/pdf", sizeBytes: 1, checksum: "c1", sortOrder: 1 },
+      {
+        campaignId: id,
+        storageKey: "a/second.pdf",
+        nameId: "B",
+        mimeType: "application/pdf",
+        sizeBytes: 2,
+        checksum: "c2",
+        sortOrder: 2,
+      },
+      {
+        campaignId: id,
+        storageKey: "a/first.pdf",
+        nameId: "A",
+        mimeType: "application/pdf",
+        sizeBytes: 1,
+        checksum: "c1",
+        sortOrder: 1,
+      },
     ]);
     const got = await getCampaignById(id);
     expect(got!.assets.map((a) => a.nameId)).toEqual(["A", "B"]);
@@ -164,8 +188,14 @@ describe("campaigns lib", () => {
 
   it("setDoaSelections upserts and validates variant", async () => {
     const { id } = (await createCampaign({ slug: "doa-c" })) as { ok: true; id: string };
-    const [m] = await db.insert(doaTemplates).values({ variant: "muslim", locale: "id", name: "M", content: "c" }).returning();
-    const [uni] = await db.insert(doaTemplates).values({ variant: "universal", locale: "id", name: "U", content: "c" }).returning();
+    const [m] = await db
+      .insert(doaTemplates)
+      .values({ variant: "muslim", locale: "id", name: "M", content: "c" })
+      .returning();
+    const [uni] = await db
+      .insert(doaTemplates)
+      .values({ variant: "universal", locale: "id", name: "U", content: "c" })
+      .returning();
     expect((await setDoaSelections(id, { muslim: m.id, universal: uni.id })).ok).toBe(true);
     expect((await setDoaSelections(id, { muslim: uni.id, universal: uni.id })).ok).toBe(false); // mismatch
     expect((await setDoaSelections(id, { muslim: m.id, universal: uni.id })).ok).toBe(true); // re-set upsert
@@ -175,8 +205,7 @@ describe("campaigns lib", () => {
 
   it("updateCampaignMeta with empty patch writes no audit row", async () => {
     const { id } = (await createCampaign({ slug: "no-op" })) as { ok: true; id: string };
-    const updatedRows = () =>
-      db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_updated"));
+    const updatedRows = () => db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_updated"));
     await updateCampaignMeta(id, {}, AUDIT);
     expect(await updatedRows()).toHaveLength(0);
     await updateCampaignMeta(id, { order: 3 }, AUDIT);

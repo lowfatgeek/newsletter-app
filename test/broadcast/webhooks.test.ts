@@ -1,13 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { processEmailitEvent, verifyEmailitSignature } from "../../src/lib/broadcast/webhooks";
 import { db } from "../../src/lib/db";
-import {
-  contacts, emailDeliveries, emailProviderEvents, emailSuppressions,
-} from "../../src/lib/schema";
+import { contacts, emailDeliveries, emailProviderEvents, emailSuppressions } from "../../src/lib/schema";
+import { GET, POST } from "../../src/pages/api/webhooks/emailit";
 import { resetDb, setEnv } from "../helpers";
-import { verifyEmailitSignature, processEmailitEvent } from "../../src/lib/broadcast/webhooks";
-import { POST, GET } from "../../src/pages/api/webhooks/emailit";
 
 /**
  * Webhook Emailit (Task 9).
@@ -30,12 +28,23 @@ function sign(body: string, secret = SECRET): string {
 }
 
 async function seedDelivery(providerMessageId: string, status = "accepted") {
-  const [c] = await db.insert(contacts).values({
-    emailNormalized: "bouncer@gmail.com", locale: "id", confirmationStatus: "confirmed",
-  }).returning();
-  const [d] = await db.insert(emailDeliveries).values({
-    contactId: c.id, emailType: "broadcast", status, providerMessageId,
-  }).returning();
+  const [c] = await db
+    .insert(contacts)
+    .values({
+      emailNormalized: "bouncer@gmail.com",
+      locale: "id",
+      confirmationStatus: "confirmed",
+    })
+    .returning();
+  const [d] = await db
+    .insert(emailDeliveries)
+    .values({
+      contactId: c.id,
+      emailType: "broadcast",
+      status,
+      providerMessageId,
+    })
+    .returning();
   return d;
 }
 
@@ -78,7 +87,9 @@ describe("processEmailitEvent", () => {
     const d = await seedDelivery("prov-1");
 
     const result = await processEmailitEvent({
-      type: "email.delivered", message_id: "prov-1", recipient_email: "bouncer@gmail.com",
+      type: "email.delivered",
+      message_id: "prov-1",
+      recipient_email: "bouncer@gmail.com",
       raw: { type: "email.delivered", message_id: "prov-1" },
     });
 
@@ -93,7 +104,8 @@ describe("processEmailitEvent", () => {
   it("duplicate redelivery of the same event → 'ignored', still exactly 1 event row", async () => {
     await seedDelivery("prov-1");
     const event = {
-      type: "email.delivered", message_id: "prov-1",
+      type: "email.delivered",
+      message_id: "prov-1",
       raw: { type: "email.delivered", message_id: "prov-1" },
     };
 
@@ -113,7 +125,9 @@ describe("processEmailitEvent", () => {
     const d = await seedDelivery("prov-b");
 
     const result = await processEmailitEvent({
-      type: "email.bounced", message_id: "prov-b", recipient_email: "  Bouncer@Gmail.com ",
+      type: "email.bounced",
+      message_id: "prov-b",
+      recipient_email: "  Bouncer@Gmail.com ",
       raw: { type: "email.bounced", message_id: "prov-b" },
     });
 
@@ -131,7 +145,9 @@ describe("processEmailitEvent", () => {
     const d = await seedDelivery("prov-b2");
 
     const result = await processEmailitEvent({
-      type: "email.bounced", message_id: "prov-b2", recipient_email: "bukan-email",
+      type: "email.bounced",
+      message_id: "prov-b2",
+      recipient_email: "bukan-email",
       raw: { type: "email.bounced" },
     });
 
@@ -145,7 +161,9 @@ describe("processEmailitEvent", () => {
     const d = await seedDelivery("prov-c");
 
     const result = await processEmailitEvent({
-      type: "email.complaint", message_id: "prov-c", recipient_email: "bouncer@gmail.com",
+      type: "email.complaint",
+      message_id: "prov-c",
+      recipient_email: "bouncer@gmail.com",
       raw: { type: "email.complaint", message_id: "prov-c" },
     });
 
@@ -167,7 +185,9 @@ describe("processEmailitEvent", () => {
   it("unknown event type → event saved, 'recorded', delivery untouched", async () => {
     const d = await seedDelivery("prov-u");
 
-    expect(await processEmailitEvent({ type: "email.opened", message_id: "prov-u", raw: { opens: 1 } })).toBe("recorded");
+    expect(await processEmailitEvent({ type: "email.opened", message_id: "prov-u", raw: { opens: 1 } })).toBe(
+      "recorded",
+    );
     const [after] = await db.select().from(emailDeliveries).where(eq(emailDeliveries.id, d.id));
     expect(after.status).toBe("accepted");
     expect(after.deliveredAt).toBeNull();
@@ -176,7 +196,9 @@ describe("processEmailitEvent", () => {
 
   it("unknown message_id → 'unknown-message' but event row still saved (audit)", async () => {
     const result = await processEmailitEvent({
-      type: "email.delivered", message_id: "no-such-message", raw: { type: "email.delivered" },
+      type: "email.delivered",
+      message_id: "no-such-message",
+      raw: { type: "email.delivered" },
     });
 
     expect(result).toBe("unknown-message");
@@ -204,13 +226,15 @@ describe("processEmailitEvent", () => {
   it("does not set deliveredAt twice (coalesce semantics)", async () => {
     const first = new Date("2026-09-01T00:00:00Z");
     const d = await seedDelivery("prov-twice");
-    await db.update(emailDeliveries)
+    await db
+      .update(emailDeliveries)
       .set({ status: "delivered", deliveredAt: first })
       .where(eq(emailDeliveries.id, d.id));
 
     // redelivery dengan jenis event BARU (bukan duplicate) — deliveredAt tidak berubah
     await processEmailitEvent({
-      type: "email.delivered", message_id: "prov-twice",
+      type: "email.delivered",
+      message_id: "prov-twice",
       raw: { note: "late duplicate via new event type" },
     });
     const [after] = await db.select().from(emailDeliveries).where(eq(emailDeliveries.id, d.id));
@@ -224,7 +248,9 @@ describe("POST /api/webhooks/emailit", () => {
     if (signature !== null) headers["x-emailit-signature"] = signature;
     return POST({
       request: new Request("http://localhost:4321/api/webhooks/emailit", {
-        method: "POST", headers, body,
+        method: "POST",
+        headers,
+        body,
       }),
       cookies: { get: () => undefined, set: () => {}, delete: () => {}, has: () => false },
     } as never);

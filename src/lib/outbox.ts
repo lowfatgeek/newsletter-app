@@ -11,15 +11,18 @@ export type OutboxMessage = {
 };
 
 export async function enqueueTransactionalEmail(msg: OutboxMessage): Promise<void> {
-  await db.insert(emailOutbox).values({
-    emailType: msg.emailType,
-    toEmail: msg.to,
-    subject: msg.subject,
-    html: msg.html,
-    text: msg.text,
-    idempotencyKey: msg.idempotencyKey,
-    // pin to app clock so the worker's `scheduled_at <= now()` filter is not
-    // affected by clock skew between the app process and the DB server
-    scheduledAt: new Date(),
-  }).onConflictDoNothing();
+  await db
+    .insert(emailOutbox)
+    .values({
+      emailType: msg.emailType,
+      toEmail: msg.to,
+      subject: msg.subject,
+      html: msg.html,
+      text: msg.text,
+      idempotencyKey: msg.idempotencyKey,
+      // pin to app clock so the worker's `scheduled_at <= now()` filter is not
+      // affected by clock skew between the app process and the DB server
+      scheduledAt: new Date(),
+    })
+    .onConflictDoNothing();
 }

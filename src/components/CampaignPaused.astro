@@ -1,5 +1,5 @@
 ---
-import { t, type Locale } from "../lib/i18n";
+import { type Locale, t } from "../lib/i18n";
 
 interface Props {
   locale: Locale;
@@ -21,7 +21,7 @@ const copy = {
 ---
 <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
   <div style="background: var(--color-warning-subtle); color: var(--color-ink); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-8) var(--space-6); box-shadow: var(--shadow-card);">
-    <p style="display: inline-block; background: var(--color-warning); color: #ffffff; border-radius: var(--radius-pill); padding: var(--space-1) var(--space-3); font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-4);">{locale === "id" ? "Dijeda" : "Paused"}</p>
+    <p style="display: inline-block; background: var(--color-warning); color: var(--color-surface-raised); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-3); font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-4);">{locale === "id" ? "Dijeda" : "Paused"}</p>
     <h1 style="color: var(--color-warning); margin: 0 0 var(--space-4);">{copy.title}</h1>
     <p style="color: var(--color-ink); line-height: 1.6; margin: 0 0 var(--space-6);">{copy.body}</p>
     <a

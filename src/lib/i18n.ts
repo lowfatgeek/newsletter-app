@@ -22,6 +22,10 @@ const dict = {
     en: "Please wait for the timer to finish.",
   },
   emailLabel: { id: "Email untuk menerima hadiah", en: "Email to receive your gift" },
+  errorEmailInvalid: {
+    id: "Format email belum benar. Contoh: nama@gmail.com",
+    en: "That email format doesn't look right. Example: name@gmail.com",
+  },
   consentCopy: {
     id: "Dengan mengklaim hadiah, kamu juga mendaftar ke newsletter KelasWFA. Lihat",
     en: "By claiming this gift you also subscribe to the KelasWFA newsletter. See the",
@@ -52,6 +56,7 @@ const dict = {
   },
   itemFormat: { id: "Format", en: "Format" },
   itemSize: { id: "Ukuran", en: "Size" },
+  skipToForm: { id: "Lewati ke form klaim", en: "Skip to the claim form" },
 } as const;
 
 export type I18nKey = keyof typeof dict;

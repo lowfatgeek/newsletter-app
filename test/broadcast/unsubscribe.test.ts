@@ -1,52 +1,68 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { and, eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { issueClaimToken } from "../../src/lib/access";
+import { resolveUnsubscribeToken, resubscribeByToken, unsubscribeByToken } from "../../src/lib/broadcast/unsubscribe";
+import { generateOpaqueToken, hashToken } from "../../src/lib/crypto";
 import { db } from "../../src/lib/db";
 import {
-  contacts,
-  marketingSubscriptions,
   consentEvents,
-  emailSuppressions,
-  emailCampaigns,
+  contacts,
   emailCampaignRecipients,
+  emailCampaigns,
   emailDomains,
   emailOutbox,
+  emailSuppressions,
+  marketingSubscriptions,
   rewardCampaignLocales,
   rewardCampaigns,
   rewardClaims,
 } from "../../src/lib/schema";
-import { resetDb, setEnv } from "../helpers";
-import { hashToken, generateOpaqueToken } from "../../src/lib/crypto";
-import {
-  resolveUnsubscribeToken,
-  unsubscribeByToken,
-  resubscribeByToken,
-} from "../../src/lib/broadcast/unsubscribe";
 import { processSubscribe } from "../../src/lib/subscribe";
 import { issueTimerToken } from "../../src/lib/timer";
-import { issueClaimToken } from "../../src/lib/access";
+import { resetDb, setEnv } from "../helpers";
 
 /** Seed contact + campaign + recipient; return raw click token. */
-async function seedRecipient(opts: {
-  subscriptionStatus?: "active" | "unsubscribed" | null;
-  suppressions?: Array<"unsubscribe" | "hard_bounce">;
-} = {}) {
-  const [contact] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" }).returning();
-  const [camp] = await db.insert(emailCampaigns).values({
-    subjectId: "Halo", preheaderId: "p", bodyHtmlId: "<p>hai</p>",
-    audienceFilter: { all: true }, maxPerMinute: 60, maxPerHour: 600,
-  }).returning();
+async function seedRecipient(
+  opts: {
+    subscriptionStatus?: "active" | "unsubscribed" | null;
+    suppressions?: Array<"unsubscribe" | "hard_bounce">;
+  } = {},
+) {
+  const [contact] = await db
+    .insert(contacts)
+    .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+    .returning();
+  const [camp] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "Halo",
+      preheaderId: "p",
+      bodyHtmlId: "<p>hai</p>",
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+    })
+    .returning();
   const token = generateOpaqueToken();
-  const [recipient] = await db.insert(emailCampaignRecipients).values({
-    campaignId: camp.id,
-    contactId: contact.id,
-    localeSelected: "id",
-    clickTokenHash: hashToken(token),
-  }).returning();
+  const [recipient] = await db
+    .insert(emailCampaignRecipients)
+    .values({
+      campaignId: camp.id,
+      contactId: contact.id,
+      localeSelected: "id",
+      clickTokenHash: hashToken(token),
+    })
+    .returning();
   if (opts.subscriptionStatus) {
-    await db.insert(marketingSubscriptions).values({ contactId: contact.id, status: opts.subscriptionStatus, subscribedAt: new Date() });
+    await db
+      .insert(marketingSubscriptions)
+      .values({ contactId: contact.id, status: opts.subscriptionStatus, subscribedAt: new Date() });
   }
   for (const reason of opts.suppressions ?? []) {
-    await db.insert(emailSuppressions).values({ emailNormalized: contact.emailNormalized, reason }).onConflictDoNothing();
+    await db
+      .insert(emailSuppressions)
+      .values({ emailNormalized: contact.emailNormalized, reason })
+      .onConflictDoNothing();
   }
   return { contact, camp, recipient, token };
 }
@@ -56,9 +72,13 @@ const agedToken = (campaignId: string) => issueTimerToken(campaignId, Date.now()
 beforeEach(resetDb);
 
 describe("resolveUnsubscribeToken", () => {
-  it("resolves a valid token to recipientId + contactId", async () => {
+  it("resolves a valid token to recipientId + contactId + locale", async () => {
     const { recipient, contact, token } = await seedRecipient();
-    expect(await resolveUnsubscribeToken(token)).toEqual({ recipientId: recipient.id, contactId: contact.id });
+    expect(await resolveUnsubscribeToken(token)).toEqual({
+      recipientId: recipient.id,
+      contactId: contact.id,
+      locale: "id",
+    });
   });
 
   it("returns null for an unknown or empty token", async () => {
@@ -74,11 +94,17 @@ describe("unsubscribeByToken", () => {
 
     expect(await unsubscribeByToken(token)).toEqual({ ok: true });
 
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("unsubscribed");
     expect(sub.unsubscribedAt).not.toBeNull();
 
-    const [sup] = await db.select().from(emailSuppressions).where(eq(emailSuppressions.emailNormalized, contact.emailNormalized));
+    const [sup] = await db
+      .select()
+      .from(emailSuppressions)
+      .where(eq(emailSuppressions.emailNormalized, contact.emailNormalized));
     expect(sup.reason).toBe("unsubscribe");
 
     const events = await db.select().from(consentEvents).where(eq(consentEvents.contactId, contact.id));
@@ -89,7 +115,10 @@ describe("unsubscribeByToken", () => {
   it("is idempotent: second call is ok without a duplicate consent event or timestamp change", async () => {
     const { contact, token } = await seedRecipient({ subscriptionStatus: "active" });
     await unsubscribeByToken(token);
-    const [first] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [first] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     const firstAt = first.unsubscribedAt!;
 
     expect(await unsubscribeByToken(token)).toEqual({ ok: true });
@@ -98,7 +127,10 @@ describe("unsubscribeByToken", () => {
     expect(events).toHaveLength(1); // tidak ada consent kedua
     const suppressions = await db.select().from(emailSuppressions);
     expect(suppressions).toHaveLength(1); // onConflictDoNothing, tidak duplikat
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.unsubscribedAt!.getTime()).toBe(firstAt.getTime());
   });
 
@@ -108,13 +140,23 @@ describe("unsubscribeByToken", () => {
     const { contact, token } = await seedRecipient({ subscriptionStatus: "active" });
     await unsubscribeByToken(token);
 
-    const [camp2] = await db.insert(emailCampaigns).values({
-      subjectId: "H2", preheaderId: "p", bodyHtmlId: "<p>hai</p>",
-      audienceFilter: { all: true }, maxPerMinute: 60, maxPerHour: 600,
-    }).returning();
+    const [camp2] = await db
+      .insert(emailCampaigns)
+      .values({
+        subjectId: "H2",
+        preheaderId: "p",
+        bodyHtmlId: "<p>hai</p>",
+        audienceFilter: { all: true },
+        maxPerMinute: 60,
+        maxPerHour: 600,
+      })
+      .returning();
     const token2 = generateOpaqueToken();
     await db.insert(emailCampaignRecipients).values({
-      campaignId: camp2.id, contactId: contact.id, localeSelected: "id", clickTokenHash: hashToken(token2),
+      campaignId: camp2.id,
+      contactId: contact.id,
+      localeSelected: "id",
+      clickTokenHash: hashToken(token2),
     });
 
     expect(await unsubscribeByToken(token2)).toEqual({ ok: true });
@@ -124,7 +166,10 @@ describe("unsubscribeByToken", () => {
   it("creates an unsubscribed subscription row when none exists yet", async () => {
     const { contact, token } = await seedRecipient(); // tanpa subscription
     expect(await unsubscribeByToken(token)).toEqual({ ok: true });
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("unsubscribed");
     expect(sub.unsubscribedAt).not.toBeNull();
   });
@@ -148,10 +193,16 @@ describe("resubscribeByToken", () => {
 
     expect(await resubscribeByToken(token)).toEqual({ ok: true });
 
-    const sups = await db.select().from(emailSuppressions).where(eq(emailSuppressions.emailNormalized, contact.emailNormalized));
+    const sups = await db
+      .select()
+      .from(emailSuppressions)
+      .where(eq(emailSuppressions.emailNormalized, contact.emailNormalized));
     expect(sups).toHaveLength(0); // suppression unsubscribe dihapus
 
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("active");
     expect(sub.subscribedAt).not.toBeNull();
     expect(sub.unsubscribedAt).toBeNull();
@@ -167,14 +218,20 @@ describe("resubscribeByToken", () => {
 
     expect(await resubscribeByToken(token)).toEqual({ ok: true });
 
-    const sups = await db.select().from(emailSuppressions).where(eq(emailSuppressions.emailNormalized, contact.emailNormalized));
+    const sups = await db
+      .select()
+      .from(emailSuppressions)
+      .where(eq(emailSuppressions.emailNormalized, contact.emailNormalized));
     expect(sups.map((s) => s.reason)).toEqual(["hard_bounce"]);
   });
 
   it("works when no subscription row exists (upsert path)", async () => {
     const { contact, token } = await seedRecipient({ suppressions: ["unsubscribe"] });
     expect(await resubscribeByToken(token)).toEqual({ ok: true });
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("active");
   });
 
@@ -195,10 +252,18 @@ describe("unsubscribed contact claims a reward", () => {
     await db.insert(emailDomains).values({ domain: "gmail.com" });
     const [camp] = await db.insert(rewardCampaigns).values({ slug: "starter", status: "published" }).returning();
     await db.insert(rewardCampaignLocales).values({
-      campaignId: camp.id, locale: "id", title: "KelasWFA", description: "Deskripsi.",
+      campaignId: camp.id,
+      locale: "id",
+      title: "KelasWFA",
+      description: "Deskripsi.",
     });
-    const [contact] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" }).returning();
-    await db.insert(marketingSubscriptions).values({ contactId: contact.id, status: "unsubscribed", unsubscribedAt: new Date() });
+    const [contact] = await db
+      .insert(contacts)
+      .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+      .returning();
+    await db
+      .insert(marketingSubscriptions)
+      .values({ contactId: contact.id, status: "unsubscribed", unsubscribedAt: new Date() });
 
     const r = await processSubscribe({
       email: "budi@gmail.com",
@@ -217,19 +282,29 @@ describe("unsubscribed contact claims a reward", () => {
     expect(mails).toHaveLength(1);
     expect(mails[0].emailType).toBe("reward_access"); // email transaksional tetap terkirim
 
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("unsubscribed"); // marketing TIDAK disentuh
   });
 
   it("confirmContactByToken does NOT reactivate an unsubscribed subscription", async () => {
     const { contact } = await seedRecipient({ subscriptionStatus: "unsubscribed" });
     const [camp] = await db.insert(rewardCampaigns).values({ slug: "c2" }).returning();
-    const claimId = await db.insert(rewardClaims).values({ contactId: contact.id, campaignId: camp.id }).returning().then((r) => r[0].id);
+    const claimId = await db
+      .insert(rewardClaims)
+      .values({ contactId: contact.id, campaignId: camp.id })
+      .returning()
+      .then((r) => r[0].id);
     const raw = await issueClaimToken(claimId, "confirm");
 
     expect(await (await import("../../src/lib/access")).confirmContactByToken(raw)).toMatchObject({ ok: true });
 
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("unsubscribed"); // consent tetap dihormati
     const events = await db.select().from(consentEvents).where(eq(consentEvents.contactId, contact.id));
     expect(events).toHaveLength(0); // tanpa event 'subscribed' otomatis
@@ -238,11 +313,20 @@ describe("unsubscribed contact claims a reward", () => {
   it("full round trip: unsubscribe → resubscribe via token reactivates consent only", async () => {
     const { contact, token } = await seedRecipient({ subscriptionStatus: "active" });
     await unsubscribeByToken(token);
-    expect((await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id)))[0].status).toBe("unsubscribed");
+    expect(
+      (await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id)))[0]
+        .status,
+    ).toBe("unsubscribed");
     await resubscribeByToken(token);
-    const [sub] = await db.select().from(marketingSubscriptions).where(eq(marketingSubscriptions.contactId, contact.id));
+    const [sub] = await db
+      .select()
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, contact.id));
     expect(sub.status).toBe("active");
-    const events = await db.select().from(consentEvents).where(and(eq(consentEvents.contactId, contact.id)));
+    const events = await db
+      .select()
+      .from(consentEvents)
+      .where(and(eq(consentEvents.contactId, contact.id)));
     expect(events.map((e) => e.event).sort()).toEqual(["resubscribed", "unsubscribed"]);
   });
 });

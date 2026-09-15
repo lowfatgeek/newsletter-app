@@ -1,8 +1,8 @@
 import type { APIRoute } from "astro";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "../../lib/db";
-import { rewardCampaigns } from "../../lib/schema";
 import { env } from "../../lib/env";
+import { rewardCampaigns } from "../../lib/schema";
 
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;
@@ -37,10 +37,7 @@ export const GET: APIRoute = async ({ request }) => {
     .map((r) => {
       const lastmod = (r.publishedAt ?? r.createdAt).toISOString();
       return [`/r/${r.slug}`, `/en/r/${r.slug}`]
-        .map(
-          (path) =>
-            `  <url><loc>${escapeXml(siteUrl)}${escapeXml(path)}</loc><lastmod>${lastmod}</lastmod></url>`,
-        )
+        .map((path) => `  <url><loc>${escapeXml(siteUrl)}${escapeXml(path)}</loc><lastmod>${lastmod}</lastmod></url>`)
         .join("\n");
     })
     .join("\n");

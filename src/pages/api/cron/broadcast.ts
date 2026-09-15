@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
+import { processBroadcast } from "../../../lib/broadcast/worker";
 import { cronAuthorized } from "../../../lib/cron-auth";
 import { processOutbox } from "../../../lib/mailworker";
-import { processBroadcast } from "../../../lib/broadcast/worker";
 
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;

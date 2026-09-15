@@ -38,9 +38,7 @@ export function sanitizeBody(html: string): string {
     allowedSchemes: ["https"],
     transformTags: {
       a: (_tagName, attribs): Tag => {
-        const href = typeof attribs.href === "string" && attribs.href.startsWith("https://")
-          ? attribs.href
-          : undefined;
+        const href = typeof attribs.href === "string" && attribs.href.startsWith("https://") ? attribs.href : undefined;
         return {
           tagName: "a",
           attribs: href ? { href, target: "_blank", rel: "noopener" } : {},
@@ -63,10 +61,10 @@ export function decodeEntities(s: string): string {
 
 export type ValidateContentResult =
   | {
-    ok: true;
-    missing: ("en")[];
-    sanitized: { bodyHtmlId: string; bodyHtmlEn: string | null };
-  }
+      ok: true;
+      missing: "en"[];
+      sanitized: { bodyHtmlId: string; bodyHtmlEn: string | null };
+    }
   | { ok: false; reason: "missing-id" };
 
 /**
@@ -149,8 +147,7 @@ export interface RenderedEmail {
  */
 export function renderForRecipient(args: RenderForRecipientArgs): RenderedEmail {
   const { campaign, locale, email, unsubscribeUrl, linkRewrite } = args;
-  const pick = (idVal: string, enVal?: string | null): string =>
-    locale === "en" && enVal?.trim() ? enVal : idVal;
+  const pick = (idVal: string, enVal?: string | null): string => (locale === "en" && enVal?.trim() ? enVal : idVal);
 
   const subject = replaceVar(
     replaceVar(pick(campaign.subjectId, campaign.subjectEn), "email", email),
@@ -168,11 +165,12 @@ export function renderForRecipient(args: RenderForRecipientArgs): RenderedEmail 
     locale,
   );
 
-  const rewritten = bodyHtml.replace(/href="(https:\/\/[^"]*)"/g, (_m, url: string) =>
-    `href="${linkRewrite(decodeEntities(url))}"`);
+  const rewritten = bodyHtml.replace(
+    /href="(https:\/\/[^"]*)"/g,
+    (_m, url: string) => `href="${linkRewrite(decodeEntities(url))}"`,
+  );
 
-  const withPreheader =
-    `<div style="display:none;max-height:0;overflow:hidden;">${escapeHtml(preheader)}</div>${rewritten}`;
+  const withPreheader = `<div style="display:none;max-height:0;overflow:hidden;">${escapeHtml(preheader)}</div>${rewritten}`;
   const html = broadcastLayout(locale, withPreheader, unsubscribeUrl);
   const text = `${htmlToText(withPreheader)}\n\n${
     locale === "id" ? "Berhenti berlangganan" : "Unsubscribe"

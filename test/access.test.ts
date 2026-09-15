@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "../src/lib/db";
-import { contacts, rewardCampaigns, rewardClaims, accessTokens } from "../src/lib/schema";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  upsertClaim, issueClaimToken, issueSessionToken, consumeToken, confirmContactByToken,
+  confirmContactByToken,
+  consumeToken,
+  issueClaimToken,
+  issueSessionToken,
+  upsertClaim,
 } from "../src/lib/access";
+import { db } from "../src/lib/db";
+import { accessTokens, contacts, rewardCampaigns, rewardClaims } from "../src/lib/schema";
 import { resetDb } from "./helpers";
 
 async function seedContact() {
@@ -40,7 +44,9 @@ describe("access tokens", () => {
     const { contact, campaign } = await seedContact();
     const claimId = await upsertClaim(contact.id, campaign.id);
     const raw = await issueClaimToken(claimId, "access");
-    await db.update(accessTokens).set({ expiresAt: new Date(Date.now() - 1000) })
+    await db
+      .update(accessTokens)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
       .where(eq(accessTokens.claimId, claimId));
     expect(await consumeToken(raw, "access")).toEqual({ ok: false });
   });

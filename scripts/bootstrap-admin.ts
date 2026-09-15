@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { sqlClient } from "../src/lib/db";
 import { ensureAdmin } from "../src/lib/admin/bootstrap";
+import { sqlClient } from "../src/lib/db";
 
 async function main() {
   const { created, email, generatedPassword } = await ensureAdmin();
@@ -13,4 +13,7 @@ async function main() {
   await sqlClient.end();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { db } from "../src/lib/db";
-import { emailOutbox } from "../src/lib/schema";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { db } from "../src/lib/db";
 import { enqueueTransactionalEmail, processOutbox } from "../src/lib/mailworker-for-test";
+import { emailOutbox } from "../src/lib/schema";
 import { resetDb, setEnv } from "./helpers";
 
 function okFetch() {
@@ -13,10 +13,20 @@ function failFetch() {
 }
 
 describe("outbox", () => {
-  beforeEach(async () => { await resetDb(); setEnv({ MOCK_EMAILIT: "false", EMAILIT_API_KEY: "k" }); });
+  beforeEach(async () => {
+    await resetDb();
+    setEnv({ MOCK_EMAILIT: "false", EMAILIT_API_KEY: "k" });
+  });
 
   it("enqueue is idempotent by key", async () => {
-    const msg = { emailType: "confirmation", to: "a@b.com", subject: "s", html: "<p>h</p>", text: "h", idempotencyKey: "k1" };
+    const msg = {
+      emailType: "confirmation",
+      to: "a@b.com",
+      subject: "s",
+      html: "<p>h</p>",
+      text: "h",
+      idempotencyKey: "k1",
+    };
     await enqueueTransactionalEmail(msg);
     await enqueueTransactionalEmail(msg);
     const rows = await db.select().from(emailOutbox);
@@ -25,7 +35,14 @@ describe("outbox", () => {
 
   it("processOutbox sends pending email and marks sent", async () => {
     const f = okFetch();
-    await enqueueTransactionalEmail({ emailType: "confirmation", to: "a@b.com", subject: "s", html: "h", text: "h", idempotencyKey: "k2" });
+    await enqueueTransactionalEmail({
+      emailType: "confirmation",
+      to: "a@b.com",
+      subject: "s",
+      html: "h",
+      text: "h",
+      idempotencyKey: "k2",
+    });
     const r = await processOutbox({ fetchImpl: f as any });
     expect(r).toEqual({ sent: 1, failed: 0 });
     const [row] = await db.select().from(emailOutbox).where(eq(emailOutbox.idempotencyKey, "k2"));
@@ -35,7 +52,14 @@ describe("outbox", () => {
 
   it("failed send retries with backoff, then fails permanently", async () => {
     const f = failFetch();
-    await enqueueTransactionalEmail({ emailType: "confirmation", to: "a@b.com", subject: "s", html: "h", text: "h", idempotencyKey: "k3" });
+    await enqueueTransactionalEmail({
+      emailType: "confirmation",
+      to: "a@b.com",
+      subject: "s",
+      html: "h",
+      text: "h",
+      idempotencyKey: "k3",
+    });
     // attempts 1-4: backoff; force scheduledAt back to now() before each retry so the test is deterministic
     for (let i = 0; i < 4; i++) {
       await db.update(emailOutbox).set({ scheduledAt: new Date() }).where(eq(emailOutbox.idempotencyKey, "k3"));
@@ -58,7 +82,14 @@ describe("outbox", () => {
   it("MOCK_EMAILIT marks sent without calling provider", async () => {
     setEnv({ MOCK_EMAILIT: "true" });
     const f = okFetch();
-    await enqueueTransactionalEmail({ emailType: "confirmation", to: "a@b.com", subject: "s", html: "h", text: "h", idempotencyKey: "k4" });
+    await enqueueTransactionalEmail({
+      emailType: "confirmation",
+      to: "a@b.com",
+      subject: "s",
+      html: "h",
+      text: "h",
+      idempotencyKey: "k4",
+    });
     const r = await processOutbox({ fetchImpl: f as any });
     expect(r).toEqual({ sent: 1, failed: 0 });
     expect(f).not.toHaveBeenCalled();

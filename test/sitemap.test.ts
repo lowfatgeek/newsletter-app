@@ -1,18 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../src/lib/db";
 import { rewardCampaignLocales, rewardCampaigns } from "../src/lib/schema";
 import { GET } from "../src/pages/api/sitemap.xml";
 import { resetDb, setEnv } from "./helpers";
 
-async function insertCampaign(
-  slug: string,
-  status: "published" | "draft",
-  indexable: boolean,
-) {
-  const [camp] = await db
-    .insert(rewardCampaigns)
-    .values({ slug, status, indexable })
-    .returning();
+async function insertCampaign(slug: string, status: "published" | "draft", indexable: boolean) {
+  const [camp] = await db.insert(rewardCampaigns).values({ slug, status, indexable }).returning();
   await db.insert(rewardCampaignLocales).values({
     campaignId: camp.id,
     locale: "id",

@@ -1,17 +1,18 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { listContacts, buildContactsCsv, anonymizeContact, getContactDetail } from "../../src/lib/admin/contacts";
-import { db } from "../../src/lib/db";
-import {
-  contacts, marketingSubscriptions, rewardCampaigns, accessTokens, emailDeliveries,
-} from "../../src/lib/schema";
 import { eq } from "drizzle-orm";
-import { upsertClaim, issueClaimToken } from "../../src/lib/access";
+import { beforeEach, describe, expect, it } from "vitest";
+import { issueClaimToken, upsertClaim } from "../../src/lib/access";
+import { anonymizeContact, buildContactsCsv, getContactDetail, listContacts } from "../../src/lib/admin/contacts";
+import { db } from "../../src/lib/db";
+import { accessTokens, contacts, emailDeliveries, marketingSubscriptions, rewardCampaigns } from "../../src/lib/schema";
 import { resetDb } from "../helpers";
 
 describe("contacts admin", () => {
   beforeEach(resetDb);
   async function seed() {
-    const [c1] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" }).returning();
+    const [c1] = await db
+      .insert(contacts)
+      .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+      .returning();
     const [c2] = await db.insert(contacts).values({ emailNormalized: "sari@yahoo.com" }).returning();
     const [camp] = await db.insert(rewardCampaigns).values({ slug: "c1", status: "published" }).returning();
     await upsertClaim(c1.id, camp.id);
@@ -30,18 +31,22 @@ describe("contacts admin", () => {
     expect(searched.rows).toHaveLength(1);
     // unsubscribed = status pada marketing_subscription
     expect(await listContacts({ status: "unsubscribed", limit: 10, offset: 0 })).toEqual({ rows: [], total: 0 });
-    await db.insert(marketingSubscriptions).values({ contactId: c2.id, status: "unsubscribed", unsubscribedAt: new Date() });
+    await db
+      .insert(marketingSubscriptions)
+      .values({ contactId: c2.id, status: "unsubscribed", unsubscribedAt: new Date() });
     const unsub = await listContacts({ status: "unsubscribed", limit: 10, offset: 0 });
     expect(unsub.rows.map((r) => r.emailNormalized)).toEqual(["sari@yahoo.com"]);
   });
   it("csv has required columns and no secrets, and audits export", async () => {
     const { c1 } = await seed();
     const csv = await buildContactsCsv({ limit: 100, offset: 0 }, { adminUserId: null, ip: "1.1.1.1" });
-    expect(csv.split("\n")[0]).toBe("email,locale,confirmation_status,marketing_status,subscribed_at,unsubscribed_at,created_at,reward_claims");
+    expect(csv.split("\n")[0]).toBe(
+      "email,locale,confirmation_status,marketing_status,subscribed_at,unsubscribed_at,created_at,reward_claims",
+    );
     expect(csv).toContain("budi@gmail.com");
     expect(csv).not.toContain("token");
     const { adminAuditLog } = await import("../../src/lib/schema");
-    expect((await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "contacts_exported")))).toHaveLength(1);
+    expect(await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "contacts_exported"))).toHaveLength(1);
   });
   it("anonymize masks email and deletes tokens", async () => {
     const { c1 } = await seed();
@@ -63,7 +68,7 @@ describe("contacts admin", () => {
     expect(detail).not.toBeNull();
     expect(detail?.claims).toHaveLength(1); // riwayat claim tetap
     const { adminAuditLog } = await import("../../src/lib/schema");
-    expect((await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "contact_anonymized")))).toHaveLength(1);
+    expect(await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "contact_anonymized"))).toHaveLength(1);
   });
   it("paginates with total across pages", async () => {
     await seed();

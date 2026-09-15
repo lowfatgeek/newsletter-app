@@ -1,6 +1,6 @@
 ---
+import { type Locale, t } from "../lib/i18n";
 import { issueTimerToken } from "../lib/timer";
-import { t, type Locale } from "../lib/i18n";
 
 interface Props {
   slug: string;
@@ -25,6 +25,8 @@ const copy = {
   submitting: t(locale, "submittingCta"),
   privacy: t(locale, "privacyLink"),
   cta: t(locale, "submitCta"),
+  errorEmail: t(locale, "errorEmailInvalid"),
+  errorGeneric: t(locale, "errorGeneric"),
 };
 const action = "/api/subscribe";
 const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
@@ -61,10 +63,13 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     required
     autocomplete="email"
     inputmode="email"
+    aria-describedby="form-error"
     style="width: 100%; min-height: 48px; border: var(--border-default); border-radius: var(--radius-control); padding: 0 var(--space-4); font-size: 16px; background: var(--color-surface-raised); color: var(--color-ink); font-family: inherit;"
   />
 
-  <p id="form-error" hidden style="background: var(--color-danger-subtle); color: var(--color-danger); border-radius: var(--radius-control); padding: var(--space-3); margin-top: var(--space-3); font-size: var(--text-body-sm);"></p>
+  <!-- Task 2.16 / 02-U9: dulu elemen ini tidak pernah ditulis; sekarang jadi
+       tujuan pesan validasi interaktif (email tidak valid / timer belum selesai). -->
+  <p id="form-error" role="alert" hidden style="background: var(--color-danger-subtle); color: var(--color-danger); border-radius: var(--radius-control); padding: var(--space-3); margin-top: var(--space-3); font-size: var(--text-body-sm);"></p>
 
   <p style="font-size: var(--text-body-sm); color: var(--color-text-muted); margin-top: var(--space-3); line-height: 1.58;">
     {copy.consent}<a href={privacyHref} style="text-decoration: underline; color: var(--color-info);">{copy.privacy}</a>.
@@ -87,7 +92,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   <button
     id="submit-btn"
     type="submit"
-    style="width: 100%; min-height: 48px; margin-top: var(--space-4); border: none; border-radius: var(--radius-control); background: var(--color-primary); color: #ffffff; font-weight: var(--font-weight-semibold); font-size: 16px; cursor: pointer; font-family: inherit;"
+    style="width: 100%; min-height: 48px; margin-top: var(--space-4); border: none; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-surface-raised); font-weight: var(--font-weight-semibold); font-size: 16px; cursor: pointer; font-family: inherit;"
   >{copy.cta}</button>
 </form>
 
@@ -103,6 +108,9 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     ten: string;
     cta: string;
     submitting: string;
+    tooFast: string;
+    errorEmail: string;
+    errorGeneric: string;
   };
   const TOTAL = Number(form.dataset.timerMs) || 30_000;
   const TEN_LEFT = Math.max(0, TOTAL - 10_000);
@@ -115,6 +123,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   btn.style.cursor = "not-allowed";
 
   let announcedTen = false;
+  let unlocked = false;
   const start = Date.now();
 
   // Segarkan token (best-effort). Kalau gagal, token server-rendered tetap dipakai.
@@ -130,10 +139,11 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     .catch(() => {});
 
   const unlock = () => {
+    unlocked = true;
     btn.disabled = false;
     btn.removeAttribute("aria-disabled");
     btn.style.background = "var(--color-primary)";
-    btn.style.color = "#ffffff";
+    btn.style.color = "var(--color-surface-raised)";
     btn.style.cursor = "pointer";
   };
 
@@ -154,6 +164,20 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   };
   requestAnimationFrame(tick);
 
+  // Task 2.16 / 02-U9: pesan kesalahan interaktif ditulis ke #form-error
+  // (dulu elemen itu tidak pernah diisi), bukan hanya balon validasi browser.
+  const errEl = document.getElementById("form-error") as HTMLElement;
+  const showError = (msg: string) => {
+    errEl.textContent = msg;
+    errEl.hidden = false;
+  };
+  const clearError = () => {
+    errEl.hidden = true;
+    errEl.textContent = "";
+  };
+  const emailEl = document.getElementById("email") as HTMLInputElement;
+  emailEl.addEventListener("input", clearError);
+
   // Guard double-submit (task 02-U2): kunci tombol begitu submit diterima,
   // pulihkan setelah 8s bila browser membatalkan navigasi (mis. error jaringan).
   let isSubmitting = false;
@@ -162,10 +186,17 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
       e.preventDefault();
       return;
     }
-    // Validitas bawaan HTML5 (email + required) dicek sebelum mengunci tombol;
-    // browser akan menampilkan pesan validasinya sendiri.
-    if (!form.checkValidity()) return;
-
+    if (!unlocked) {
+      e.preventDefault();
+      showError(copy.tooFast);
+      return;
+    }
+    if (!form.checkValidity()) {
+      e.preventDefault();
+      showError(emailEl.validity.typeMismatch ? copy.errorEmail : copy.errorGeneric);
+      return;
+    }
+    clearError();
     isSubmitting = true;
     const originalText = btn.textContent;
     btn.disabled = true;

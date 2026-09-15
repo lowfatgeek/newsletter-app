@@ -9,9 +9,7 @@ import type { AuditOpts } from "./campaigns";
  * validasi minimal: mengandung titik, tanpa @, tanpa spasi.
  */
 
-export type DomainResult =
-  | { ok: true; domain: string }
-  | { ok: false; reason: "invalid-domain" | "already-exists" };
+export type DomainResult = { ok: true; domain: string } | { ok: false; reason: "invalid-domain" | "already-exists" };
 
 export function validateDomain(raw: string): string | null {
   const domain = raw.trim().toLowerCase();
@@ -41,11 +39,7 @@ export async function addDomain(raw: string, auditOpts?: AuditOpts): Promise<Dom
   return { ok: true, domain };
 }
 
-export async function setDomainActive(
-  raw: string,
-  active: boolean,
-  auditOpts?: AuditOpts,
-): Promise<DomainResult> {
+export async function setDomainActive(raw: string, active: boolean, auditOpts?: AuditOpts): Promise<DomainResult> {
   const domain = validateDomain(raw);
   if (!domain) return { ok: false, reason: "invalid-domain" };
   const updated = await db

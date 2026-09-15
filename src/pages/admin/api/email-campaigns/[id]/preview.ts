@@ -2,8 +2,8 @@ import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../../lib/admin/guard";
+import { type CampaignContent, renderForRecipient } from "../../../../../lib/broadcast/content";
 import { getCampaignForBroadcast } from "../../../../../lib/broadcast/machine";
-import { renderForRecipient, type CampaignContent } from "../../../../../lib/broadcast/content";
 import { env } from "../../../../../lib/env";
 
 export const prerender = false;

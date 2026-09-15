@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { isDomainAllowed, DEFAULT_DOMAINS } from "../src/lib/allowlist";
+import { beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_DOMAINS, isDomainAllowed } from "../src/lib/allowlist";
 import { db } from "../src/lib/db";
 import { emailDomains } from "../src/lib/schema";
 import { resetDb } from "./helpers";
@@ -21,8 +21,15 @@ describe("isDomainAllowed", () => {
   });
   it("DEFAULT_DOMAINS contains the 9 PRD domains", () => {
     expect(DEFAULT_DOMAINS).toEqual([
-      "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com",
-      "yahoo.com", "icloud.com", "me.com", "proton.me",
+      "gmail.com",
+      "googlemail.com",
+      "outlook.com",
+      "hotmail.com",
+      "live.com",
+      "yahoo.com",
+      "icloud.com",
+      "me.com",
+      "proton.me",
     ]);
   });
 });

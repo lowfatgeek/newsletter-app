@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "../../src/lib/db";
-import { adminUsers } from "../../src/lib/schema";
+import { beforeEach, describe, expect, it } from "vitest";
+import { mintTrustedDevice } from "../../src/lib/admin/devices";
 import { getAdmin } from "../../src/lib/admin/guard";
 import { createAdminSession } from "../../src/lib/admin/sessions";
-import { mintTrustedDevice } from "../../src/lib/admin/devices";
+import { db } from "../../src/lib/db";
+import { adminUsers } from "../../src/lib/schema";
 import { resetDb } from "../helpers";
 
 function fakeCookies(map: Record<string, string>) {

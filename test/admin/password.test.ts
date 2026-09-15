@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { hashPassword, verifyPassword, assertPasswordStrength } from "../../src/lib/admin/password";
+import { describe, expect, it } from "vitest";
+import { assertPasswordStrength, hashPassword, verifyPassword } from "../../src/lib/admin/password";
 
 describe("password", () => {
   it("argon2id round-trip", async () => {

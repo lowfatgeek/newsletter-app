@@ -1,0 +1,67 @@
+---
+import PublicLayout from "../../../layouts/PublicLayout.astro";
+import { resolveUnsubscribeToken } from "../../../lib/broadcast/unsubscribe";
+
+export const prerender = false;
+
+// English mirror of /subscribe-again/[token] (task 2.14 / 11-C4) — halaman
+// persetujuan re-subscribe untuk penerima email berbahasa Inggris.
+const { token } = Astro.params;
+const ok = Astro.url.searchParams.get("ok") === "1";
+const target = token && token !== "invalid" ? await resolveUnsubscribeToken(token) : null;
+const valid = target !== null;
+// Tautan silang ke halaman ID. Dihitung di frontmatter: di dalam template,
+// kondisi !valid menyempitkan `target` ke null sehingga `.locale` tidak dapat
+// dibaca di sana.
+const linkId = target?.locale === "id" && token ? `/subscribe-again/${token}` : null;
+---
+<PublicLayout title="Re-enable the newsletter" lang="en" noindex>
+  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
+    {!valid ? (
+      <div style="background: var(--color-warning-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">This link is no longer valid</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          This link is invalid or has expired. If you would like to subscribe again, please claim
+          the gift again from the homepage using the same email address.
+        </p>
+        <a href="/" style="color: var(--color-primary); font-weight: 600;">Back to the homepage</a>
+        {linkId ? (
+          <p style="margin: var(--space-4) 0 0; font-size: var(--text-body-sm);">
+            <a href={linkId} style="color: var(--color-info);">Versi bahasa Indonesia</a>
+          </p>
+        ) : null}
+      </div>
+    ) : ok ? (
+      <div style="background: var(--color-success-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">The newsletter is active again</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          Thank you! You will receive the next KelasWFA newsletter email.
+        </p>
+        <a href="/" style="color: var(--color-primary); font-weight: 600;">Back to the homepage</a>
+      </div>
+    ) : (
+      <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card);">
+        <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">Re-enable the KelasWFA newsletter</h1>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
+          You previously unsubscribed from the KelasWFA newsletter. By pressing the button below,
+          you give new consent to receive our newsletter emails again.
+        </p>
+        <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-6); font-size: var(--text-body-sm);">
+          What you should know: this consent applies to broadcast newsletters only. Transactional
+          emails — such as your gift access links — are still sent regardless of your choice, and
+          you can unsubscribe at any time via the link at the bottom of every email.
+        </p>
+        <form method="post" action="/api/unsubscribe/resubscribe">
+          <input type="hidden" name="token" value={token} />
+          <input type="hidden" name="locale" value="en" />
+          <button
+            type="submit"
+            style="background: var(--color-primary); color: var(--color-surface-raised); border: none; border-radius: var(--radius-control); font-weight: 600; font-size: var(--text-body-lg); padding: 14px 28px; min-height: 48px; cursor: pointer; width: 100%;"
+          >
+            Yes, re-enable the newsletter
+          </button>
+        </form>
+      </div>
+    )}
+  </main>
+</PublicLayout>

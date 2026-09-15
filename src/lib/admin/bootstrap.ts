@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { adminUsers } from "../schema";
-import { hashPassword, assertPasswordStrength } from "./password";
 import { env } from "../env";
+import { adminUsers } from "../schema";
+import { assertPasswordStrength, hashPassword } from "./password";
 
 export type EnsureAdminOptions = {
   /**

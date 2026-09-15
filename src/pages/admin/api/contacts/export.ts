@@ -1,8 +1,7 @@
 import type { APIRoute } from "astro";
-
+import { buildContactsCsv } from "../../../../lib/admin/contacts";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin } from "../../../../lib/admin/guard";
-import { buildContactsCsv } from "../../../../lib/admin/contacts";
 import { clientIp } from "../../../../lib/ip";
 
 export const prerender = false;

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { putObject } from "../src/lib/storage";
 import { setEnv } from "./helpers";
 
@@ -6,19 +6,19 @@ import { setEnv } from "./helpers";
 // header constructor ke signableHeaders) — objek reward tersimpan dengan MIME
 // asli, bukan application/octet-stream, agar unduhan signed-URL bisa preview.
 describe("putObject (MOCK_R2=false, fetch di-mock)", () => {
-  beforeEach(() => setEnv({
-    MOCK_R2: "false",
-    R2_ACCOUNT_ID: "acct",
-    R2_ACCESS_KEY_ID: "key",
-    R2_SECRET_ACCESS_KEY: "sec",
-    R2_BUCKET: "bucket",
-  }));
+  beforeEach(() =>
+    setEnv({
+      MOCK_R2: "false",
+      R2_ACCOUNT_ID: "acct",
+      R2_ACCESS_KEY_ID: "key",
+      R2_SECRET_ACCESS_KEY: "sec",
+      R2_BUCKET: "bucket",
+    }),
+  );
   afterEach(() => vi.unstubAllGlobals());
 
   it("mengirim Content-Type sesuai contentType dan tetap ter-signing", async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(null, { status: 200 }),
-    );
+    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await putObject("rewards/e2e/guide.pdf", new ArrayBuffer(8), "application/pdf");
@@ -45,7 +45,10 @@ describe("putObject (MOCK_R2=false, fetch di-mock)", () => {
   });
 
   it("gagal R2 (non-2xx) tetap melempar error", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 403 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 403 })),
+    );
     await expect(putObject("rewards/x.pdf", new ArrayBuffer(1), "application/pdf")).rejects.toThrow(/403/);
   });
 

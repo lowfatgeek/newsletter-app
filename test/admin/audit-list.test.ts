@@ -1,17 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { audit, listAuditEvents } from "../../src/lib/admin/audit";
 import { db } from "../../src/lib/db";
 import { adminUsers } from "../../src/lib/schema";
-import { audit, listAuditEvents } from "../../src/lib/admin/audit";
 import { resetDb } from "../helpers";
 
 describe("listAuditEvents", () => {
   beforeEach(resetDb);
 
   it("membaca baris via audit() + total benar + join email admin", async () => {
-    const [admin] = await db
-      .insert(adminUsers)
-      .values({ email: "ops@gmail.com", passwordHash: "x" })
-      .returning();
+    const [admin] = await db.insert(adminUsers).values({ email: "ops@gmail.com", passwordHash: "x" }).returning();
     await audit("login_ok", { adminUserId: admin.id, detail: { a: 1 }, ip: "9.9.9.9" });
     await audit("campaign_publish", { detail: { slug: "hadiah" } });
 

@@ -1,13 +1,11 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { audit } from "../admin/audit";
 import { db } from "../db";
 import { env } from "../env";
-import {
-  contacts, consentEvents, emailCampaignRecipients, emailCampaigns, emailDeliveries,
-} from "../schema";
-import { renderForRecipient, type CampaignContent } from "./content";
 import { enqueueTransactionalEmail } from "../outbox";
 import { consumeRateLimit } from "../ratelimit";
-import { audit } from "../admin/audit";
+import { consentEvents, contacts, emailCampaignRecipients, emailCampaigns, emailDeliveries } from "../schema";
+import { type CampaignContent, renderForRecipient } from "./content";
 
 /**
  * Statistik kampanye broadcast (angka tabular).
@@ -50,10 +48,7 @@ export async function campaignStats(campaignId: string): Promise<CampaignStats> 
     .select({ status: emailDeliveries.status, n: sql<number>`count(*)::int` })
     .from(emailDeliveries)
     .innerJoin(emailCampaignRecipients, eq(emailDeliveries.campaignRecipientId, emailCampaignRecipients.id))
-    .where(and(
-      eq(emailCampaignRecipients.campaignId, campaignId),
-      eq(emailDeliveries.emailType, "broadcast"),
-    ))
+    .where(and(eq(emailCampaignRecipients.campaignId, campaignId), eq(emailDeliveries.emailType, "broadcast")))
     .groupBy(emailDeliveries.status);
   const delBy = new Map(delRows.map((d) => [d.status, d.n]));
 
@@ -69,18 +64,23 @@ export async function campaignStats(campaignId: string): Promise<CampaignStats> 
   const [unsub] = await db
     .select({ n: sql<number>`count(distinct ${emailCampaignRecipients.id})::int` })
     .from(emailCampaignRecipients)
-    .leftJoin(emailDeliveries, and(
-      eq(emailDeliveries.campaignRecipientId, emailCampaignRecipients.id),
-      eq(emailDeliveries.emailType, "broadcast"),
-    ))
-    .innerJoin(consentEvents, and(
-      eq(consentEvents.contactId, emailCampaignRecipients.contactId),
-      eq(consentEvents.event, "unsubscribed"),
-    ))
-    .where(and(
-      eq(emailCampaignRecipients.campaignId, campaignId),
-      sql`${consentEvents.createdAt} >= coalesce(${emailDeliveries.sentAt}, ${fallbackAt ? fallbackAt.toISOString() : null})`,
-    ));
+    .leftJoin(
+      emailDeliveries,
+      and(
+        eq(emailDeliveries.campaignRecipientId, emailCampaignRecipients.id),
+        eq(emailDeliveries.emailType, "broadcast"),
+      ),
+    )
+    .innerJoin(
+      consentEvents,
+      and(eq(consentEvents.contactId, emailCampaignRecipients.contactId), eq(consentEvents.event, "unsubscribed")),
+    )
+    .where(
+      and(
+        eq(emailCampaignRecipients.campaignId, campaignId),
+        sql`${consentEvents.createdAt} >= coalesce(${emailDeliveries.sentAt}, ${fallbackAt ? fallbackAt.toISOString() : null})`,
+      ),
+    );
 
   return {
     recipients: recip?.recipients ?? 0,
@@ -148,19 +148,19 @@ export async function listRecipients(
     })
     .from(emailCampaignRecipients)
     .innerJoin(contacts, eq(contacts.id, emailCampaignRecipients.contactId))
-    .leftJoin(emailDeliveries, and(
-      eq(emailDeliveries.campaignRecipientId, emailCampaignRecipients.id),
-      eq(emailDeliveries.emailType, "broadcast"),
-    ))
+    .leftJoin(
+      emailDeliveries,
+      and(
+        eq(emailDeliveries.campaignRecipientId, emailCampaignRecipients.id),
+        eq(emailDeliveries.emailType, "broadcast"),
+      ),
+    )
     .where(where)
     .orderBy(asc(contacts.emailNormalized))
     .limit(opts.limit)
     .offset(opts.offset);
 
-  const [tot] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(emailCampaignRecipients)
-    .where(where);
+  const [tot] = await db.select({ n: sql<number>`count(*)::int` }).from(emailCampaignRecipients).where(where);
 
   return { rows, total: tot?.n ?? 0 };
 }
@@ -186,10 +186,7 @@ const RETRYABLE_STATUSES = new Set(["sending", "queued", "completed", "failed"])
  * - audit "campaign_retry_failed" detail {reset, requeued}
  * - tolak draft/scheduled/paused/cancelled → invalid-state
  */
-export async function retryFailedRecipients(
-  campaignId: string,
-  auditOpts?: AuditOpts,
-): Promise<RetryFailedResult> {
+export async function retryFailedRecipients(campaignId: string, auditOpts?: AuditOpts): Promise<RetryFailedResult> {
   if (!(await consumeRateLimit("broadcast_retry", campaignId, 3))) {
     return { ok: false, reason: "rate-limited" };
   }
@@ -203,10 +200,7 @@ export async function retryFailedRecipients(
   const resetRows = await db
     .update(emailCampaignRecipients)
     .set({ status: "pending" })
-    .where(and(
-      eq(emailCampaignRecipients.campaignId, campaignId),
-      eq(emailCampaignRecipients.status, "failed"),
-    ))
+    .where(and(eq(emailCampaignRecipients.campaignId, campaignId), eq(emailCampaignRecipients.status, "failed")))
     .returning({ id: emailCampaignRecipients.id });
   const reset = resetRows.length;
 
@@ -217,10 +211,7 @@ export async function retryFailedRecipients(
     const upd = await db
       .update(emailCampaigns)
       .set({ status: "queued", updatedAt: new Date() })
-      .where(and(
-        eq(emailCampaigns.id, campaignId),
-        inArray(emailCampaigns.status, ["completed", "failed"]),
-      ))
+      .where(and(eq(emailCampaigns.id, campaignId), inArray(emailCampaigns.status, ["completed", "failed"])))
       .returning({ id: emailCampaigns.id });
     requeued = upd.length > 0;
   }
@@ -267,10 +258,11 @@ export async function sendTestEmail(
   }
 
   const [campaign] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, campaignId));
-  const hasIdContent = !!campaign
-    && campaign.subjectId.trim() !== ""
-    && (campaign.preheaderId ?? "").trim() !== ""
-    && campaign.bodyHtmlId.trim() !== "";
+  const hasIdContent =
+    !!campaign &&
+    campaign.subjectId.trim() !== "" &&
+    (campaign.preheaderId ?? "").trim() !== "" &&
+    campaign.bodyHtmlId.trim() !== "";
   if (!campaign || !hasIdContent) {
     return { ok: false, reason: "no-content" };
   }

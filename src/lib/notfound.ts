@@ -5,16 +5,34 @@
  *  - src/pages/r/[slug].astro + en/r/[slug].astro (render on-demand via
  *    `new Response(html, { status: 404 })` — Astro.rewrite("/404") tidak bisa
  *    menarget route prerender dari halaman server).
- * CSS di-inline supaya dokumen berdiri sendiri (tanpa dependensi bundle).
+ * Task 2.14 / 11-C4: menerima `locale` supaya rute /en/* mengembalikan copy
+ * bahasa Inggris. CSS di-inline supaya dokumen berdiri sendiri (tanpa
+ * dependensi bundle).
  */
-export function notFoundHtml(): string {
+export function notFoundHtml(locale: "id" | "en" = "id"): string {
+  const copy =
+    locale === "en"
+      ? {
+          lang: "en",
+          title: "Page not found",
+          heading: "Page not found",
+          body: "The page or gift you are looking for may have moved, or the link is no longer valid.",
+          cta: "Back to the homepage",
+        }
+      : {
+          lang: "id",
+          title: "Halaman tidak ditemukan",
+          heading: "Halaman tidak ditemukan",
+          body: "Halaman atau hadiah yang kamu cari mungkin sudah dipindah atau tautannya tidak berlaku lagi.",
+          cta: "Kembali ke beranda",
+        };
   return `<!doctype html>
-<html lang="id">
+<html lang="${copy.lang}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Halaman tidak ditemukan</title>
+    <title>${copy.title}</title>
     <style>
       body {
         margin: 0;
@@ -58,9 +76,9 @@ export function notFoundHtml(): string {
     <main style="width: 100%; display: flex; justify-content: center;">
       <section class="card">
         <p class="code">404</p>
-        <h1>Halaman tidak ditemukan</h1>
-        <p>Halaman atau hadiah yang kamu cari mungkin sudah dipindah atau tautannya tidak berlaku lagi.</p>
-        <a href="/">Kembali ke beranda</a>
+        <h1>${copy.heading}</h1>
+        <p>${copy.body}</p>
+        <a href="/">${copy.cta}</a>
       </section>
     </main>
   </body>
@@ -72,8 +90,8 @@ export function notFoundHtml(): string {
  * Astro.rewrite("/404") tidak bisa menarget route prerender dari halaman
  * server, jadi respons dibuat manual di sini (sumber tunggal).
  */
-export function notFoundResponse(): Response {
-  return new Response(notFoundHtml(), {
+export function notFoundResponse(locale: "id" | "en" = "id"): Response {
+  return new Response(notFoundHtml(locale), {
     status: 404,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });

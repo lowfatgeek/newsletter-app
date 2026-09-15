@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../src/lib/db";
 import {
   consentEvents,
@@ -120,7 +120,10 @@ describe("processSubscribe", () => {
   });
 
   it("confirmed contact: access email without re-opt-in, no duplicate claim", async () => {
-    await db.insert(contacts).values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" }).returning();
+    await db
+      .insert(contacts)
+      .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+      .returning();
     const r = await processSubscribe(input({ timerToken: agedToken(camp.id) }));
     expect(r).toEqual({ ok: true, alreadyConfirmed: true });
     const mails = await db.select().from(emailOutbox);
@@ -129,7 +132,10 @@ describe("processSubscribe", () => {
   });
 
   it("email rate limit: 5 per hour for same email", async () => {
-    await db.insert(contacts).values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" }).returning();
+    await db
+      .insert(contacts)
+      .values({ emailNormalized: "budi@gmail.com", confirmationStatus: "confirmed" })
+      .returning();
     for (let i = 0; i < 5; i++) {
       const r = await processSubscribe(input({ timerToken: agedToken(camp.id) }));
       expect(r).toEqual({ ok: true, alreadyConfirmed: true });

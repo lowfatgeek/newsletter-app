@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { addDomain, setDomainActive, removeDomain } from "../../src/lib/admin/domains";
+import { asc, eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import { addDomain, removeDomain, setDomainActive } from "../../src/lib/admin/domains";
 import { db } from "../../src/lib/db";
 import { adminAuditLog, emailDomains } from "../../src/lib/schema";
-import { eq, asc } from "drizzle-orm";
 import { resetDb } from "../helpers";
 
 describe("domain management", () => {

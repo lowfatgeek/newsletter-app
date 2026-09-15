@@ -1,14 +1,25 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  campaignStats,
+  listRecipients,
+  progressOf,
+  retryFailedRecipients,
+  sendTestEmail,
+} from "../../src/lib/broadcast/stats";
 import { db } from "../../src/lib/db";
 import {
-  contacts, marketingSubscriptions, consentEvents, emailCampaigns,
-  emailCampaignRecipients, emailDeliveries, emailOutbox, adminAuditLog, adminUsers,
+  adminAuditLog,
+  adminUsers,
+  consentEvents,
+  contacts,
+  emailCampaignRecipients,
+  emailCampaigns,
+  emailDeliveries,
+  emailOutbox,
+  marketingSubscriptions,
 } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
-import {
-  campaignStats, listRecipients, progressOf, retryFailedRecipients, sendTestEmail,
-} from "../../src/lib/broadcast/stats";
 
 /**
  * Statistik kampanye broadcast (Task 10).
@@ -20,27 +31,34 @@ import {
  */
 
 async function seedContact(email: string) {
-  const [c] = await db.insert(contacts).values({
-    emailNormalized: email, confirmationStatus: "confirmed",
-  }).returning();
+  const [c] = await db
+    .insert(contacts)
+    .values({
+      emailNormalized: email,
+      confirmationStatus: "confirmed",
+    })
+    .returning();
   await db.insert(marketingSubscriptions).values({ contactId: c.id, status: "active", subscribedAt: new Date() });
   return c;
 }
 
 async function seedCampaign() {
-  const [c] = await db.insert(emailCampaigns).values({
-    status: "completed",
-    subjectId: "Halo {{email}}",
-    subjectEn: "Hello {{email}}",
-    preheaderId: "pratinjau",
-    preheaderEn: "preview",
-    bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a></p>',
-    bodyHtmlEn: '<p>Hi <a href="https://a.b/x">one</a></p>',
-    audienceFilter: { all: true },
-    maxPerMinute: 60,
-    maxPerHour: 600,
-    snapshotAt: new Date(Date.now() - 60_000),
-  }).returning();
+  const [c] = await db
+    .insert(emailCampaigns)
+    .values({
+      status: "completed",
+      subjectId: "Halo {{email}}",
+      subjectEn: "Hello {{email}}",
+      preheaderId: "pratinjau",
+      preheaderEn: "preview",
+      bodyHtmlId: '<p>Hai <a href="https://a.b/x">satu</a></p>',
+      bodyHtmlEn: '<p>Hi <a href="https://a.b/x">one</a></p>',
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+      snapshotAt: new Date(Date.now() - 60_000),
+    })
+    .returning();
   return c;
 }
 
@@ -52,15 +70,18 @@ type RecipFixture = {
 };
 
 async function seedRecipient(campaignId: string, f: RecipFixture) {
-  const [r] = await db.insert(emailCampaignRecipients).values({
-    campaignId,
-    contactId: f.contactId,
-    localeSelected: "id",
-    status: f.status,
-    clickTokenHash: `tok-${Math.random().toString(36).slice(2)}${Date.now()}`,
-    clickedAt: f.clicked ? new Date() : null,
-    lastRenderedHtml: "<p>html</p>",
-  }).returning();
+  const [r] = await db
+    .insert(emailCampaignRecipients)
+    .values({
+      campaignId,
+      contactId: f.contactId,
+      localeSelected: "id",
+      status: f.status,
+      clickTokenHash: `tok-${Math.random().toString(36).slice(2)}${Date.now()}`,
+      clickedAt: f.clicked ? new Date() : null,
+      lastRenderedHtml: "<p>html</p>",
+    })
+    .returning();
   if (f.delivery) {
     await db.insert(emailDeliveries).values({
       contactId: f.contactId,
@@ -89,15 +110,19 @@ describe("campaignStats", () => {
     const c = await seedContact("c@gmail.com"); // failed, unsub setelah kirim (dihitung)
 
     await seedRecipient(camp.id, {
-      contactId: a.id, status: "sent", clicked: true,
+      contactId: a.id,
+      status: "sent",
+      clicked: true,
       delivery: { status: "delivered", sentAt },
     });
     await seedRecipient(camp.id, {
-      contactId: b.id, status: "sent",
+      contactId: b.id,
+      status: "sent",
       delivery: { status: "accepted", sentAt },
     });
     await seedRecipient(camp.id, {
-      contactId: c.id, status: "failed",
+      contactId: c.id,
+      status: "failed",
       delivery: { status: "failed", sentAt },
     });
 
@@ -128,11 +153,21 @@ describe("campaignStats", () => {
     const a = await seedContact("a2@gmail.com");
     const b = await seedContact("b2@gmail.com");
     await seedRecipient(camp.id, { contactId: a.id, status: "sent", delivery: { status: "bounced", sentAt } });
-    const rOther = await seedRecipient(other.id, { contactId: b.id, status: "sent", delivery: { status: "delivered", sentAt } });
+    const rOther = await seedRecipient(other.id, {
+      contactId: b.id,
+      status: "sent",
+      delivery: { status: "delivered", sentAt },
+    });
 
     const stats = await campaignStats(camp.id);
     expect(stats).toEqual({
-      recipients: 1, sent: 1, delivered: 0, failed: 0, bounced: 1, unsubscribed: 0, clicks: 0,
+      recipients: 1,
+      sent: 1,
+      delivered: 0,
+      failed: 0,
+      bounced: 1,
+      unsubscribed: 0,
+      clicks: 0,
     });
 
     // delivery milik kampanye lain tidak bocor
@@ -168,19 +203,24 @@ describe("listRecipients", () => {
     const e = await seedContact("re@gmail.com"); // cancelled, tanpa delivery
 
     await seedRecipient(campaignId, {
-      contactId: a.id, status: "sent", clicked: true,
+      contactId: a.id,
+      status: "sent",
+      clicked: true,
       delivery: { status: "delivered", sentAt },
     });
     await seedRecipient(campaignId, {
-      contactId: b.id, status: "sent",
+      contactId: b.id,
+      status: "sent",
       delivery: { status: "accepted", sentAt },
     });
     const cRec = await seedRecipient(campaignId, {
-      contactId: c.id, status: "failed",
+      contactId: c.id,
+      status: "failed",
       delivery: { status: "failed", sentAt },
     });
     // Error panjang — lib mengembalikan UTUH, halaman yang memotong.
-    await db.update(emailDeliveries)
+    await db
+      .update(emailDeliveries)
       .set({ error: "E".repeat(300) })
       .where(eq(emailDeliveries.campaignRecipientId, cRec.id));
     await seedRecipient(campaignId, { contactId: d.id, status: "pending", delivery: null });
@@ -198,7 +238,10 @@ describe("listRecipients", () => {
     const byEmail = new Map(rows.map((r) => [r.email, r]));
     const a = byEmail.get("ra@gmail.com")!;
     expect(a).toMatchObject({
-      locale: "id", status: "sent", deliveryStatus: "delivered", error: null,
+      locale: "id",
+      status: "sent",
+      deliveryStatus: "delivered",
+      error: null,
     });
     expect(a.clickedAt).toBeInstanceOf(Date);
     expect(a.id).toBeTruthy();
@@ -242,9 +285,7 @@ describe("listRecipients", () => {
     expect(page3.rows).toHaveLength(1);
     // urutan deterministik berdasar email — halaman tidak saling tumpang tindih
     const emails = [page1, page2, page3].flatMap((p) => p.rows.map((r) => r.email));
-    expect(emails).toEqual([
-      "ra@gmail.com", "rb@gmail.com", "rc@gmail.com", "rd@gmail.com", "re@gmail.com",
-    ]);
+    expect(emails).toEqual(["ra@gmail.com", "rb@gmail.com", "rc@gmail.com", "rd@gmail.com", "re@gmail.com"]);
   });
 
   it("does not leak rows from other campaigns", async () => {
@@ -268,9 +309,17 @@ describe("retryFailedRecipients", () => {
     const b = await seedContact(`retry-b-${tag}@gmail.com`); // failed
     const c = await seedContact(`retry-c-${tag}@gmail.com`); // sent — tidak disentuh
     const d = await seedContact(`retry-d-${tag}@gmail.com`); // pending — tidak disentuh
-    await seedRecipient(camp.id, { contactId: a.id, status: "failed", delivery: { status: "failed", sentAt: failedAt } });
+    await seedRecipient(camp.id, {
+      contactId: a.id,
+      status: "failed",
+      delivery: { status: "failed", sentAt: failedAt },
+    });
     await seedRecipient(camp.id, { contactId: b.id, status: "failed", delivery: null });
-    await seedRecipient(camp.id, { contactId: c.id, status: "sent", delivery: { status: "delivered", sentAt: failedAt } });
+    await seedRecipient(camp.id, {
+      contactId: c.id,
+      status: "sent",
+      delivery: { status: "delivered", sentAt: failedAt },
+    });
     await seedRecipient(camp.id, { contactId: d.id, status: "pending", delivery: null });
     return camp;
   }
@@ -282,7 +331,9 @@ describe("retryFailedRecipients", () => {
     const res = await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" });
     expect(res).toEqual({ ok: true, reset: 2 });
 
-    const recips = await db.select().from(emailCampaignRecipients)
+    const recips = await db
+      .select()
+      .from(emailCampaignRecipients)
       .where(eq(emailCampaignRecipients.campaignId, camp.id));
     expect(recips.filter((r) => r.status === "failed")).toHaveLength(0);
     expect(recips.filter((r) => r.status === "pending")).toHaveLength(3); // 2 failed reset + 1 pending awal
@@ -292,8 +343,7 @@ describe("retryFailedRecipients", () => {
     const [after] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, camp.id));
     expect(after.status).toBe("sending");
 
-    const audits = await db.select().from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "campaign_retry_failed"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_retry_failed"));
     expect(audits).toHaveLength(1);
     expect(audits[0].adminUserId).toBe(admin.id);
     expect(audits[0].detail).toMatchObject({ reset: 2 });
@@ -307,8 +357,7 @@ describe("retryFailedRecipients", () => {
     const [after] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, camp.id));
     expect(after.status).toBe("queued");
 
-    const audits = await db.select().from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "campaign_retry_failed"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_retry_failed"));
     expect(audits[0].detail).toMatchObject({ reset: 2, requeued: true });
   });
 
@@ -318,17 +367,21 @@ describe("retryFailedRecipients", () => {
       const res = await retryFailedRecipients(camp.id, { adminUserId: null, ip: "1.1.1.1" });
       expect(res).toEqual({ ok: false, reason: "invalid-state" });
 
-      const recips = await db.select().from(emailCampaignRecipients)
+      const recips = await db
+        .select()
+        .from(emailCampaignRecipients)
         .where(eq(emailCampaignRecipients.campaignId, camp.id));
       expect(recips.filter((r) => r.status === "failed")).toHaveLength(2);
     }
-    const audits = await db.select().from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "campaign_retry_failed"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_retry_failed"));
     expect(audits).toHaveLength(0);
   });
 
   it("returns not-found for unknown campaign id", async () => {
-    const res = await retryFailedRecipients("00000000-0000-0000-0000-000000000000", { adminUserId: null, ip: "1.1.1.1" });
+    const res = await retryFailedRecipients("00000000-0000-0000-0000-000000000000", {
+      adminUserId: null,
+      ip: "1.1.1.1",
+    });
     expect(res).toEqual({ ok: false, reason: "not-found" });
   });
 
@@ -339,12 +392,13 @@ describe("retryFailedRecipients", () => {
     expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toMatchObject({ ok: true });
     expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toMatchObject({ ok: true });
     expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toMatchObject({ ok: true });
-    expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" }))
-      .toEqual({ ok: false, reason: "rate-limited" });
+    expect(await retryFailedRecipients(camp.id, { adminUserId: admin.id, ip: "1.1.1.1" })).toEqual({
+      ok: false,
+      reason: "rate-limited",
+    });
 
     // hanya 3 audit (throttle tidak menulis audit)
-    const audits = await db.select().from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "campaign_retry_failed"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_retry_failed"));
     expect(audits).toHaveLength(3);
   });
 });
@@ -368,9 +422,16 @@ describe("sendTestEmail", () => {
   });
 
   it("returns no-content when campaign lacks ID content", async () => {
-    const [camp] = await db.insert(emailCampaigns).values({
-      subjectId: "", preheaderId: "", bodyHtmlId: "", maxPerMinute: 60, maxPerHour: 600,
-    }).returning();
+    const [camp] = await db
+      .insert(emailCampaigns)
+      .values({
+        subjectId: "",
+        preheaderId: "",
+        bodyHtmlId: "",
+        maxPerMinute: 60,
+        maxPerHour: 600,
+      })
+      .returning();
     const res = await sendTestEmail(camp.id, "kelaswfa@gmail.com", { adminUserId: null, ip: "1.1.1.1" });
     expect(res).toEqual({ ok: false, reason: "no-content" });
     expect(await db.select().from(emailOutbox)).toHaveLength(0);
@@ -378,9 +439,13 @@ describe("sendTestEmail", () => {
 
   it("enqueues 2 broadcast_test rows ([TEST] prefixed, id+en), no recipients/deliveries, audits", async () => {
     const camp = await seedCampaign();
-    const [admin] = await db.insert(adminUsers).values({
-      email: "admin@test.dev", passwordHash: "x",
-    }).returning();
+    const [admin] = await db
+      .insert(adminUsers)
+      .values({
+        email: "admin@test.dev",
+        passwordHash: "x",
+      })
+      .returning();
     const res = await sendTestEmail(camp.id, "kelaswfa@gmail.com", { adminUserId: admin.id, ip: "1.1.1.1" });
     expect(res).toEqual({ ok: true });
 
@@ -399,7 +464,9 @@ describe("sendTestEmail", () => {
     expect(new Set(keys).size).toBe(2);
 
     // test send TIDAK menyentuh recipients/stats
-    expect(await db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, camp.id))).toHaveLength(0);
+    expect(
+      await db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, camp.id)),
+    ).toHaveLength(0);
     expect(await db.select().from(emailDeliveries)).toHaveLength(0);
 
     const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_test_sent"));

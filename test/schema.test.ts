@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../src/lib/db";
 import { contacts } from "../src/lib/schema";
-import { eq } from "drizzle-orm";
 import { resetDb } from "./helpers";
 
 describe("schema", () => {

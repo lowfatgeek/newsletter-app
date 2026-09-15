@@ -1,9 +1,13 @@
-import { verifyAdminOrigin } from "../../../lib/admin/guard";
 import type { APIRoute } from "astro";
-
-// Route on-demand — tidak pernah diprerender.
-import { ADMIN_SESSION_COOKIE, ADMIN_DEVICE_COOKIE, adminCookieAttrs, revokeSession } from "../../../lib/admin/sessions";
 import { revokeTrustedDeviceByHash } from "../../../lib/admin/devices";
+import { verifyAdminOrigin } from "../../../lib/admin/guard";
+// Route on-demand — tidak pernah diprerender.
+import {
+  ADMIN_DEVICE_COOKIE,
+  ADMIN_SESSION_COOKIE,
+  adminCookieAttrs,
+  revokeSession,
+} from "../../../lib/admin/sessions";
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -27,7 +31,10 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const cookies = parseCookies(request.headers.get("cookie"));
   const raw = cookies[ADMIN_SESSION_COOKIE];

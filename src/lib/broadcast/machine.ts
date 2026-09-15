@@ -1,13 +1,11 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { audit } from "../admin/audit";
 import { db } from "../db";
 import { env } from "../env";
-import {
-  emailCampaigns, emailCampaignRecipients, type EmailCampaign,
-} from "../schema";
+import { type EmailCampaign, emailCampaignRecipients, emailCampaigns } from "../schema";
+import { isValidUuid } from "../uuid";
 import { validateContent } from "./content";
 import { snapshotRecipients } from "./snapshot";
-import { audit } from "../admin/audit";
-import { isValidUuid } from "../uuid";
 
 /**
  * Status machine kampanye broadcast.
@@ -47,10 +45,7 @@ export function validateLimits(
   maxPerMinute: number,
   maxPerHour: number,
 ): { ok: true } | { ok: false; reason: "non-positive" | "exceeds-provider" } {
-  if (
-    !Number.isInteger(maxPerMinute) || !Number.isInteger(maxPerHour) ||
-    maxPerMinute <= 0 || maxPerHour <= 0
-  ) {
+  if (!Number.isInteger(maxPerMinute) || !Number.isInteger(maxPerHour) || maxPerMinute <= 0 || maxPerHour <= 0) {
     return { ok: false, reason: "non-positive" };
   }
   const { maxPerDay } = providerCaps();
@@ -118,7 +113,8 @@ export async function scheduleCampaign(
 
   const { recipients } = await snapshotRecipients(id);
   const status = opts.scheduledAt ? "scheduled" : "queued";
-  await db.update(emailCampaigns)
+  await db
+    .update(emailCampaigns)
     .set({ status, scheduledAt: opts.scheduledAt, snapshotAt: new Date(), updatedAt: new Date() })
     .where(eq(emailCampaigns.id, id));
 
@@ -155,13 +151,16 @@ export async function scheduleCampaign(
  */
 export async function claimForSending(campaignId: string): Promise<boolean> {
   try {
-    const rows = await db.update(emailCampaigns)
+    const rows = await db
+      .update(emailCampaigns)
       .set({ status: "sending", updatedAt: new Date() })
-      .where(and(
-        eq(emailCampaigns.id, campaignId),
-        eq(emailCampaigns.status, "queued"),
-        sql`not exists (select 1 from email_campaigns ec where ec.status = 'sending' and ec.id <> ${campaignId})`,
-      ))
+      .where(
+        and(
+          eq(emailCampaigns.id, campaignId),
+          eq(emailCampaigns.status, "queued"),
+          sql`not exists (select 1 from email_campaigns ec where ec.status = 'sending' and ec.id <> ${campaignId})`,
+        ),
+      )
       .returning({ id: emailCampaigns.id });
     return rows.length > 0;
   } catch (err) {
@@ -195,7 +194,8 @@ async function transition(
   // Guard 1.9: id non-UUID = tidak mungkin ada barisnya; jangan sampai
   // UPDATE menyentuh kolom uuid dengan nilai ilegal (22P02 → 500).
   if (!isValidUuid(id)) return { ok: false, reason: "not-found" };
-  const rows = await db.update(emailCampaigns)
+  const rows = await db
+    .update(emailCampaigns)
     .set({ status: to, updatedAt: new Date() })
     .where(and(eq(emailCampaigns.id, id), inArray(emailCampaigns.status, from)))
     .returning({ id: emailCampaigns.id });
@@ -207,8 +207,7 @@ async function transition(
     });
     return { ok: true };
   }
-  const [existing] = await db.select({ id: emailCampaigns.id })
-    .from(emailCampaigns).where(eq(emailCampaigns.id, id));
+  const [existing] = await db.select({ id: emailCampaigns.id }).from(emailCampaigns).where(eq(emailCampaigns.id, id));
   return existing ? { ok: false, reason: "invalid-transition" } : { ok: false, reason: "not-found" };
 }
 
@@ -242,12 +241,10 @@ export async function resumeCampaign(id: string, auditOpts?: AuditOpts): Promise
 export async function cancelCampaign(id: string, auditOpts?: AuditOpts): Promise<TransitionResult> {
   const res = await transition(id, ["scheduled", "queued", "paused"], "cancelled", "campaign_cancelled", {}, auditOpts);
   if (res.ok) {
-    await db.update(emailCampaignRecipients)
+    await db
+      .update(emailCampaignRecipients)
       .set({ status: "cancelled" })
-      .where(and(
-        eq(emailCampaignRecipients.campaignId, id),
-        eq(emailCampaignRecipients.status, "pending"),
-      ));
+      .where(and(eq(emailCampaignRecipients.campaignId, id), eq(emailCampaignRecipients.status, "pending")));
   }
   return res;
 }

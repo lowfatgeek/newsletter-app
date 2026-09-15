@@ -11,6 +11,10 @@ const { token } = Astro.params;
 const ok = Astro.url.searchParams.get("ok") === "1";
 const target = token && token !== "invalid" ? await resolveUnsubscribeToken(token) : null;
 const valid = target !== null;
+// Tautan silang ke mirror EN (task 2.14 / 11-C4). Dihitung di frontmatter:
+// di dalam template, kondisi !valid menyempitkan `target` ke null sehingga
+// `.locale` tidak dapat dibaca di sana.
+const linkEn = target?.locale === "en" && token ? `/en/subscribe-again/${token}` : null;
 ---
 <PublicLayout title="Aktifkan kembali newsletter" lang="id" noindex>
   <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
@@ -22,6 +26,11 @@ const valid = target !== null;
           silakan klaim ulang hadiah dari halaman utama dengan email yang sama.
         </p>
         <a href="/" style="color: var(--color-primary); font-weight: 600;">Kembali ke halaman utama</a>
+        {linkEn ? (
+          <p style="margin: var(--space-4) 0 0; font-size: var(--text-body-sm);">
+            <a href={linkEn} style="color: var(--color-info);">English version</a>
+          </p>
+        ) : null}
       </div>
     ) : ok ? (
       <div style="background: var(--color-success-subtle); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6);">
@@ -45,6 +54,7 @@ const valid = target !== null;
         </p>
         <form method="post" action="/api/unsubscribe/resubscribe">
           <input type="hidden" name="token" value={token} />
+          <input type="hidden" name="locale" value="id" />
           <button
             type="submit"
             style="background: var(--color-primary); color: #ffffff; border: none; border-radius: var(--radius-control); font-weight: 600; font-size: var(--text-body-lg); padding: 14px 28px; min-height: 48px; cursor: pointer; width: 100%;"

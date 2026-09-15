@@ -1,10 +1,10 @@
 ---
 import { and, eq } from "drizzle-orm";
-import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { listContacts } from "../../../lib/admin/contacts";
+import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 import { db } from "../../../lib/db";
 import { rewardCampaignLocales, rewardCampaigns } from "../../../lib/schema";
-import AdminLayout from "../../../layouts/AdminLayout.astro";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;
@@ -64,7 +64,10 @@ function pageHref(newOffset: number): string {
 }
 
 /** Badge gabungan: unsubscribed (marketing) > confirmed > pending. */
-function rowStatus(row: { marketingStatus: string | null; confirmationStatus: string }): "confirmed" | "pending" | "unsubscribed" {
+function rowStatus(row: {
+  marketingStatus: string | null;
+  confirmationStatus: string;
+}): "confirmed" | "pending" | "unsubscribed" {
   if (row.marketingStatus === "unsubscribed") return "unsubscribed";
   return row.confirmationStatus === "confirmed" ? "confirmed" : "pending";
 }
@@ -246,7 +249,7 @@ const hasNext = offset + PAGE_SIZE < total;
     display: inline-flex; align-items: center; justify-content: center;
     background: var(--color-surface-raised); border: var(--border-default);
     color: var(--color-ink); border-radius: var(--radius-control);
-    padding: 8px 12px; min-height: 36px;
+    padding: 8px 12px; min-height: 44px;
     font-family: inherit; font-size: var(--text-body-sm); cursor: pointer;
     text-decoration: none;
   }
@@ -259,7 +262,7 @@ const hasNext = offset + PAGE_SIZE < total;
   .search-form { display: flex; gap: var(--space-2); }
   .search-form input {
     font-family: inherit; font-size: var(--text-body);
-    padding: 8px 12px; min-height: 36px; min-width: 220px;
+    padding: 8px 12px; min-height: 44px; min-width: 220px;
     border: var(--border-default); border-radius: var(--radius-control);
     background: var(--color-surface-raised); color: var(--color-text);
   }

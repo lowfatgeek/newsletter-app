@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { audit } from "../../src/lib/admin/audit";
 import { db } from "../../src/lib/db";
 import { adminAuditLog } from "../../src/lib/schema";
-import { audit } from "../../src/lib/admin/audit";
 import { resetDb } from "../helpers";
 
 describe("audit", () => {

@@ -1,14 +1,21 @@
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { consentEvents, contacts, marketingSubscriptions, rewardCampaignLocales, rewardCampaigns, rewardClaims } from "./schema";
-import { verifyTimerToken } from "./timer";
-import { consumeRateLimit, hashIp } from "./ratelimit";
-import { normalizeEmail, emailDomain } from "./email";
+import { issueClaimToken, upsertClaim } from "./access";
 import { isDomainAllowed } from "./allowlist";
-import { upsertClaim, issueClaimToken } from "./access";
-import { enqueueTransactionalEmail } from "./outbox";
-import { confirmationEmail, rewardAccessEmail, maskedEmail } from "./templates";
+import { db } from "./db";
+import { emailDomain, normalizeEmail } from "./email";
 import { env } from "./env";
+import { enqueueTransactionalEmail } from "./outbox";
+import { consumeRateLimit, hashIp } from "./ratelimit";
+import {
+  consentEvents,
+  contacts,
+  marketingSubscriptions,
+  rewardCampaignLocales,
+  rewardCampaigns,
+  rewardClaims,
+} from "./schema";
+import { confirmationEmail, maskedEmail, rewardAccessEmail } from "./templates";
+import { verifyTimerToken } from "./timer";
 
 export type SubscribeInput = {
   email: string;
@@ -53,7 +60,10 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
   const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, input.campaignId));
   if (!camp || camp.status !== "published") return { ok: false, reason: "campaign-unavailable" };
 
-  const locales = await db.select().from(rewardCampaignLocales).where(eq(rewardCampaignLocales.campaignId, input.campaignId));
+  const locales = await db
+    .select()
+    .from(rewardCampaignLocales)
+    .where(eq(rewardCampaignLocales.campaignId, input.campaignId));
   const loc = locales.find((l) => l.locale === input.locale) ?? locales.find((l) => l.locale === "id");
   if (!loc) return { ok: false, reason: "campaign-unavailable" };
 
@@ -99,7 +109,10 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
       ...m,
       idempotencyKey: `access-${claimId}-${raw.slice(0, 12)}`,
     });
-    await db.update(rewardClaims).set({ lastAccessSentAt: new Date(), status: "access_sent" }).where(eq(rewardClaims.id, claimId));
+    await db
+      .update(rewardClaims)
+      .set({ lastAccessSentAt: new Date(), status: "access_sent" })
+      .where(eq(rewardClaims.id, claimId));
     void import("./mailworker").then((w) => w.processOutbox()).catch(() => {}); // best-effort fast drain
     return { ok: true, alreadyConfirmed: true };
   }

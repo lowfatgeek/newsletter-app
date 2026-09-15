@@ -7,7 +7,7 @@ export const prerender = false;
 // one-click unsubscribe in GET /api/unsubscribe/<token>.
 const { token } = Astro.params;
 const invalid = token === "invalid";
-const resubscribeUrl = invalid ? null : `/subscribe-again/${token}`;
+const resubscribeUrl = invalid ? null : `/en/subscribe-again/${token}`;
 ---
 <PublicLayout title={invalid ? "Link no longer valid" : "You are unsubscribed"} lang="en" noindex>
   <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">

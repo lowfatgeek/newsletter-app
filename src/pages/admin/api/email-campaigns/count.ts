@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../lib/admin/guard";
-import { validateFilter, countAudience } from "../../../../lib/broadcast/audience";
+import { countAudience, validateFilter } from "../../../../lib/broadcast/audience";
 
 export const prerender = false;
 
@@ -16,7 +16,10 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);

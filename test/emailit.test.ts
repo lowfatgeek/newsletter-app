@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { sendViaEmailit } from "../src/lib/emailit";
 import { EMAIL_REPLY_TO } from "../src/lib/templates";
 import { setEnv } from "./helpers";
@@ -38,13 +38,9 @@ describe("sendViaEmailit", () => {
   });
 
   it("throws with provider status on non-ok response", async () => {
-    const fetchMock = (async () =>
-      new Response("boom", { status: 500 })) as unknown as typeof fetch;
+    const fetchMock = (async () => new Response("boom", { status: 500 })) as unknown as typeof fetch;
     await expect(
-      sendViaEmailit(
-        { from: "a@b.c", to: "budi@gmail.com", subject: "s", html: "<p>x</p>", text: "x" },
-        fetchMock,
-      ),
+      sendViaEmailit({ from: "a@b.c", to: "budi@gmail.com", subject: "s", html: "<p>x</p>", text: "x" }, fetchMock),
     ).rejects.toThrow(/Emailit 500/);
   });
 });

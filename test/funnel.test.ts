@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../src/lib/db";
+import { getFunnelStats } from "../src/lib/funnel";
 import {
   accessTokens,
   contacts,
@@ -8,7 +9,6 @@ import {
   rewardCampaigns,
   rewardClaims,
 } from "../src/lib/schema";
-import { getFunnelStats } from "../src/lib/funnel";
 import { resetDb } from "./helpers";
 
 async function seedMinimal() {
@@ -40,10 +40,7 @@ async function seedMinimal() {
     unsubscribedAt: new Date(),
   });
 
-  const [claim] = await db
-    .insert(rewardClaims)
-    .values({ contactId: c1.id, campaignId: campaign.id })
-    .returning();
+  const [claim] = await db.insert(rewardClaims).values({ contactId: c1.id, campaignId: campaign.id }).returning();
 
   await db.insert(emailOutbox).values([
     {

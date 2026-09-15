@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
+import { consumeToken } from "./access";
 import { db } from "./db";
 import { rewardAssets, rewardCampaigns, rewardClaims } from "./schema";
-import { consumeToken } from "./access";
-import { presignDownloadUrl, assertAssetDownloadable } from "./storage";
+import { assertAssetDownloadable, presignDownloadUrl } from "./storage";
 import { isValidUuid } from "./uuid";
 
 export const DOWNLOAD_URL_TTL_SEC = 3600;
@@ -18,7 +18,9 @@ export async function resolveDownload(
   const [claim] = await db.select().from(rewardClaims).where(eq(rewardClaims.id, sess.claimId));
   if (!claim) return { ok: false };
   // Asset harus milik claim ini — asset dari campaign lain tidak boleh diunduh.
-  const [asset] = await db.select().from(rewardAssets)
+  const [asset] = await db
+    .select()
+    .from(rewardAssets)
     .where(and(eq(rewardAssets.id, assetId), eq(rewardAssets.campaignId, claim.campaignId)));
   if (!asset) return { ok: false };
   try {
@@ -29,11 +31,11 @@ export async function resolveDownload(
   }
 }
 
-export async function resolveFeaturedImage(
-  key: string,
-): Promise<{ ok: true; url: string } | { ok: false }> {
+export async function resolveFeaturedImage(key: string): Promise<{ ok: true; url: string } | { ok: false }> {
   // Hanya featured_image_key milik campaign published yang boleh disajikan.
-  const [camp] = await db.select().from(rewardCampaigns)
+  const [camp] = await db
+    .select()
+    .from(rewardCampaigns)
     .where(and(eq(rewardCampaigns.featuredImageKey, key), eq(rewardCampaigns.status, "published")));
   if (!camp) return { ok: false };
   return { ok: true, url: await presignDownloadUrl(key, DOWNLOAD_URL_TTL_SEC) };

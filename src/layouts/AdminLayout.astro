@@ -5,7 +5,10 @@ import "@fontsource/plus-jakarta-sans/latin-600.css";
 import "@fontsource/plus-jakarta-sans/latin-700.css";
 import "../styles/tokens.css";
 
-interface Props { title: string; admin?: { email: string } | null; }
+interface Props {
+  title: string;
+  admin?: { email: string } | null;
+}
 const { title, admin = null } = Astro.props;
 ---
 <!doctype html>

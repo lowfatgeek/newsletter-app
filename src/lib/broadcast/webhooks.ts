@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
+import { normalizeEmail } from "../email";
 import { env } from "../env";
 import { emailDeliveries, emailProviderEvents, emailSuppressions } from "../schema";
-import { normalizeEmail } from "../email";
 
 /**
  * Verifikasi signature webhook Emailit.
@@ -14,9 +14,7 @@ import { normalizeEmail } from "../email";
  */
 export function verifyEmailitSignature(rawBody: string, signature: string | null): boolean {
   if (!signature) return false;
-  const expected = createHmac("sha256", env("EMAILIT_WEBHOOK_SECRET"))
-    .update(rawBody)
-    .digest("hex");
+  const expected = createHmac("sha256", env("EMAILIT_WEBHOOK_SECRET")).update(rawBody).digest("hex");
   const a = Buffer.from(expected);
   const b = Buffer.from(signature);
   if (a.length !== b.length) return false;
@@ -94,10 +92,7 @@ export async function processEmailitEvent(event: {
       return "recorded";
     }
     case "email.complaint": {
-      await db
-        .update(emailDeliveries)
-        .set({ status: "suppressed" })
-        .where(eq(emailDeliveries.id, delivery.id));
+      await db.update(emailDeliveries).set({ status: "suppressed" }).where(eq(emailDeliveries.id, delivery.id));
 
       const normalized = event.recipient_email ? normalizeEmail(event.recipient_email) : null;
       if (normalized) {
@@ -110,10 +105,7 @@ export async function processEmailitEvent(event: {
     }
     case "email.failed": {
       if (!isTerminal(delivery.status)) {
-        await db
-          .update(emailDeliveries)
-          .set({ status: "failed" })
-          .where(eq(emailDeliveries.id, delivery.id));
+        await db.update(emailDeliveries).set({ status: "failed" }).where(eq(emailDeliveries.id, delivery.id));
       }
       return "recorded";
     }

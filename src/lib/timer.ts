@@ -20,8 +20,10 @@ export function issueTimerToken(campaignId: string, issuedAt = Date.now()): stri
   return packToken({ c: campaignId, n: randomBytes(12).toString("base64url"), iat: issuedAt } satisfies TimerPayload);
 }
 
-export function verifyTimerToken(token: string, campaignId: string):
-  | { ok: true } | { ok: false; reason: "invalid" | "wrong-campaign" | "too-fast" | "expired" } {
+export function verifyTimerToken(
+  token: string,
+  campaignId: string,
+): { ok: true } | { ok: false; reason: "invalid" | "wrong-campaign" | "too-fast" | "expired" } {
   const payload = unpackToken<TimerPayload>(token);
   if (!payload || typeof payload.c !== "string" || typeof payload.iat !== "number") {
     return { ok: false, reason: "invalid" };

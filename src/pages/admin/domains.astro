@@ -1,7 +1,7 @@
 ---
-import { requireAdminOrRedirect } from "../../lib/admin/guard";
-import { listDomains } from "../../lib/admin/domains";
 import AdminLayout from "../../layouts/AdminLayout.astro";
+import { listDomains } from "../../lib/admin/domains";
+import { requireAdminOrRedirect } from "../../lib/admin/guard";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;
@@ -123,7 +123,7 @@ function fmtDate(d: Date): string {
     display: inline-flex; align-items: center; justify-content: center;
     background: var(--color-surface-raised); border: var(--border-default);
     color: var(--color-ink); border-radius: var(--radius-control);
-    padding: 8px 12px; min-height: 36px;
+    padding: 8px 12px; min-height: 44px;
     font-family: inherit; font-size: var(--text-body-sm); cursor: pointer;
   }
   .btn-ghost-danger {

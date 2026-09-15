@@ -1,11 +1,10 @@
 import type { APIRoute } from "astro";
-
-// Route on-demand — tidak pernah diprerender.
-import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { listAssets, removeAsset, reorderAssets, storeAsset } from "../../../../../lib/admin/assets";
 import { getCampaignById } from "../../../../../lib/admin/campaigns";
-import { MAX_UPLOAD_BYTES } from "../../../../../lib/storage";
+// Route on-demand — tidak pernah diprerender.
+import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { clientIp } from "../../../../../lib/ip";
+import { MAX_UPLOAD_BYTES } from "../../../../../lib/storage";
 
 export const prerender = false;
 
@@ -24,9 +23,7 @@ function auditIp(request: Request) {
 }
 
 /** Shape asset untuk klien (tanpa checksum/storageKey penuh). */
-function assetView(a: {
-  id: string; nameId: string; mimeType: string; sizeBytes: number; sortOrder: number;
-}) {
+function assetView(a: { id: string; nameId: string; mimeType: string; sizeBytes: number; sortOrder: number }) {
   return { id: a.id, nameId: a.nameId, mimeType: a.mimeType, sizeBytes: a.sizeBytes, sortOrder: a.sortOrder };
 }
 
@@ -49,7 +46,10 @@ export const GET: APIRoute = async ({ cookies, params }) => {
  */
 export const POST: APIRoute = async ({ request, cookies, params }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) return unauthorized();
@@ -108,7 +108,10 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
  */
 export const PATCH: APIRoute = async ({ request, cookies, params }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) return unauthorized();
@@ -138,7 +141,10 @@ export const PATCH: APIRoute = async ({ request, cookies, params }) => {
  */
 export const DELETE: APIRoute = async ({ request, cookies, params }) => {
   if (!verifyAdminOrigin(request)) {
-    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const admin = await getAdmin(cookies);
   if (!admin) return unauthorized();

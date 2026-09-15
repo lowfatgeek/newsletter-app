@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../src/lib/db";
-import { contacts, rewardCampaigns, rewardAssets } from "../src/lib/schema";
-import { getPublicCampaignState } from "../src/lib/campaign";
+import { beforeEach, describe, expect, it } from "vitest";
 import { issueSessionToken, upsertClaim } from "../src/lib/access";
+import { getPublicCampaignState } from "../src/lib/campaign";
+import { db } from "../src/lib/db";
 import { resolveDownload } from "../src/lib/download";
+import { contacts, rewardAssets, rewardCampaigns } from "../src/lib/schema";
 import { resetDb, setEnv } from "./helpers";
 
 beforeEach(resetDb);
@@ -30,10 +30,7 @@ describe("public lifecycle gating", () => {
   it("old claim with valid session still downloads while campaign is paused", async () => {
     setEnv({ R2_ACCOUNT_ID: "acct", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s", R2_BUCKET: "b" });
     const [c] = await db.insert(contacts).values({ emailNormalized: "budi@gmail.com" }).returning();
-    const [camp] = await db
-      .insert(rewardCampaigns)
-      .values({ slug: "old", status: "published" })
-      .returning();
+    const [camp] = await db.insert(rewardCampaigns).values({ slug: "old", status: "published" }).returning();
     const [asset] = await db
       .insert(rewardAssets)
       .values({

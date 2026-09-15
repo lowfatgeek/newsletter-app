@@ -1,34 +1,64 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../../src/lib/db";
-import { emailCampaigns, emailCampaignRecipients, emailLinks, contacts } from "../../src/lib/schema";
-import { resetDb } from "../helpers";
-import { hashToken, generateOpaqueToken } from "../../src/lib/crypto";
+import { beforeEach, describe, expect, it } from "vitest";
 import { resolveClick } from "../../src/lib/broadcast/links";
+import { generateOpaqueToken, hashToken } from "../../src/lib/crypto";
+import { db } from "../../src/lib/db";
+import { contacts, emailCampaignRecipients, emailCampaigns, emailLinks } from "../../src/lib/schema";
+import { resetDb } from "../helpers";
 
 async function seedCampaignAndRecipient() {
-  const [contact] = await db.insert(contacts).values({ emailNormalized: "a@gmail.com", confirmationStatus: "confirmed" }).returning();
-  const [campA] = await db.insert(emailCampaigns).values({
-    subjectId: "A", preheaderId: "p", bodyHtmlId: "<p>a</p>",
-    audienceFilter: { all: true }, maxPerMinute: 60, maxPerHour: 600,
-  }).returning();
-  const [campB] = await db.insert(emailCampaigns).values({
-    subjectId: "B", preheaderId: "p", bodyHtmlId: "<p>b</p>",
-    audienceFilter: { all: true }, maxPerMinute: 60, maxPerHour: 600,
-  }).returning();
-  const [linkA] = await db.insert(emailLinks).values({
-    campaignId: campA.id, urlHash: hashToken("https://a.b/x"), url: "https://a.b/x",
-  }).returning();
-  const [linkB] = await db.insert(emailLinks).values({
-    campaignId: campB.id, urlHash: hashToken("https://b.b/y"), url: "https://b.b/y",
-  }).returning();
+  const [contact] = await db
+    .insert(contacts)
+    .values({ emailNormalized: "a@gmail.com", confirmationStatus: "confirmed" })
+    .returning();
+  const [campA] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "A",
+      preheaderId: "p",
+      bodyHtmlId: "<p>a</p>",
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+    })
+    .returning();
+  const [campB] = await db
+    .insert(emailCampaigns)
+    .values({
+      subjectId: "B",
+      preheaderId: "p",
+      bodyHtmlId: "<p>b</p>",
+      audienceFilter: { all: true },
+      maxPerMinute: 60,
+      maxPerHour: 600,
+    })
+    .returning();
+  const [linkA] = await db
+    .insert(emailLinks)
+    .values({
+      campaignId: campA.id,
+      urlHash: hashToken("https://a.b/x"),
+      url: "https://a.b/x",
+    })
+    .returning();
+  const [linkB] = await db
+    .insert(emailLinks)
+    .values({
+      campaignId: campB.id,
+      urlHash: hashToken("https://b.b/y"),
+      url: "https://b.b/y",
+    })
+    .returning();
   const token = generateOpaqueToken();
-  const [recipient] = await db.insert(emailCampaignRecipients).values({
-    campaignId: campA.id,
-    contactId: contact.id,
-    localeSelected: "id",
-    clickTokenHash: hashToken(token),
-  }).returning();
+  const [recipient] = await db
+    .insert(emailCampaignRecipients)
+    .values({
+      campaignId: campA.id,
+      contactId: contact.id,
+      localeSelected: "id",
+      clickTokenHash: hashToken(token),
+    })
+    .returning();
   return { campA, campB, linkA, linkB, token, recipient };
 }
 
@@ -57,7 +87,10 @@ describe("resolveClick", () => {
     const r2 = await resolveClick(linkA.id, token);
     expect(r2).toEqual({ ok: true, url: "https://a.b/x" });
 
-    const [second] = await db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.id, recipient.id));
+    const [second] = await db
+      .select()
+      .from(emailCampaignRecipients)
+      .where(eq(emailCampaignRecipients.id, recipient.id));
     expect(second.clickedAt!.getTime()).toBe(firstAt.getTime());
   });
 

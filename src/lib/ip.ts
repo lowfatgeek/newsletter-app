@@ -13,7 +13,10 @@
 export function clientIp(request: Request): string {
   const xff = request.headers.get("x-forwarded-for");
   if (xff) {
-    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    const parts = xff
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
     if (parts.length > 0) return parts[parts.length - 1];
   }
   return request.headers.get("x-real-ip")?.trim() || "0.0.0.0";

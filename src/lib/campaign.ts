@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "./db";
-import { doaSelections, doaTemplates, rewardCampaignLocales, rewardCampaigns } from "./schema";
 import type { Locale } from "./i18n";
+import { doaSelections, doaTemplates, rewardCampaignLocales, rewardCampaigns } from "./schema";
 
 export type PublishedCampaign = NonNullable<Awaited<ReturnType<typeof getPublishedCampaign>>>;
 
@@ -9,9 +9,7 @@ export type PublishedCampaign = NonNullable<Awaited<ReturnType<typeof getPublish
 // - hidden    → draft/archived/slug tidak ada → 404
 // - paused    → halaman ramah "campaign dijeda" (klaim baru ditolak, klaim lama tetap valid)
 // - published → render normal
-export async function getPublicCampaignState(
-  slug: string,
-): Promise<{ state: "hidden" | "paused" | "published" }> {
+export async function getPublicCampaignState(slug: string): Promise<{ state: "hidden" | "paused" | "published" }> {
   const r = await getPublicCampaignWithContent(slug);
   return { state: r.state };
 }
@@ -25,11 +23,9 @@ export async function getPublicCampaignState(
  * sehingga "bukan published" ≡ hidden/published; published ⇒ konten non-null
  * (localeRow tetap bisa kosong → halaman 404 via pengecekan localeRow).
  */
-export async function getPublicCampaignWithContent(slug: string): Promise<
-  | { state: "hidden" }
-  | { state: "paused" }
-  | { state: "published"; data: PublishedCampaign }
-> {
+export async function getPublicCampaignWithContent(
+  slug: string,
+): Promise<{ state: "hidden" } | { state: "paused" } | { state: "published"; data: PublishedCampaign }> {
   const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.slug, slug));
   if (!camp || camp.status === "draft" || camp.status === "archived") return { state: "hidden" };
   if (camp.status === "paused") return { state: "paused" };
@@ -55,14 +51,8 @@ export async function getCampaignContent(slug: string) {
 }
 
 async function loadCampaignContent(campaign: typeof rewardCampaigns.$inferSelect) {
-  const rows = await db
-    .select()
-    .from(rewardCampaignLocales)
-    .where(eq(rewardCampaignLocales.campaignId, campaign.id));
-  const picks = await db
-    .select()
-    .from(doaSelections)
-    .where(eq(doaSelections.campaignId, campaign.id));
+  const rows = await db.select().from(rewardCampaignLocales).where(eq(rewardCampaignLocales.campaignId, campaign.id));
+  const picks = await db.select().from(doaSelections).where(eq(doaSelections.campaignId, campaign.id));
 
   const doaText = async (variant: "muslim" | "universal", locale: Locale): Promise<string> => {
     const sel = picks.find((p) => p.variant === variant);
@@ -75,13 +65,7 @@ async function loadCampaignContent(campaign: typeof rewardCampaigns.$inferSelect
     const [alt] = await db
       .select()
       .from(doaTemplates)
-      .where(
-        and(
-          eq(doaTemplates.variant, variant),
-          eq(doaTemplates.locale, locale),
-          eq(doaTemplates.name, tpl.name),
-        ),
-      );
+      .where(and(eq(doaTemplates.variant, variant), eq(doaTemplates.locale, locale), eq(doaTemplates.name, tpl.name)));
     return alt?.content ?? tpl.content;
   };
 
@@ -89,7 +73,7 @@ async function loadCampaignContent(campaign: typeof rewardCampaigns.$inferSelect
     campaign,
     localeRow: (
       locale: Locale,
-    ): { row: (typeof rewardCampaignLocales.$inferSelect) | undefined; fallbackToId: boolean } => {
+    ): { row: typeof rewardCampaignLocales.$inferSelect | undefined; fallbackToId: boolean } => {
       const want = rows.find((r) => r.locale === locale);
       if (want) return { row: want, fallbackToId: false };
       const base = rows.find((r) => r.locale === "id");

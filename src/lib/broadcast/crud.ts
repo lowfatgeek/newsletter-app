@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { emailCampaigns, type EmailCampaign } from "../schema";
-import { validateFilter, type AudienceFilter } from "./audience";
-import { sanitizeBody } from "./content";
 import { audit } from "../admin/audit";
+import { db } from "../db";
+import { type EmailCampaign, emailCampaigns } from "../schema";
 import { isValidUuid } from "../uuid";
+import { type AudienceFilter, validateFilter } from "./audience";
+import { sanitizeBody } from "./content";
 
 /**
  * Persistence seam admin untuk email campaign (Task 11).
@@ -50,14 +50,17 @@ export interface DraftPatch {
  * audienceFilter {all:true}, dan limit default. Return id.
  */
 export async function createEmailCampaign(auditOpts?: AuditOpts): Promise<string> {
-  const [row] = await db.insert(emailCampaigns).values({
-    status: "draft",
-    subjectId: "",
-    bodyHtmlId: "",
-    audienceFilter: { all: true },
-    maxPerMinute: DEFAULT_MAX_PER_MINUTE,
-    maxPerHour: DEFAULT_MAX_PER_HOUR,
-  }).returning({ id: emailCampaigns.id });
+  const [row] = await db
+    .insert(emailCampaigns)
+    .values({
+      status: "draft",
+      subjectId: "",
+      bodyHtmlId: "",
+      audienceFilter: { all: true },
+      maxPerMinute: DEFAULT_MAX_PER_MINUTE,
+      maxPerHour: DEFAULT_MAX_PER_HOUR,
+    })
+    .returning({ id: emailCampaigns.id });
 
   await audit("campaign_created", {
     adminUserId: auditOpts?.adminUserId,
@@ -67,9 +70,7 @@ export async function createEmailCampaign(auditOpts?: AuditOpts): Promise<string
   return row.id;
 }
 
-export type UpdateDraftResult =
-  | { ok: true }
-  | { ok: false; reason: "not-found" | "not-draft" | "invalid-filter" };
+export type UpdateDraftResult = { ok: true } | { ok: false; reason: "not-found" | "not-draft" | "invalid-filter" };
 
 /**
  * Simpan draft: subject/preheader/body ID+EN, audience filter (divalidasi),
@@ -84,7 +85,8 @@ export async function updateEmailCampaignDraft(
 ): Promise<UpdateDraftResult> {
   const [campaign] = await db
     .select({ status: emailCampaigns.status, audienceFilter: emailCampaigns.audienceFilter })
-    .from(emailCampaigns).where(eq(emailCampaigns.id, id));
+    .from(emailCampaigns)
+    .where(eq(emailCampaigns.id, id));
   if (!campaign) return { ok: false, reason: "not-found" };
   if (campaign.status !== "draft") return { ok: false, reason: "not-draft" };
 
@@ -105,19 +107,22 @@ export async function updateEmailCampaignDraft(
     return t ? t : null;
   };
 
-  await db.update(emailCampaigns).set({
-    subjectId: patch.subjectId.trim(),
-    preheaderId: patch.preheaderId.trim(),
-    // Persistence seam: simpan hasil sanitizeBody, bukan HTML mentah admin.
-    bodyHtmlId: sanitizeBody(patch.bodyHtmlId),
-    subjectEn: trimOrNull(patch.subjectEn),
-    preheaderEn: trimOrNull(patch.preheaderEn),
-    bodyHtmlEn: patch.bodyHtmlEn?.trim() ? sanitizeBody(patch.bodyHtmlEn) : null,
-    audienceFilter: filter,
-    maxPerMinute: patch.maxPerMinute,
-    maxPerHour: patch.maxPerHour,
-    updatedAt: new Date(),
-  }).where(eq(emailCampaigns.id, id));
+  await db
+    .update(emailCampaigns)
+    .set({
+      subjectId: patch.subjectId.trim(),
+      preheaderId: patch.preheaderId.trim(),
+      // Persistence seam: simpan hasil sanitizeBody, bukan HTML mentah admin.
+      bodyHtmlId: sanitizeBody(patch.bodyHtmlId),
+      subjectEn: trimOrNull(patch.subjectEn),
+      preheaderEn: trimOrNull(patch.preheaderEn),
+      bodyHtmlEn: patch.bodyHtmlEn?.trim() ? sanitizeBody(patch.bodyHtmlEn) : null,
+      audienceFilter: filter,
+      maxPerMinute: patch.maxPerMinute,
+      maxPerHour: patch.maxPerHour,
+      updatedAt: new Date(),
+    })
+    .where(eq(emailCampaigns.id, id));
 
   await audit("campaign_draft_saved", {
     adminUserId: auditOpts?.adminUserId,

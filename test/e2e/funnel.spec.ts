@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test("funnel: timer unlocks, submit shows generic check-email page", async ({ page }) => {
   await page.goto("/r/starter-kit");

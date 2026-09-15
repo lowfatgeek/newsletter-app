@@ -1,7 +1,7 @@
 import { desc, sql } from "drizzle-orm";
 import { db } from "../db";
-import { adminAuditLog, adminUsers } from "../schema";
 import { hashIp } from "../ratelimit";
+import { adminAuditLog, adminUsers } from "../schema";
 
 export async function audit(
   action: string,
@@ -38,9 +38,7 @@ export async function listAuditEvents(opts?: {
   const rawOffset = opts?.offset ?? 0;
   const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? Math.floor(rawOffset) : 0;
 
-  const totalRows = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(adminAuditLog);
+  const totalRows = await db.select({ n: sql<number>`count(*)::int` }).from(adminAuditLog);
   const total = totalRows[0]?.n ?? 0;
 
   const rows = await db
