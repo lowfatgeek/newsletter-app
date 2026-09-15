@@ -38,7 +38,13 @@ export async function putObject(key: string, body: ArrayBuffer, contentType: str
     headers: { "Content-Type": contentType },
   });
   const signed = await signer.sign();
-  const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body });
+  // Timeout eksplisit (task 2.1): upload ke R2 tidak boleh menggantung tanpa batas.
+  const res = await fetch(signed.url, {
+    method: "PUT",
+    headers: signed.headers,
+    body,
+    signal: AbortSignal.timeout(30_000),
+  });
   if (!res.ok) throw new Error(`R2 PUT ${res.status}: ${(await res.text()).slice(0, 200)}`);
 }
 

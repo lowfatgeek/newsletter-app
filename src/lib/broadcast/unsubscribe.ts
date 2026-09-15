@@ -97,6 +97,14 @@ export async function resubscribeByToken(raw: string): Promise<{ ok: boolean }> 
       .delete(emailSuppressions)
       .where(and(eq(emailSuppressions.emailNormalized, contact.emailNormalized), eq(emailSuppressions.reason, "unsubscribe")));
 
+    // Idempotensi (task 2.7 / 08-N3): refresh/replay halaman subscribe-again
+    // tidak boleh mempolusi consent_events — catat event hanya bila status
+    // benar-benar berubah menjadi active.
+    const [existing] = await tx
+      .select({ status: marketingSubscriptions.status })
+      .from(marketingSubscriptions)
+      .where(eq(marketingSubscriptions.contactId, target.contactId));
+
     await tx
       .insert(marketingSubscriptions)
       .values({ contactId: target.contactId, status: "active", subscribedAt: new Date(), source: "resubscribe" })
@@ -105,9 +113,11 @@ export async function resubscribeByToken(raw: string): Promise<{ ok: boolean }> 
         set: { status: "active", subscribedAt: new Date(), unsubscribedAt: null },
       });
 
-    await tx
-      .insert(consentEvents)
-      .values({ contactId: target.contactId, event: "resubscribed" });
+    if (existing?.status !== "active") {
+      await tx
+        .insert(consentEvents)
+        .values({ contactId: target.contactId, event: "resubscribed" });
+    }
     return { ok: true } as const;
   });
 }

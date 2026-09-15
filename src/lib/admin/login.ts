@@ -39,6 +39,16 @@ export async function startLogin(input: { email: string; password: string; ip: s
     || !(await consumeRateLimit("admin-login-email", email, LOGIN_ATTEMPTS_PER_HOUR))) {
     return { ok: false, reason: "rate-limited" };
   }
+  // Singleton admin (task 2.9, 01-F3): hanya ADMIN_EMAIL yang boleh login —
+  // baris adminUsers lain (mis. sisa DB lama) tidak bisa dipakai masuk walau
+  // passwordnya benar. Dummy verify tetap jalan agar timing identik dengan
+  // email tidak dikenal.
+  const adminEmail = env("ADMIN_EMAIL", "kelaswfa@gmail.com").toLowerCase();
+  if (email !== adminEmail) {
+    await verifyPassword(DUMMY_PASSWORD_HASH, input.password);
+    await audit("login_failed", { adminUserId: undefined, detail: { email }, ip: input.ip });
+    return { ok: false, reason: "invalid" };
+  }
   const [user] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
   // Selalu verifikasi (dummy hash bila email tidak dikenal) agar timing tidak
   // membocorkan keberadaan email.

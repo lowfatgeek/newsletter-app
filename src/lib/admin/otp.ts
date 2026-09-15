@@ -28,6 +28,9 @@ export async function issueOtpChallenge(adminUserId: string, email: string): Pro
   // cheap housekeeping: drop this admin's long-expired challenges
   await db.delete(adminOtpChallenges)
     .where(and(eq(adminOtpChallenges.adminUserId, adminUserId), lt(adminOtpChallenges.expiresAt, new Date())));
+  // Best-effort fast drain (task 1.7): jangan tunggu tick cron berikutnya untuk
+  // email OTP login admin.
+  void import("../mailworker").then((w) => w.processOutbox()).catch(() => {});
   return row.id;
 }
 

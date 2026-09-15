@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { db } from "../src/lib/db";
 import { adminUsers, contacts, emailOutbox, trustedDevices } from "../src/lib/schema";
@@ -9,6 +11,7 @@ import { ADMIN_DEVICE_COOKIE } from "../src/lib/admin/sessions";
 import { csvEscape, listContacts } from "../src/lib/admin/contacts";
 import { clientIp } from "../src/lib/ip";
 import { cronAuthorized } from "../src/lib/cron-auth";
+import { verifyAdminOrigin } from "../src/lib/admin/guard";
 import { onRequest, applySecurityHeaders, SECURITY_CSP } from "../src/middleware";
 import { POST as logoutPOST } from "../src/pages/admin/api/logout";
 import { resetDb, setEnv } from "./helpers";
@@ -84,6 +87,54 @@ describe("hardening: cron auth accepts x-cron-secret and Vercel Bearer", () => {
       headers: { "x-cron-secret": "wrong", authorization: "Bearer wrong" },
     }))).toBe(false);
   });
+
+  it("rejects Bearer with a different-length secret without leaking via throw (task 2.3)", () => {
+    // Sebelum fix, secret beda panjang tetap return false; setelah fix,
+    // hash-then-compare memberi hasil sama TANPA perbandingan string langsung.
+    expect(cronAuthorized(new Request("http://x/api/cron/outbox", {
+      headers: { authorization: "Bearer test-cron-secret-EXTREME-LONG" },
+    }))).toBe(false);
+    expect(cronAuthorized(new Request("http://x/api/cron/outbox", {
+      headers: { authorization: "Bearer short" },
+    }))).toBe(false);
+  });
+});
+
+describe("hardening: admin mutation same-origin guard (task 2.2)", () => {
+  const same = (url = "https://kado.test/admin/api/domains") =>
+    new Request(url, { method: "POST", headers: { origin: new URL(url).origin } });
+
+  it("accepts same-origin and origin-less (server-to-server) requests", () => {
+    expect(verifyAdminOrigin(same())).toBe(true);
+    expect(verifyAdminOrigin(new Request("https://kado.test/admin/api/domains", { method: "POST" }))).toBe(true);
+  });
+
+  it("accepts request whose Origin matches PUBLIC_SITE_URL behind a proxy", () => {
+    setEnv({ PUBLIC_SITE_URL: "https://kado.test" });
+    const req = new Request("http://127.0.0.1:4321/admin/api/domains", {
+      method: "POST", headers: { origin: "https://kado.test" },
+    });
+    expect(verifyAdminOrigin(req)).toBe(true);
+  });
+
+  it("rejects a foreign origin", () => {
+    const req = new Request("https://kado.test/admin/api/domains", {
+      method: "POST", headers: { origin: "https://evil.test" },
+    });
+    expect(verifyAdminOrigin(req)).toBe(false);
+  });
+});
+
+describe("hardening: third-party fetch timeout contract (task 2.1)", () => {
+  const srcOf = (rel: string) => readFileSync(resolve(__dirname, rel), "utf8");
+
+  it("emailit provider call passes an AbortSignal timeout", () => {
+    expect(srcOf("../src/lib/emailit.ts")).toMatch(/signal:\s*AbortSignal\.timeout\([\d_]+\)/);
+  });
+
+  it("R2 storage PUT passes an AbortSignal timeout", () => {
+    expect(srcOf("../src/lib/storage.ts")).toMatch(/signal:\s*AbortSignal\.timeout\([\d_]+\)/);
+  });
 });
 
 describe("hardening: db-backed behaviors", () => {
@@ -116,6 +167,17 @@ describe("hardening: db-backed behaviors", () => {
 
   it("startLogin with unknown email stays generic invalid and sends nothing", async () => {
     const result = await startLogin({ email: "nobody@example.com", password: "Whatever12345", ip: "1.1.1.1" });
+    expect(result).toEqual({ ok: false, reason: "invalid" });
+    expect(await db.select().from(emailOutbox)).toHaveLength(0);
+  });
+
+  it("startLogin rejects a non-ADMIN_EMAIL account even with correct password (task 2.9)", async () => {
+    setEnv({ ADMIN_EMAIL: "kelaswfa@gmail.com" });
+    await db.insert(adminUsers).values({
+      email: "ghost-admin@gmail.com",
+      passwordHash: await hashPassword("GoodPassword123"),
+    });
+    const result = await startLogin({ email: "ghost-admin@gmail.com", password: "GoodPassword123", ip: "1.1.1.1" });
     expect(result).toEqual({ ok: false, reason: "invalid" });
     expect(await db.select().from(emailOutbox)).toHaveLength(0);
   });

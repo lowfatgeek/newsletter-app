@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
-import { getAdmin } from "../../../lib/admin/guard";
+import { getAdmin, verifyAdminOrigin } from "../../../lib/admin/guard";
 import { addDomain, listDomains, removeDomain, setDomainActive } from "../../../lib/admin/domains";
 import { clientIp } from "../../../lib/ip";
 
@@ -49,6 +49,9 @@ export const GET: APIRoute = async ({ cookies }) => {
 };
 
 export const POST: APIRoute = async ({ request, cookies }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
   const body = await readBody(request);
@@ -58,6 +61,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 };
 
 export const PATCH: APIRoute = async ({ request, cookies }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
   const body = await readBody(request);
@@ -68,6 +74,9 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
 };
 
 export const DELETE: APIRoute = async ({ request, cookies }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
   const body = await readBody(request);

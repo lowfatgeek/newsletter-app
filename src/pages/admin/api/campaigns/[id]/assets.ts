@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
-import { getAdmin } from "../../../../../lib/admin/guard";
+import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { listAssets, removeAsset, reorderAssets, storeAsset } from "../../../../../lib/admin/assets";
 import { getCampaignById } from "../../../../../lib/admin/campaigns";
 import { MAX_UPLOAD_BYTES } from "../../../../../lib/storage";
@@ -48,6 +48,9 @@ export const GET: APIRoute = async ({ cookies, params }) => {
  * { ok:true, asset }. Pelanggaran validasi → 400 { ok:false, reason }.
  */
 export const POST: APIRoute = async ({ request, cookies, params }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return unauthorized();
 
@@ -104,6 +107,9 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
  * reorder khusus (dokumentasi ruling brief: PATCH di route assets).
  */
 export const PATCH: APIRoute = async ({ request, cookies, params }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return unauthorized();
 
@@ -131,6 +137,9 @@ export const PATCH: APIRoute = async ({ request, cookies, params }) => {
  * dipanggil klien tanpa route terpisah.
  */
 export const DELETE: APIRoute = async ({ request, cookies, params }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return unauthorized();
   const campaignId = params.id ?? "";

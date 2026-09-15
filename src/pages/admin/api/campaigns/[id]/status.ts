@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
-import { getAdmin } from "../../../../../lib/admin/guard";
+import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { duplicateCampaign, setCampaignStatus } from "../../../../../lib/admin/campaigns";
 import { clientIp } from "../../../../../lib/ip";
 
@@ -18,6 +18,9 @@ const ACTIONS = new Set(["publish", "pause", "unpause", "archive", "duplicate"])
  * { ok: true, newId }. Campaign tidak ada → 404. Cookie tidak valid → 401.
  */
 export const POST: APIRoute = async ({ request, cookies, params }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) {
     return new Response(JSON.stringify({ ok: false, reason: "unauthorized" }), { status: 401, headers: noStore });

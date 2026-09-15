@@ -88,6 +88,12 @@ async function uploadSampleAsset(campaignId: string): Promise<void> {
 }
 
 async function main() {
+  // Pelindung produksi (task 2.10 / 10-DEP3): seed menulis data uji & aset
+  // sample; di production hanya boleh jalan lewat opt-in eksplisit.
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PRODUCTION_SEED !== "true") {
+    console.error("ERROR: Dilarang mengeksekusi seed pada environment production! Set ALLOW_PRODUCTION_SEED=true untuk mengizinkan.");
+    process.exit(1);
+  }
   // 1. Domain allowlist default — hanya bila tabel masih kosong.
   const domains = await db.select().from(emailDomains);
   if (domains.length === 0) {

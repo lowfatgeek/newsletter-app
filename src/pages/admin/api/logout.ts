@@ -1,3 +1,4 @@
+import { verifyAdminOrigin } from "../../../lib/admin/guard";
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
@@ -25,6 +26,9 @@ function parseCookies(header: string | null): Record<string, string> {
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const cookies = parseCookies(request.headers.get("cookie"));
   const raw = cookies[ADMIN_SESSION_COOKIE];
   if (raw) await revokeSession(raw);

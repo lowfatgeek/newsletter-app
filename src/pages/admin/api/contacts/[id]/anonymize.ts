@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
-import { getAdmin } from "../../../../../lib/admin/guard";
+import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { anonymizeContact } from "../../../../../lib/admin/contacts";
 import { clientIp } from "../../../../../lib/ip";
 
@@ -16,6 +16,9 @@ const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json
  * ada → 404. Cookie tidak valid → 401 JSON.
  */
 export const POST: APIRoute = async ({ params, request, cookies }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) {
     return new Response(JSON.stringify({ ok: false, reason: "unauthorized" }), {

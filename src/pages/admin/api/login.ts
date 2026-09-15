@@ -1,3 +1,4 @@
+import { verifyAdminOrigin } from "../../../lib/admin/guard";
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
@@ -14,6 +15,9 @@ const noStore = { "Cache-Control": "no-store", "Content-Type": "application/json
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   let body: { email?: unknown; password?: unknown };
   try {
     body = await request.json();

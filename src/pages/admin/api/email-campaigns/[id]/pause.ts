@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 // Route on-demand — tidak pernah diprerender.
-import { getAdmin } from "../../../../../lib/admin/guard";
+import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { pauseCampaign } from "../../../../../lib/broadcast/machine";
 import { clientIp } from "../../../../../lib/ip";
 
@@ -15,6 +15,9 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
  * 200 { ok:true } · 400 invalid-transition · 404 not-found · 401.
  */
 export const POST: APIRoute = async ({ cookies, params, request }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
   const admin = await getAdmin(cookies);
   if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
 
