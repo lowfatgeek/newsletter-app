@@ -92,6 +92,15 @@ export async function processBroadcast(opts?: { fetchImpl?: typeof fetch; now?: 
     .set({ status: "queued", updatedAt: now })
     .where(and(eq(emailCampaigns.status, "scheduled"), lte(emailCampaigns.scheduledAt, now)));
 
+  // Pulihkan kampanye 'sending' yang menggantung akibat interupsi/crash server (> 5 menit).
+  // Mengembalikan ke 'queued' agar tidak mengunci partial unique index email_campaigns_single_sending_uq.
+  const STALE_SENDING_MS = 5 * 60_000;
+  const staleThreshold = new Date(now.getTime() - STALE_SENDING_MS);
+  await db
+    .update(emailCampaigns)
+    .set({ status: "queued", updatedAt: now })
+    .where(and(eq(emailCampaigns.status, "sending"), lte(emailCampaigns.updatedAt, staleThreshold)));
+
   // Kampanye queued terlama. Baris 'cancelled'/'completed'/etc tidak
   // lolos filter status — pembatalan otomatis dihormati.
   const [next] = await db

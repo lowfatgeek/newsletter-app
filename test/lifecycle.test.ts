@@ -7,7 +7,16 @@ import { resolveDownload } from "../src/lib/download";
 import { contacts, rewardAssets, rewardCampaigns } from "../src/lib/schema";
 import { resetDb, setEnv } from "./helpers";
 
-beforeEach(resetDb);
+beforeEach(async () => {
+  await resetDb();
+  setEnv({
+    R2_ACCOUNT_ID: "acct",
+    R2_ACCESS_KEY_ID: "k",
+    R2_SECRET_ACCESS_KEY: "s",
+    R2_BUCKET: "b",
+    MOCK_R2: "false",
+  });
+});
 
 describe("public lifecycle gating", () => {
   it("draft and archived are hidden", async () => {

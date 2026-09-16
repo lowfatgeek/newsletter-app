@@ -37,4 +37,13 @@ describe("GET /api/sitemap.xml", () => {
     expect(body).not.toContain("tak-boleh");
     expect(body).not.toContain("draf");
   });
+
+  it("root sitemap exports identical handler", async () => {
+    const { GET: rootGET } = await import("../src/pages/sitemap.xml");
+    await insertCampaign("root-test", "published", true);
+    const res = await rootGET({ request: new Request("https://contoh.test/sitemap.xml") } as any);
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("<loc>https://contoh.test/r/root-test</loc>");
+  });
 });

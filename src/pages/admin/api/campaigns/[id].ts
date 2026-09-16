@@ -115,15 +115,15 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
     return new Response(JSON.stringify({ ok: false, reason: slugResult.reason }), { status, headers: noStore });
   }
 
-  await updateCampaignMeta(
-    id,
-    {
-      featuredImageKey: str(body.featuredImageKey).trim() || null,
-      order: Number.isFinite(Number(body.sortOrder)) ? Math.trunc(Number(body.sortOrder)) : existing.campaign.sortOrder,
-      indexable: body.indexable === true,
-    },
-    auditOpts,
-  );
+  const patchMeta: Parameters<typeof updateCampaignMeta>[1] = {
+    order: Number.isFinite(Number(body.sortOrder)) ? Math.trunc(Number(body.sortOrder)) : existing.campaign.sortOrder,
+    indexable: body.indexable === true,
+  };
+  if (body.featuredImageKey !== undefined) {
+    patchMeta.featuredImageKey = str(body.featuredImageKey).trim() || null;
+  }
+
+  await updateCampaignMeta(id, patchMeta, auditOpts);
 
   for (const locale of ["id", "en"] as const) {
     const parsed = normalized[locale];

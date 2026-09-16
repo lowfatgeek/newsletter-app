@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { duplicateCampaign, setCampaignStatus } from "../../../../../lib/admin/campaigns";
+import { checkPublishReadiness, duplicateCampaign, setCampaignStatus } from "../../../../../lib/admin/campaigns";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../../lib/admin/guard";
 import { clientIp } from "../../../../../lib/ip";
@@ -47,6 +47,12 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
     if (action === "duplicate") {
       const newId = await duplicateCampaign(id, auditOpts);
       return new Response(JSON.stringify({ ok: true, newId }), { headers: noStore });
+    }
+    if (action === "publish") {
+      const ready = await checkPublishReadiness(id);
+      if (!ready.ok) {
+        return new Response(JSON.stringify({ ok: false, reason: ready.reason }), { status: 400, headers: noStore });
+      }
     }
     const result = await setCampaignStatus(id, action as "publish" | "pause" | "unpause" | "archive", auditOpts);
     if (!result.ok) {

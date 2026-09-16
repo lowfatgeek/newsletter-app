@@ -13,6 +13,11 @@ export const ALLOWED_MIME = [
 ];
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
+// Featured image halaman reward: hanya raster, dibatasi jauh lebih kecil dari
+// file reward karena dimuat eager di hero (RewardHero 1200×630).
+export const IMAGE_MIME = ["image/png", "image/jpeg", "image/webp"];
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 export function assertAssetDownloadable(asset: { mimeType: string; sizeBytes: number }): void {
   if (!ALLOWED_MIME.includes(asset.mimeType)) throw new Error(`MIME not allowed: ${asset.mimeType}`);
   if (asset.sizeBytes > MAX_UPLOAD_BYTES) throw new Error("File exceeds 100 MB limit");
@@ -50,6 +55,9 @@ export async function putObject(key: string, body: ArrayBuffer, contentType: str
 
 export async function presignDownloadUrl(storageKey: string, expiresInSec = 3600): Promise<string> {
   if (storageKey.includes("..") || storageKey.startsWith("/")) throw new Error("Invalid storage key");
+  if (env("MOCK_R2", "false") === "true") {
+    return `https://mock-r2.local/download/${encodeURIComponent(storageKey)}?expiresIn=${expiresInSec}`;
+  }
   const host = `${env("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
   const url = new URL(`https://${host}/${env("R2_BUCKET")}/${storageKey}`);
   url.searchParams.set("X-Amz-Expires", String(expiresInSec));

@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { listCampaignAssets } from "../rewards";
-import { rewardAssets } from "../schema";
-import { ALLOWED_MIME, MAX_UPLOAD_BYTES, putObject } from "../storage";
+import { rewardAssets, rewardCampaigns } from "../schema";
+import { ALLOWED_MIME, IMAGE_MIME, MAX_IMAGE_BYTES, MAX_UPLOAD_BYTES, putObject } from "../storage";
 import { audit } from "./audit";
 import type { AuditOpts } from "./campaigns";
 
@@ -46,7 +46,7 @@ export function validateUpload(input: ValidateInput): ValidateResult {
 }
 
 /** Sanitasi nama file untuk storage key: lowercase, non [a-z0-9.-] → "-", dibatasi panjang. */
-function sanitizeFilename(name: string): string {
+export function sanitizeFilename(name: string): string {
   const flat = name
     .toLowerCase()
     .replace(/[^a-z0-9.-]+/g, "-")
@@ -149,3 +149,40 @@ export async function reorderAssets(campaignId: string, assetIds: string[], audi
 
 /** Aset campaign untuk panel admin — satu implementasi dengan halaman akses publik. */
 export const listAssets = listCampaignAssets;
+
+export type FeaturedImageInput = { campaignId: string; filename: string; mimeType: string; body: ArrayBuffer };
+export type FeaturedImageResult =
+  | { ok: true; key: string }
+  | { ok: false; reason: "mime-not-allowed" | "too-large" };
+
+/**
+ * Featured image campaign: validasi image-only (MIME + ekstensi harus cocok),
+ * batas 5 MB, lalu tulis objek ke R2. Tidak ada baris reward_asset — gambar
+ * hero bukan file reward yang bisa diklaim, jadi hanya key-nya yang disimpan
+ * di kolom featured_image_key oleh endpoint pemanggil.
+ */
+export async function storeFeaturedImage(input: FeaturedImageInput): Promise<FeaturedImageResult> {
+  if (!IMAGE_MIME.includes(input.mimeType)) return { ok: false, reason: "mime-not-allowed" };
+  const expected = EXT_TO_MIME[extOf(input.filename)];
+  if (!expected || !IMAGE_MIME.includes(expected) || expected !== input.mimeType) {
+    return { ok: false, reason: "mime-not-allowed" };
+  }
+  if (input.body.byteLength > MAX_IMAGE_BYTES) return { ok: false, reason: "too-large" };
+
+  const storageKey = `featured/${input.campaignId}/${crypto.randomUUID()}-${sanitizeFilename(input.filename)}`;
+  await putObject(storageKey, input.body, input.mimeType);
+  return { ok: true, key: storageKey };
+}
+
+/** Objek lama sengaja tidak dihapus dari R2 (mengikuti kebijakan removeAsset). */
+export async function removeFeaturedImage(campaignId: string, auditOpts?: AuditOpts): Promise<void> {
+  await db
+    .update(rewardCampaigns)
+    .set({ featuredImageKey: null })
+    .where(eq(rewardCampaigns.id, campaignId));
+  await audit("campaign_image_removed", {
+    adminUserId: auditOpts?.adminUserId ?? undefined,
+    ip: auditOpts?.ip,
+    detail: { campaignId },
+  });
+}

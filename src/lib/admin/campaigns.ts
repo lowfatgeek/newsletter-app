@@ -182,6 +182,31 @@ export async function resolveSlugRedirect(slug: string): Promise<string | null> 
   return row?.currentSlug ?? null;
 }
 
+/**
+ * Memeriksa kesiapan kampanye sebelum dipublikasikan:
+ * - Wajib memiliki konten bahasa Indonesia (judul dan deskripsi tidak kosong).
+ * - Wajib memiliki minimal 1 file reward / aset unduhan.
+ */
+export async function checkPublishReadiness(
+  campaignId: string,
+): Promise<{ ok: true } | { ok: false; reason: "missing-content" | "missing-assets" }> {
+  const [idLocale] = await db
+    .select({ title: rewardCampaignLocales.title, description: rewardCampaignLocales.description })
+    .from(rewardCampaignLocales)
+    .where(and(eq(rewardCampaignLocales.campaignId, campaignId), eq(rewardCampaignLocales.locale, "id")));
+
+  if (!idLocale || !idLocale.title?.trim() || !idLocale.description?.trim()) {
+    return { ok: false, reason: "missing-content" };
+  }
+
+  const assets = await listCampaignAssets(campaignId);
+  if (assets.length === 0) {
+    return { ok: false, reason: "missing-assets" };
+  }
+
+  return { ok: true };
+}
+
 export async function setCampaignStatus(
   id: string,
   action: "publish" | "pause" | "unpause" | "archive",

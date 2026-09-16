@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   changeSlug,
+  checkPublishReadiness,
   createCampaign,
   duplicateCampaign,
   getCampaignById,
@@ -79,6 +80,31 @@ describe("campaigns lib", () => {
     expect(copy!.campaign.status).toBe("draft");
     expect(copy!.locales[0].title).toBe("T");
     expect(copy!.campaign.slug).toBe("orig-copy");
+  });
+
+  it("checkPublishReadiness requires ID title/desc and at least one asset", async () => {
+    const { id } = (await createCampaign({ slug: "ready-test" })) as { ok: true; id: string };
+    // 1. No locales yet
+    expect(await checkPublishReadiness(id)).toEqual({ ok: false, reason: "missing-content" });
+
+    // 2. Empty title or description
+    await upsertCampaignLocale(id, "id", { title: "   ", description: "Desc", rewardItems: [] });
+    expect(await checkPublishReadiness(id)).toEqual({ ok: false, reason: "missing-content" });
+
+    // 3. Has ID locale but no assets
+    await upsertCampaignLocale(id, "id", { title: "Title", description: "Description", rewardItems: [] });
+    expect(await checkPublishReadiness(id)).toEqual({ ok: false, reason: "missing-assets" });
+
+    // 4. Has ID locale and 1 asset
+    await db.insert(rewardAssets).values({
+      campaignId: id,
+      storageKey: `rewards/${id}/test.pdf`,
+      nameId: "Test PDF",
+      mimeType: "application/pdf",
+      sizeBytes: 1024,
+      checksum: "dummy-checksum",
+    });
+    expect(await checkPublishReadiness(id)).toEqual({ ok: true });
   });
 
   it("create writes audit row", async () => {

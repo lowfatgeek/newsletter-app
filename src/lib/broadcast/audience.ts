@@ -64,7 +64,7 @@ export function validateFilter(f: unknown): ValidateFilterResult {
 }
 
 /** Exclusions yang selalu berlaku + kriteria filter. */
-function audienceQuery(filter: AudienceFilter) {
+function audienceConditions(filter: AudienceFilter) {
   const conds = [
     eq(contacts.confirmationStatus, "confirmed"),
     eq(marketingSubscriptions.status, "active"),
@@ -104,12 +104,16 @@ function audienceQuery(filter: AudienceFilter) {
     }
   }
 
+  return conds;
+}
+
+function audienceQuery(filter: AudienceFilter) {
   return db
     .select({ id: contacts.id, locale: contacts.locale })
     .from(contacts)
     .innerJoin(marketingSubscriptions, eq(marketingSubscriptions.contactId, contacts.id))
     .leftJoin(emailSuppressions, eq(emailSuppressions.emailNormalized, contacts.emailNormalized))
-    .where(and(...conds));
+    .where(and(...audienceConditions(filter)));
 }
 
 /**
@@ -129,6 +133,12 @@ export async function resolveAudience(
 }
 
 export async function countAudience(filter: AudienceFilter): Promise<number> {
-  const rows = await audienceQuery(filter);
-  return rows.length;
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(contacts)
+    .innerJoin(marketingSubscriptions, eq(marketingSubscriptions.contactId, contacts.id))
+    .leftJoin(emailSuppressions, eq(emailSuppressions.emailNormalized, contacts.emailNormalized))
+    .where(and(...audienceConditions(filter)));
+
+  return Number(row?.count ?? 0);
 }

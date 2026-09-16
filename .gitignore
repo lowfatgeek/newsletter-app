@@ -21,6 +21,7 @@ pnpm-debug.log*
 test-results/
 playwright-report/
 
+
 # macOS-specific files
 .DS_Store
 
@@ -29,3 +30,4 @@ playwright-report/
 
 # worktrees
 .worktrees/
+.ngakali/

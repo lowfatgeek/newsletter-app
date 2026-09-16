@@ -7,12 +7,7 @@ export const prerender = false;
 // Task 3.1 / 01-F6: dulu halaman ini membaca ?m= untuk menampilkan email yang
 // disamarkan, tapi subscribe.ts tidak pernah memproduksi parameter itu
 // (sengaja — tidak membawa alamat email di URL). Salinan kini statis.
-const body = t("id", "checkEmailBody");
 const error = Astro.url.searchParams.get("e");
-// ?s= membawa slug campaign asal — tombol "Kirim ulang" menaut kembali ke
-// landing campaign; fallback "/" bila tidak ada (mis. error pre-slug).
-const resendSlug = Astro.url.searchParams.get("s") ?? "";
-const resendHref = resendSlug ? `/r/${resendSlug}` : "/";
 const errorText: Record<string, string> = {
   "bad-request": t("id", "errorGeneric"),
   "too-fast": t("id", "timerTooFast"),
@@ -20,20 +15,37 @@ const errorText: Record<string, string> = {
   "domain-not-allowed": t("id", "errorDomain"),
   "campaign-unavailable": t("id", "errorGeneric"),
 };
+const isError = Boolean(error && errorText[error]);
+const title = isError ? t("id", "checkEmailErrorTitle") : t("id", "checkEmailTitle");
+const body = isError ? t("id", "checkEmailErrorBody") : t("id", "checkEmailBody");
+
+// ?s= membawa slug campaign asal — tombol menaut kembali ke
+// landing campaign; fallback "/" bila tidak ada (mis. error pre-slug).
+const resendSlug = Astro.url.searchParams.get("s") ?? "";
+const resendHref = resendSlug ? `/r/${resendSlug}` : "/";
+const buttonText = isError ? "Coba lagi" : "Kirim ulang";
 ---
-<PublicLayout title={t("id", "checkEmailTitle")} lang="id" noindex>
+<PublicLayout title={title} lang="id" noindex>
   <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
     <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card);">
       <span
         aria-hidden="true"
-        style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-pill); background: var(--color-primary-subtle); color: var(--color-primary); margin: 0 0 var(--space-4);"
+        style={`display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-pill); background: ${isError ? "var(--color-warning-subtle)" : "var(--color-primary-subtle)"}; color: ${isError ? "var(--color-ink)" : "var(--color-primary)"}; margin: 0 0 var(--space-4);`}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
-          <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect>
-          <path d="m3.4 6.4 8.6 6.3 8.6-6.3"></path>
-        </svg>
+        {isError ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+            <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect>
+            <path d="m3.4 6.4 8.6 6.3 8.6-6.3"></path>
+          </svg>
+        )}
       </span>
-      <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">{t("id", "checkEmailTitle")}</h1>
+      <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">{title}</h1>
       <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
         {body}
       </p>
@@ -45,7 +57,7 @@ const errorText: Record<string, string> = {
       <a
         href={resendHref}
         style="display: inline-flex; align-items: center; min-height: 44px; padding: 10px 20px; border: var(--border-default); border-radius: var(--radius-control); background: transparent; color: var(--color-primary); font-weight: 600; text-decoration: none;"
-      >Kirim ulang</a>
+      >{buttonText}</a>
     </div>
   </main>
 </PublicLayout>

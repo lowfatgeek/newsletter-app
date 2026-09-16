@@ -213,9 +213,9 @@ export async function markFailed(id: string, error: string, auditOpts?: AuditOpt
   return transition(id, ["sending", "queued"], "failed", "broadcast_failed", { error }, auditOpts);
 }
 
-/** sending → paused. */
+/** sending | queued → paused. */
 export async function pauseCampaign(id: string, auditOpts?: AuditOpts): Promise<TransitionResult> {
-  return transition(id, ["sending"], "paused", "campaign_paused", {}, auditOpts);
+  return transition(id, ["sending", "queued"], "paused", "campaign_paused", {}, auditOpts);
 }
 
 /** paused → queued (diproses ulang worker). */

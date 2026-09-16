@@ -49,10 +49,10 @@ async function seedReward() {
   return { camp, asset, session };
 }
 
-async function seedRecipientToken() {
+async function seedRecipientToken(locale: "id" | "en" = "id") {
   const [contact] = await db
     .insert(contacts)
-    .values({ emailNormalized: "u@gmail.com", confirmationStatus: "confirmed" })
+    .values({ emailNormalized: `${locale}_u@gmail.com`, confirmationStatus: "confirmed", locale })
     .returning();
   const [camp] = await db
     .insert(emailCampaigns)
@@ -69,7 +69,7 @@ async function seedRecipientToken() {
   await db.insert(emailCampaignRecipients).values({
     campaignId: camp.id,
     contactId: contact.id,
-    localeSelected: "id",
+    localeSelected: locale,
     clickTokenHash: hashToken(token),
   });
   return { token };
@@ -141,6 +141,14 @@ describe("T6 rate limits", () => {
     const inv = await unsubGET({ params: { token: "tidak-ada" }, request: req(url, { ip: "10.6.6.7" }) } as never);
     expect(inv.status).toBe(303);
     expect(inv.headers.get("Location")).toBe("/batal-berlangganan/invalid");
+  });
+
+  it("unsubscribe GET redirects to English page when contact locale is en", async () => {
+    const { token } = await seedRecipientToken("en");
+    const url = `http://localhost/api/unsubscribe/${token}`;
+    const ok = await unsubGET({ params: { token }, request: req(url, { ip: "10.6.6.9" }) } as never);
+    expect(ok.status).toBe(303);
+    expect(ok.headers.get("Location")).toBe(`/en/batal-berlangganan/${token}`);
   });
 
   it("resubscribe POST: sesudah limit 303 invalid generik", async () => {

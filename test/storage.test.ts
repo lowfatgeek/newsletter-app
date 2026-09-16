@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { assertAssetDownloadable, presignDownloadUrl } from "../src/lib/storage";
 import { setEnv } from "./helpers";
 
@@ -9,8 +9,10 @@ describe("presignDownloadUrl", () => {
       R2_ACCESS_KEY_ID: "key",
       R2_SECRET_ACCESS_KEY: "sec",
       R2_BUCKET: "bucket",
+      MOCK_R2: "false",
     }),
   );
+  afterEach(() => setEnv({ MOCK_R2: "false" }));
   it("produces signed url with 1h expiry", async () => {
     const url = await presignDownloadUrl("rewards/2026/file.pdf");
     const u = new URL(url);
@@ -19,6 +21,11 @@ describe("presignDownloadUrl", () => {
     expect(u.pathname).toContain("/bucket/rewards/2026/file.pdf");
     expect(u.searchParams.get("X-Amz-Expires")).toBe("3600");
     expect(u.searchParams.get("X-Amz-Signature")).toBeTruthy();
+  });
+  it("returns mock url when MOCK_R2 is true", async () => {
+    setEnv({ MOCK_R2: "true" });
+    const url = await presignDownloadUrl("rewards/2026/file.pdf", 1800);
+    expect(url).toBe("https://mock-r2.local/download/rewards%2F2026%2Ffile.pdf?expiresIn=1800");
   });
   it("rejects traversal keys", async () => {
     await expect(presignDownloadUrl("../secret")).rejects.toThrow();

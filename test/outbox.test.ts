@@ -94,4 +94,49 @@ describe("outbox", () => {
     expect(r).toEqual({ sent: 1, failed: 0 });
     expect(f).not.toHaveBeenCalled();
   });
+
+  it("concurrent processOutbox calls do not double-send the same email", async () => {
+    let callCount = 0;
+    const slowFetch = vi.fn().mockImplementation(async () => {
+      callCount++;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return new Response(JSON.stringify({ id: "msg_concurrent" }), { status: 200 });
+    });
+
+    await enqueueTransactionalEmail({
+      emailType: "confirmation",
+      to: "concurrent@b.com",
+      subject: "s",
+      html: "h",
+      text: "h",
+      idempotencyKey: "k_concurrent",
+    });
+
+    const [r1, r2] = await Promise.all([
+      processOutbox({ fetchImpl: slowFetch as any }),
+      processOutbox({ fetchImpl: slowFetch as any }),
+    ]);
+
+    expect(r1.sent + r2.sent).toBe(1);
+    expect(callCount).toBe(1);
+  });
+
+  it("recovers stale processing emails after crash", async () => {
+    const f = okFetch();
+    await db.insert(emailOutbox).values({
+      emailType: "confirmation",
+      toEmail: "stale@b.com",
+      subject: "s",
+      html: "h",
+      text: "h",
+      idempotencyKey: "k_stale",
+      status: "processing",
+      scheduledAt: new Date(Date.now() - 10 * 60_000),
+    });
+
+    const r = await processOutbox({ fetchImpl: f as any });
+    expect(r.sent).toBe(1);
+    const [row] = await db.select().from(emailOutbox).where(eq(emailOutbox.idempotencyKey, "k_stale"));
+    expect(row.status).toBe("sent");
+  });
 });

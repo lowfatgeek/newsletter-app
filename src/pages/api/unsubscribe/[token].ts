@@ -29,10 +29,11 @@ export const GET: APIRoute = async ({ params, request }) => {
   const target = await resolveUnsubscribeToken(raw);
   if (target) await unsubscribeByToken(raw);
 
+  const prefix = target?.locale === "en" ? "/en" : "";
   return new Response(null, {
     status: 303,
     headers: {
-      Location: target ? `/batal-berlangganan/${raw}` : "/batal-berlangganan/invalid",
+      Location: target ? `${prefix}/batal-berlangganan/${raw}` : "/batal-berlangganan/invalid",
       "Cache-Control": "no-store",
     },
   });

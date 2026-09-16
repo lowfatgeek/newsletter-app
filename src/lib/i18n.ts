@@ -54,6 +54,14 @@ const dict = {
     id: "Kami sudah mengirim tautan ke emailmu. Buka email dari KelasWFA, lalu klik tautannya.",
     en: "We sent a link to your email. Open the KelasWFA email and click the link.",
   },
+  checkEmailErrorTitle: {
+    id: "Permintaan belum dapat diproses",
+    en: "Request could not be processed",
+  },
+  checkEmailErrorBody: {
+    id: "Tautan akses belum dapat dikirimkan. Silakan periksa keterangan di bawah dan coba lagi.",
+    en: "The access link could not be sent. Please check the note below and try again.",
+  },
   itemFormat: { id: "Format", en: "Format" },
   itemSize: { id: "Ukuran", en: "Size" },
   skipToForm: { id: "Lewati ke form klaim", en: "Skip to the claim form" },

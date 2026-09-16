@@ -30,7 +30,10 @@ export function verifyTimerToken(
   }
   if (payload.c !== campaignId) return { ok: false, reason: "wrong-campaign" };
   const age = Date.now() - payload.iat;
-  if (age < MIN_AGE_MS) return { ok: false, reason: "too-fast" };
+  // Toleransi latensi jaringan & clock drift (maks 2s pada 30s timer, proporsional pada test timer)
+  const LATENCY_BUFFER_MS = Math.min(2_000, Math.floor(MIN_AGE_MS / 2));
+  const effectiveMinAge = Math.max(0, MIN_AGE_MS - LATENCY_BUFFER_MS);
+  if (age < effectiveMinAge) return { ok: false, reason: "too-fast" };
   if (age > MAX_AGE_MS) return { ok: false, reason: "expired" };
   return { ok: true };
 }

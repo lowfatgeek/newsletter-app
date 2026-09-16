@@ -334,11 +334,23 @@ describe("pause / resume", () => {
     expect(resumed).toHaveLength(1);
   });
 
-  it("only pauses from sending and only resumes from paused", async () => {
+  it("only pauses from sending or queued and only resumes from paused", async () => {
     const c = await seedCampaign();
+    // draft cannot pause or resume
     expect(await pauseCampaign(c.id, AUDIT)).toEqual({ ok: false, reason: "invalid-transition" });
     expect(await resumeCampaign(c.id, AUDIT)).toEqual({ ok: false, reason: "invalid-transition" });
+
+    // scheduled/queued CAN pause
     await scheduleCampaign(c.id, { scheduledAt: null }, AUDIT);
+    expect(await pauseCampaign(c.id, AUDIT)).toEqual({ ok: true });
+
+    // already paused cannot pause again
+    expect(await pauseCampaign(c.id, AUDIT)).toEqual({ ok: false, reason: "invalid-transition" });
+
+    // paused CAN resume
+    expect(await resumeCampaign(c.id, AUDIT)).toEqual({ ok: true });
+
+    // queued cannot resume (only from paused)
     expect(await resumeCampaign(c.id, AUDIT)).toEqual({ ok: false, reason: "invalid-transition" });
   });
 });

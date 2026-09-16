@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { removeAsset, reorderAssets, storeAsset, validateUpload } from "../../src/lib/admin/assets";
 import { createCampaign } from "../../src/lib/admin/campaigns";
 import { db } from "../../src/lib/db";
@@ -10,6 +10,10 @@ describe("asset upload", () => {
   beforeEach(async () => {
     await resetDb();
     setEnv({ MOCK_R2: "true" });
+  });
+
+  afterAll(async () => {
+    setEnv({ MOCK_R2: "false" });
   });
 
   it("validates mime and size", () => {

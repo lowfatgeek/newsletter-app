@@ -7,7 +7,13 @@ import { resetDb, setEnv } from "./helpers";
 
 beforeEach(async () => {
   await resetDb();
-  setEnv({ R2_ACCOUNT_ID: "acct", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s", R2_BUCKET: "b" });
+  setEnv({
+    R2_ACCOUNT_ID: "acct",
+    R2_ACCESS_KEY_ID: "k",
+    R2_SECRET_ACCESS_KEY: "s",
+    R2_BUCKET: "b",
+    MOCK_R2: "false",
+  });
 });
 
 async function seed() {

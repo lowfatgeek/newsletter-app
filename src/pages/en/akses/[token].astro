@@ -11,6 +11,10 @@ const resolved = await resolveAccess(token!);
 if (!resolved.ok) return Astro.redirect("/", 303);
 const { sessionToken, campaignId, content } = resolved;
 
+if (sessionToken !== token) {
+  return Astro.redirect(`/en/akses/${sessionToken}`, 303);
+}
+
 // Fallback eksplisit: tanpa row EN, seluruh halaman memakai copy dan lang ID.
 const { fallbackToId } = content.localeRow("en");
 const locale = fallbackToId ? "id" : "en";

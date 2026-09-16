@@ -1,7 +1,8 @@
-import { sql } from "drizzle-orm";
+import { lt, sql } from "drizzle-orm";
 import { sha256Hex } from "./crypto";
 import { db } from "./db";
 import { env } from "./env";
+import { rateLimits } from "./schema";
 
 export function hashIp(ip: string): string {
   return sha256Hex(`${env("IP_HASH_SALT")}:${ip}`);
@@ -23,4 +24,13 @@ export async function consumeRateLimit(
   const rows = (Array.isArray(result) ? result : (result as { rows: unknown[] }).rows) as { count: number }[];
   const count = Number(rows[0].count);
   return count <= limit;
+}
+
+export async function pruneRateLimits(olderThanMs: number = 24 * 3600_000): Promise<number> {
+  const cutoff = new Date(Date.now() - olderThanMs);
+  const deleted = await db
+    .delete(rateLimits)
+    .where(lt(rateLimits.windowStart, cutoff))
+    .returning({ key: rateLimits.key });
+  return deleted.length;
 }

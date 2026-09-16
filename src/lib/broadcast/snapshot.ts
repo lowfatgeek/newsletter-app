@@ -94,37 +94,47 @@ export async function snapshotRecipients(campaignId: string): Promise<{ recipien
   };
 
   const recipients: SnapshotRecipient[] = [];
-  for (const { contactId, locale } of audience) {
-    const rawToken = generateOpaqueToken();
+  const BATCH_SIZE = 200;
 
-    // Render SEKALIGUS sebelum insert supaya INSERT bersifat atomik
-    // (row tidak mungkin tersimpan tanpa lastRenderedHtml — crash di
-    // tengah snapshot tidak meninggalkan baris yang tak pernah
-    // di-render ulang oleh snapshot berikutnya).
-    const rendered = renderForRecipient({
-      campaign: content,
-      locale,
-      email: emailById.get(contactId) ?? "",
-      unsubscribeUrl: `${siteUrl}/api/unsubscribe/${rawToken}`,
-      linkRewrite: (url) => `${siteUrl}/api/click/${links.get(url)}/${rawToken}`,
+  for (let i = 0; i < audience.length; i += BATCH_SIZE) {
+    const chunk = audience.slice(i, i + BATCH_SIZE);
+    const prepared = chunk.map(({ contactId, locale }) => {
+      const rawToken = generateOpaqueToken();
+      const rendered = renderForRecipient({
+        campaign: content,
+        locale,
+        email: emailById.get(contactId) ?? "",
+        unsubscribeUrl: `${siteUrl}/api/unsubscribe/${rawToken}`,
+        linkRewrite: (url) => `${siteUrl}/api/click/${links.get(url)}/${rawToken}`,
+      });
+
+      return {
+        row: {
+          campaignId,
+          contactId,
+          localeSelected: locale,
+          clickTokenHash: hashToken(rawToken),
+          lastRenderedHtml: rendered.html,
+        },
+        meta: { contactId, clickToken: rawToken, locale },
+      };
     });
 
     const inserted = await db
       .insert(emailCampaignRecipients)
-      .values({
-        campaignId,
-        contactId,
-        localeSelected: locale,
-        clickTokenHash: hashToken(rawToken),
-        lastRenderedHtml: rendered.html,
-      })
+      .values(prepared.map((p) => p.row))
       .onConflictDoNothing({
         target: [emailCampaignRecipients.campaignId, emailCampaignRecipients.contactId],
       })
-      .returning({ id: emailCampaignRecipients.id });
-    if (inserted.length === 0) continue; // sudah di-snapshot: token & html lama dipertahankan
+      .returning({ id: emailCampaignRecipients.id, contactId: emailCampaignRecipients.contactId });
 
-    recipients.push({ recipientId: inserted[0].id, contactId, clickToken: rawToken, locale });
+    const insertedMap = new Map(inserted.map((r) => [r.contactId, r.id]));
+    for (const { meta } of prepared) {
+      const recipientId = insertedMap.get(meta.contactId);
+      if (recipientId) {
+        recipients.push({ recipientId, contactId: meta.contactId, clickToken: meta.clickToken, locale: meta.locale });
+      }
+    }
   }
 
   await db.update(emailCampaigns).set({ snapshotAt: new Date() }).where(eq(emailCampaigns.id, campaignId));

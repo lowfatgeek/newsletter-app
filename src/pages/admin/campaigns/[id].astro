@@ -979,9 +979,13 @@ function excerpt(text: string, max = 80): string {
         if (globalError) {
           globalError.textContent = data.reason === "invalid-transition"
             ? "Aksi tidak valid untuk status campaign saat ini. Muat ulang halaman."
-            : data.reason === "unauthorized"
-              ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
-              : "Terjadi kesalahan. Coba lagi.";
+            : data.reason === "missing-content"
+              ? "Campaign belum memiliki judul atau deskripsi bahasa Indonesia."
+              : data.reason === "missing-assets"
+                ? "Campaign belum memiliki file reward / aset unduhan."
+                : data.reason === "unauthorized"
+                  ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
+                  : "Terjadi kesalahan. Coba lagi.";
           globalError.hidden = false;
         }
         btn.disabled = false;

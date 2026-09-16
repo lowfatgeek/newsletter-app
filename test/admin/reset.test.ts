@@ -31,7 +31,7 @@ async function readCode(challengeId: string): Promise<string> {
 describe("password reset via OTP", () => {
   beforeEach(async () => {
     await resetDb();
-    setEnv({ MOCK_EMAILIT: "true" });
+    setEnv({ MOCK_EMAILIT: "true", ADMIN_EMAIL: "kelaswfa@gmail.com" });
   });
 
   it("full flow: request → otp email → confirm updates hash and revokes sessions/devices", async () => {

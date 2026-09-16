@@ -10,6 +10,10 @@ describe("verifyTimerToken", () => {
     const t = issueTimerToken("camp-1", Date.now() - 31_000);
     expect(verifyTimerToken(t, "camp-1")).toEqual({ ok: true });
   });
+  it("accepts token within latency buffer tolerance (e.g. 28.5s old on 30s timer)", () => {
+    const t = issueTimerToken("camp-1", Date.now() - 28_500);
+    expect(verifyTimerToken(t, "camp-1")).toEqual({ ok: true });
+  });
   it("rejects wrong campaign", () => {
     const t = issueTimerToken("camp-1", Date.now() - 31_000);
     expect(verifyTimerToken(t, "camp-2")).toEqual({ ok: false, reason: "wrong-campaign" });

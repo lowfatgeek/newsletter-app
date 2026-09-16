@@ -157,7 +157,7 @@ const kpis = [
   { label: "Klik", value: stats.clicks },
 ];
 
-const canPause = status === "sending";
+const canPause = status === "sending" || status === "queued";
 const canResume = status === "paused";
 const canCancel = ["scheduled", "queued", "paused"].includes(status);
 const showActions = canPause || canResume || canCancel || retryAllowed;

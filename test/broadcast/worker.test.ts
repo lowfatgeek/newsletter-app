@@ -256,7 +256,7 @@ describe("processBroadcast — per-recipient failures", () => {
     expect(failed).toHaveLength(1);
     expect(failed[0].error).toContain("Emailit 500");
     const accepted = await db.select().from(emailDeliveries).where(eq(emailDeliveries.status, "accepted"));
-    expect(accepted.map((d) => d.providerMessageId)).toEqual(["prov-good1@gmail.com", "prov-good2@gmail.com"]);
+    expect(accepted.map((d) => d.providerMessageId).sort()).toEqual(["prov-good1@gmail.com", "prov-good2@gmail.com"]);
   });
 
   it("marks a missing-render recipient failed without aborting the batch", async () => {
@@ -318,6 +318,26 @@ describe("processBroadcast — single sending", () => {
     await scheduleCampaign(c.id, { scheduledAt: null });
     await db.update(emailCampaigns).set({ status: "cancelled" }).where(eq(emailCampaigns.id, c.id));
     expect(await processBroadcast()).toEqual({ campaignId: null, sent: 0, skipped: 0, stopped: "idle" });
+  });
+
+  it("recovers stale sending campaigns that crashed or were interrupted", async () => {
+    await seedContact("stale-worker@gmail.com");
+    const c = await seedCampaign();
+    await scheduleCampaign(c.id, { scheduledAt: null });
+    // Manually set to 'sending' with stale updatedAt (10 minutes ago)
+    await db
+      .update(emailCampaigns)
+      .set({
+        status: "sending",
+        updatedAt: new Date(Date.now() - 10 * 60_000),
+      })
+      .where(eq(emailCampaigns.id, c.id));
+
+    setEnv({ MO_BROADCAST: "true" });
+    const res = await processBroadcast();
+    expect(res.campaignId).toBe(c.id);
+    expect(res.stopped).toBe("completed");
+    expect((await getCampaignForBroadcast(c.id))?.status).toBe("completed");
   });
 });
 

@@ -11,6 +11,10 @@ const resolved = await resolveAccess(token!);
 if (!resolved.ok) return Astro.redirect("/", 303);
 const { sessionToken, campaignId } = resolved;
 
+if (sessionToken !== token) {
+  return Astro.redirect(`/akses/${sessionToken}`, 303);
+}
+
 const assets = await listCampaignAssets(campaignId);
 ---
 <PublicLayout title="Kadonya siap dibuka" lang="id" noindex>
