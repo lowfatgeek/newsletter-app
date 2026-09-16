@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # KelasWFA Newsletter — image produksi.
 # Build:  docker build -t kelaswfa-newsletter .
 # Run:    docker run -p 4321:4321 --env-file .env.production kelaswfa-newsletter
