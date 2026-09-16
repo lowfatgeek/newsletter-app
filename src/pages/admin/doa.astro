@@ -1,0 +1,669 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import { listGroupedDoaTemplates } from "../../lib/admin/doa";
+import { requireAdminOrRedirect } from "../../lib/admin/guard";
+
+// Route on-demand — guard cookie + data tabel per-request.
+export const prerender = false;
+
+const admin = await requireAdminOrRedirect(Astro);
+if (!admin) return Astro.redirect("/admin/login");
+
+const groups = await listGroupedDoaTemplates();
+const muslimGroups = groups.filter((g) => g.variant === "muslim");
+const universalGroups = groups.filter((g) => g.variant === "universal");
+---
+<AdminLayout title="Preset Doa" admin={admin}>
+  <div class="page-head">
+    <div>
+      <p class="overline">Refleksi</p>
+      <h1>Preset Doa</h1>
+      <p class="helper">
+        Kelola pilihan teks doa dan harapan baik untuk tab refleksi di halaman reward.
+        Setiap preset mendukung teks Bahasa Indonesia dan Bahasa Inggris.
+      </p>
+    </div>
+    <div class="head-actions">
+      <button type="button" id="btn-seed-defaults" class="btn-secondary">Muat Preset Bawaan</button>
+      <button type="button" id="btn-open-add" class="btn-primary">Tambah Preset Doa</button>
+    </div>
+  </div>
+
+  <p id="doa-alert" class="alert-box" hidden role="alert"></p>
+
+  {groups.length === 0 ? (
+    <div class="card empty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="40" height="40" aria-hidden="true">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+          <path d="M6 6h10M6 10h10"/>
+        </svg>
+      </div>
+      <h2>Belum ada preset doa</h2>
+      <p>Database belum memuat preset doa untuk ditampilkan di reward campaign. Muat preset doa default KelasWFA atau buat preset baru.</p>
+      <div class="empty-actions">
+        <button type="button" id="btn-empty-seed" class="btn-primary">Muat Preset Bawaan Sekarang</button>
+        <button type="button" id="btn-empty-add" class="btn-secondary">Tulis Preset Sendiri</button>
+      </div>
+    </div>
+  ) : (
+    <div class="grid-sections">
+      <!-- Section Doa Muslim -->
+      <section class="card-section">
+        <div class="section-head">
+          <h2>Doa Muslim</h2>
+          <span class="count-badge">{muslimGroups.length} preset</span>
+        </div>
+        {muslimGroups.length === 0 ? (
+          <p class="placeholder">Belum ada preset doa Muslim.</p>
+        ) : (
+          <div class="template-list">
+            {muslimGroups.map((g) => (
+              <article class="template-card" data-variant={g.variant} data-name={g.name}>
+                <div class="card-header">
+                  <span class="variant-pill variant-muslim">Muslim</span>
+                  <h3>{g.name}</h3>
+                </div>
+                <div class="card-content">
+                  <div class="lang-block">
+                    <span class="lang-tag">ID</span>
+                    <p>{g.idTemplate?.content ?? "—"}</p>
+                  </div>
+                  {g.enTemplate && (
+                    <div class="lang-block lang-en">
+                      <span class="lang-tag">EN</span>
+                      <p>{g.enTemplate.content}</p>
+                    </div>
+                  )}
+                </div>
+                <div class="card-footer">
+                  <button
+                    type="button"
+                    class="btn-secondary btn-small btn-edit"
+                    data-variant={g.variant}
+                    data-name={g.name}
+                    data-content-id={g.idTemplate?.content ?? ""}
+                    data-content-en={g.enTemplate?.content ?? ""}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost-danger btn-small btn-delete"
+                    data-variant={g.variant}
+                    data-name={g.name}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <!-- Section Harapan Baik (Universal) -->
+      <section class="card-section">
+        <div class="section-head">
+          <h2>Harapan Baik (Universal)</h2>
+          <span class="count-badge">{universalGroups.length} preset</span>
+        </div>
+        {universalGroups.length === 0 ? (
+          <p class="placeholder">Belum ada preset harapan baik.</p>
+        ) : (
+          <div class="template-list">
+            {universalGroups.map((g) => (
+              <article class="template-card" data-variant={g.variant} data-name={g.name}>
+                <div class="card-header">
+                  <span class="variant-pill variant-universal">Universal</span>
+                  <h3>{g.name}</h3>
+                </div>
+                <div class="card-content">
+                  <div class="lang-block">
+                    <span class="lang-tag">ID</span>
+                    <p>{g.idTemplate?.content ?? "—"}</p>
+                  </div>
+                  {g.enTemplate && (
+                    <div class="lang-block lang-en">
+                      <span class="lang-tag">EN</span>
+                      <p>{g.enTemplate.content}</p>
+                    </div>
+                  )}
+                </div>
+                <div class="card-footer">
+                  <button
+                    type="button"
+                    class="btn-secondary btn-small btn-edit"
+                    data-variant={g.variant}
+                    data-name={g.name}
+                    data-content-id={g.idTemplate?.content ?? ""}
+                    data-content-en={g.enTemplate?.content ?? ""}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost-danger btn-small btn-delete"
+                    data-variant={g.variant}
+                    data-name={g.name}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )}
+
+  <!-- Modal Dialog Tambah / Edit Preset Doa -->
+  <dialog id="doa-dialog" class="doa-dialog">
+    <form id="doa-form" method="dialog" class="dialog-card">
+      <div class="dialog-header">
+        <h2 id="dialog-title">Tambah Preset Doa</h2>
+        <button type="button" id="btn-close-dialog" class="btn-close" aria-label="Tutup dialog">✕</button>
+      </div>
+
+      <div class="form-body">
+        <div class="field">
+          <label for="f-doa-variant">Kategori <span class="wajib">Wajib</span></label>
+          <select id="f-doa-variant" required>
+            <option value="muslim">Doa Muslim</option>
+            <option value="universal">Harapan Baik (Universal)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f-doa-name">Nama Preset <span class="wajib">Wajib</span></label>
+          <input id="f-doa-name" type="text" placeholder="Contoh: Doa Pembuka Rezeki v2" required />
+          <p class="hint">Nama pengenal unik untuk preset ini.</p>
+        </div>
+
+        <div class="field">
+          <label for="f-doa-content-id">Teks Bahasa Indonesia <span class="wajib">Wajib</span></label>
+          <textarea id="f-doa-content-id" rows="4" placeholder="Tuliskan teks doa atau refleksi dalam Bahasa Indonesia..." required></textarea>
+        </div>
+
+        <div class="field">
+          <label for="f-doa-content-en">Teks Bahasa Inggris <span class="opsional">(Opsional)</span></label>
+          <textarea id="f-doa-content-en" rows="4" placeholder="English translation (optional, fallback to Indonesian if blank)..."></textarea>
+        </div>
+      </div>
+
+      <p id="dialog-error" class="field-error" style="display: none;"></p>
+
+      <div class="dialog-footer">
+        <button type="button" id="btn-cancel-dialog" class="btn-secondary">Batal</button>
+        <button type="submit" id="btn-save-dialog" class="btn-primary">Simpan Preset</button>
+      </div>
+    </form>
+  </dialog>
+</AdminLayout>
+
+<style>
+  .overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.05em;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    margin: 0 0 var(--space-2);
+  }
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
+  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; max-width: 680px; }
+  .head-actions { display: flex; gap: var(--space-3); flex-shrink: 0; }
+
+  .alert-box {
+    background: var(--color-info-subtle);
+    color: var(--color-info);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body-sm);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Empty state */
+  .empty {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-12) var(--space-6);
+    text-align: center;
+    max-width: 580px;
+    margin: var(--space-8) auto;
+  }
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--space-4);
+    background: var(--color-surface-subtle);
+    color: var(--color-primary);
+    border-radius: var(--radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .empty h2 { color: var(--color-ink); font-size: var(--text-h3); margin: 0 0 var(--space-2); }
+  .empty p { color: var(--color-text-muted); font-size: var(--text-body); margin: 0 0 var(--space-6); }
+  .empty-actions { display: flex; justify-content: center; gap: var(--space-3); }
+
+  /* Grid section */
+  .grid-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+  }
+  @media (max-width: 900px) {
+    .grid-sections { grid-template-columns: 1fr; }
+    .page-head { flex-direction: column; }
+  }
+
+  .card-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: var(--border-default);
+    padding-bottom: var(--space-3);
+  }
+  .section-head h2 {
+    color: var(--color-ink);
+    font-size: var(--text-h3);
+    margin: 0;
+  }
+  .count-badge {
+    background: var(--color-surface-subtle);
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .template-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .template-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .card-header h3 {
+    margin: 0;
+    font-size: var(--text-body);
+    color: var(--color-ink);
+  }
+  .variant-pill {
+    font-size: var(--text-body-sm);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-weight: var(--font-weight-semibold);
+  }
+  .variant-muslim {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+  }
+  .variant-universal {
+    background: var(--color-gold-subtle);
+    color: #8a5a10;
+  }
+
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .lang-block {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+    font-size: var(--text-body-sm);
+    line-height: 1.5;
+  }
+  .lang-tag {
+    background: var(--color-surface-subtle);
+    color: var(--color-text-muted);
+    font-size: 11px;
+    font-weight: var(--font-weight-bold);
+    padding: 1px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .lang-block p { margin: 0; color: var(--color-text); }
+  .lang-en { opacity: 0.85; }
+
+  .card-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-2);
+    border-top: var(--border-default);
+    padding-top: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--color-primary);
+    color: var(--color-surface-raised);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 10px 16px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    cursor: pointer;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-primary:hover { background: var(--color-primary-hover); }
+  .btn-secondary {
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    padding: 10px 16px;
+    font-family: inherit;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body-sm);
+    cursor: pointer;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-secondary:hover { background: var(--color-surface-subtle); }
+  .btn-ghost-danger {
+    background: none;
+    border: none;
+    color: var(--color-danger);
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    padding: 8px 12px;
+  }
+  .btn-ghost-danger:hover { text-decoration: underline; }
+  .btn-small { min-height: 36px; padding: 6px 12px; }
+
+  /* Dialog / Modal */
+  .doa-dialog {
+    border: none;
+    background: transparent;
+    padding: 0;
+    max-width: 580px;
+    width: 90vw;
+    border-radius: var(--radius-modal);
+  }
+  .doa-dialog::backdrop {
+    background: rgba(21, 59, 53, 0.4);
+    backdrop-filter: blur(4px);
+  }
+  .dialog-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-modal);
+    padding: var(--space-6);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dialog-header h2 { margin: 0; color: var(--color-ink); font-size: var(--text-h3); }
+  .btn-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 4px 8px;
+  }
+  .form-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .field { display: flex; flex-direction: column; gap: var(--space-2); }
+  label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); color: var(--color-text); }
+  .wajib {
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    border-radius: var(--radius-pill);
+    padding: 1px 8px;
+    font-size: 11px;
+    margin-left: 4px;
+  }
+  .opsional {
+    color: var(--color-text-muted);
+    font-weight: normal;
+    font-size: 12px;
+    margin-left: 4px;
+  }
+  input, select, textarea {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 12px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+  }
+  textarea { resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-color: var(--color-primary);
+  }
+  .hint { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
+  .field-error {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border-radius: var(--radius-control);
+    padding: var(--space-3);
+    font-size: var(--text-body-sm);
+    margin: 0;
+  }
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+</style>
+
+<script>
+  const dialog = document.getElementById("doa-dialog") as HTMLDialogElement | null;
+  const form = document.getElementById("doa-form") as HTMLFormElement | null;
+  const dialogTitle = document.getElementById("dialog-title");
+  const dialogError = document.getElementById("dialog-error");
+  const alertBox = document.getElementById("doa-alert");
+
+  const variantInput = document.getElementById("f-doa-variant") as HTMLSelectElement | null;
+  const nameInput = document.getElementById("f-doa-name") as HTMLInputElement | null;
+  const contentIdInput = document.getElementById("f-doa-content-id") as HTMLTextAreaElement | null;
+  const contentEnInput = document.getElementById("f-doa-content-en") as HTMLTextAreaElement | null;
+
+  function showAlert(msg: string) {
+    if (!alertBox) return;
+    alertBox.textContent = msg;
+    alertBox.style.display = "block";
+    alertBox.hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openDialog(opts?: { variant?: string; name?: string; contentId?: string; contentEn?: string }) {
+    if (!dialog) return;
+    if (dialogError) dialogError.style.display = "none";
+    if (opts && opts.name) {
+      if (dialogTitle) dialogTitle.textContent = "Edit Preset Doa";
+      if (variantInput) {
+        variantInput.value = opts.variant ?? "muslim";
+        variantInput.disabled = true; // Kategori & Nama dikunci saat edit
+      }
+      if (nameInput) {
+        nameInput.value = opts.name;
+        nameInput.readOnly = true;
+      }
+      if (contentIdInput) contentIdInput.value = opts.contentId ?? "";
+      if (contentEnInput) contentEnInput.value = opts.contentEn ?? "";
+    } else {
+      if (dialogTitle) dialogTitle.textContent = "Tambah Preset Doa";
+      if (variantInput) {
+        variantInput.value = "muslim";
+        variantInput.disabled = false;
+      }
+      if (nameInput) {
+        nameInput.value = "";
+        nameInput.readOnly = false;
+      }
+      if (contentIdInput) contentIdInput.value = "";
+      if (contentEnInput) contentEnInput.value = "";
+    }
+    dialog.showModal();
+  }
+
+  function closeDialog() {
+    dialog?.close();
+  }
+
+  document.getElementById("btn-open-add")?.addEventListener("click", () => openDialog());
+  document.getElementById("btn-empty-add")?.addEventListener("click", () => openDialog());
+  document.getElementById("btn-close-dialog")?.addEventListener("click", closeDialog);
+  document.getElementById("btn-cancel-dialog")?.addEventListener("click", closeDialog);
+
+  // Edit handler
+  document.querySelectorAll<HTMLButtonElement>(".btn-edit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      openDialog({
+        variant: btn.dataset.variant,
+        name: btn.dataset.name,
+        contentId: btn.dataset.contentId,
+        contentEn: btn.dataset.contentEn,
+      });
+    });
+  });
+
+  // Delete handler
+  document.querySelectorAll<HTMLButtonElement>(".btn-delete").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const variant = btn.dataset.variant;
+      const name = btn.dataset.name;
+      if (!variant || !name) return;
+      if (!confirm(`Hapus preset "${name}"?`)) return;
+
+      try {
+        const res = await fetch("/admin/api/doa", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ variant, name }),
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          window.location.reload();
+        } else if (data.reason === "in-use") {
+          showAlert("Preset ini tidak dapat dihapus karena sedang dipilih oleh reward campaign aktif.");
+        } else {
+          showAlert("Gagal menghapus preset.");
+        }
+      } catch {
+        showAlert("Terjadi kesalahan jaringan.");
+      }
+    });
+  });
+
+  // Submit Add / Edit
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!variantInput || !nameInput || !contentIdInput) return;
+
+    const variant = variantInput.value;
+    const name = nameInput.value.trim();
+    const contentId = contentIdInput.value.trim();
+    const contentEn = contentEnInput?.value.trim() ?? "";
+
+    if (!name || !contentId) {
+      if (dialogError) {
+        dialogError.textContent = "Nama dan isi Bahasa Indonesia wajib diisi.";
+        dialogError.style.display = "block";
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch("/admin/api/doa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variant, name, contentId, contentEn }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        closeDialog();
+        window.location.reload();
+      } else {
+        if (dialogError) {
+          dialogError.textContent = "Gagal menyimpan preset doa. Coba lagi.";
+          dialogError.style.display = "block";
+        }
+      }
+    } catch {
+      if (dialogError) {
+        dialogError.textContent = "Terjadi kesalahan jaringan.";
+        dialogError.style.display = "block";
+      }
+    }
+  });
+
+  // Seed default templates handler
+  async function seedDefaults() {
+    try {
+      const res = await fetch("/admin/api/doa/seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        window.location.reload();
+      } else {
+        alert("Gagal memuat preset bawaan.");
+      }
+    } catch {
+      alert("Terjadi kesalahan jaringan.");
+    }
+  }
+
+  document.getElementById("btn-seed-defaults")?.addEventListener("click", seedDefaults);
+  document.getElementById("btn-empty-seed")?.addEventListener("click", seedDefaults);
+</script>

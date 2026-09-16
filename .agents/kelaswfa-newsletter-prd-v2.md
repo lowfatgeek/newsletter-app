@@ -242,6 +242,19 @@ Admin dapat membuat, mengedit, preview, publish, pause, archive, dan menduplikas
 
 Slug harus unik, URL-safe, dan tidak bisa diubah secara diam-diam setelah publish. Jika perlu diubah, sistem meminta konfirmasi dan dapat membuat redirect historis.
 
+*Alur Pembuatan & Media (Update UX):*
+- Pembuatan campaign baru langsung mengarahkan admin ke halaman form editor lengkap (`/admin/campaigns/[id]`) dengan otomatis menginisiasi draft dan auto-slug unik (`draft-<nanoid>`), meniadakan langkah pengisian slug awal terpisah. Slug dapat disesuaikan langsung di form utama kapan saja sebelum publish.
+- Kolom featured image dilengkapi drag-and-drop file uploader terintegrasi (PNG, JPG, JPEG, WebP hingga 5 MB). File langsung diunggah ke storage privat R2 melalui API admin dan menampilkan live thumbnail card dengan tombol ganti serta hapus gambar tanpa input URL manual.
+
+**Manajemen Preset Doa**
+
+Admin dapat mengelola pilihan doa dan harapan baik secara terpusat melalui menu khusus `/admin/doa`:
+
+- Mengelola kategori Doa Muslim dan Harapan Baik (universal) dengan dukungan bilingual (ID wajib, EN opsional).
+- Menyediakan tombol pemuatan preset doa bawaan (*quick-seed*) baik di halaman `/admin/doa` maupun langsung dari section Doa pada editor campaign, menjamin database produksi tidak mengalami kekosongan pilihan doa saat baru dideploy.
+- Integritas data: preset doa yang sedang digunakan oleh reward campaign aktif tidak dapat dihapus sebelum diganti pada campaign tersebut.
+- Seluruh mutasi preset doa (seed, simpan, hapus) dicatat dalam audit log admin.
+
 **Kontak dan subscriber**
 
 Admin dapat melihat satu profil global per contact: email, locale terakhir, status konfirmasi, status marketing subscription, campaign attribution, riwayat claim, delivery status, dan unsubscribe. Export CSV harus dapat difilter tanpa mengekspor token, IP hash, atau rahasia internal.

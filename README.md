@@ -2,7 +2,7 @@
 
 Newsletter + reward funnel untuk komunitas KelasWFA: halaman reward publik
 bilingual (ID/EN) dengan gate timer, pengumpulan kontak dengan konfirmasi
-double opt-in, CMS admin (reward campaign, kontak, ekspor CSV), dan
+double opt-in, CMS admin (reward campaign, preset doa, kontak, ekspor CSV), dan
 broadcast email transaksional/marketing lewat Emailit dengan laporan
 deliverability.
 

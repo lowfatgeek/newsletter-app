@@ -1331,3 +1331,46 @@ describe("contacts admin", () => {
 ## Setelah Plan 2 selesai
 
 - **Plan 3 — Broadcast & Delivery**: email campaign editor + segmentasi ANY/ALL + snapshot, queue prioritas + limit per menit/jam + worker, unsubscribe satu klik + suppression + re-subscribe consent, click tracking redirect aman, webhook Emailit (signature + idempoten), EMAIL_DELIVERY + reporting, delivery status di view contact, hardening launch (trusted-proxy IP, CSP/HSTS, backup test, alerting), plus deferred minors tersisa (SKIP LOCKED worker, TEST_TIMER_MS guard, referrer/cache hardening lanjutan).
+
+---
+
+## Addendum: Penyederhanaan Flow Campaign & Modul CMS Preset Doa (September 2026)
+
+### 1. Instant Campaign Draft & Auto-slug
+- **Masalah:** Alur pembuatan campaign sebelumnya mengharuskan admin mengisi slug di `/admin/campaigns/new`, lalu membuka halaman editor `/admin/campaigns/[id]` yang di dalamnya kembali menampilkan input slug.
+- **Penyelesaian:**
+  - Route `/admin/campaigns/new` kini langsung menginisiasi baris campaign baru berstatus `draft` dengan auto-slug acak unik (`draft-<nanoid>`), lalu melakukan 302 redirect langsung ke form editor lengkap `/admin/campaigns/[id]`.
+  - Admin dapat langsung mengisi data lengkap (judul, deskripsi, upload file reward, preset doa) dan menyesuaikan slug kapan saja di satu tempat sebelum mempublikasikan campaign.
+
+### 2. Visual Image Upload & Preview Card untuk Featured Image
+- **Masalah:** Field featured image sebelumnya hanya berupa text input yang membingungkan bagi admin (apakah harus upload manual ke R2 lalu paste URL).
+- **Penyelesaian:**
+  - Mengintegrasikan dropzone visual dengan drag-and-drop & file picker (mendukung PNG, JPG, JPEG, WebP hingga 5 MB).
+  - Mengunggah file secara asynchronous ke R2 melalui endpoint `/admin/api/campaigns/[id]/image`.
+  - Menampilkan live thumbnail card dengan tombol ganti gambar dan hapus gambar.
+  - State transisi dropzone vs preview card diatur secara konsisten dengan styling token aplikasi dan `display: none !important;` untuk menghindari konflik CSS `display: flex`.
+
+### 3. Modul CMS Manajemen Preset Doa (`/admin/doa`)
+- **Masalah:** Database produksi tidak memuat preset doa secara default (karena script dev `seed.ts` di-skip pada env produksi) dan tidak ada UI bagi admin untuk menginput atau memilih preset doa.
+- **Penyelesaian:**
+  - **Core Lib (`src/lib/admin/doa.ts`):**
+    - `DEFAULT_DOA_TEMPLATES`: Template bawaan (Doa Muslim v1 dan Harapan Baik v1, bilingual ID/EN).
+    - `listGroupedDoaTemplates()`: Mengelompokkan baris `doa_template` berdasarkan `(variant, name)`.
+    - `ensureDefaultDoaTemplates()`: Seeding idempoten jika tabel kosong.
+    - `upsertDoaTemplate()`: Tambah/edit preset doa ID dan EN.
+    - `deleteDoaTemplateGroup()`: Hapus preset doa dengan validasi integritas (mencegah penghapusan bila template sedang dipilih di `doa_selections`).
+  - **API Endpoints:**
+    - `GET /admin/api/doa`: List semua grouped preset doa.
+    - `POST /admin/api/doa`: Upsert preset doa (ID wajib, EN opsional).
+    - `DELETE /admin/api/doa`: Hapus preset doa.
+    - `POST /admin/api/doa/seed`: Trigger quick-seed template bawaan.
+  - **Halaman Admin UI (`/admin/doa.astro`):**
+    - Didaftarkan pada menu navigasi `src/layouts/AdminLayout.astro`.
+    - Tampilan kartu terpisah untuk Doa Muslim dan Harapan Baik (Universal).
+    - Modal dialog untuk Tambah / Edit preset dengan validasi form.
+    - Tombol Quick-Seed preset bawaan jika database kosong.
+  - **Integrasi di Campaign Editor (`src/pages/admin/campaigns/[id].astro`):**
+    - Tautan langsung "Kelola Preset ↗" di header section Doa.
+    - Kotak aksi dengan tombol "Muat Preset Doa Bawaan" jika belum ada template sama sekali di DB, sehingga admin dapat memuat template langsung dari halaman editor tanpa reload manual.
+  - **Audit Logging:** Setiap mutasi preset doa dicatat ke `admin_audit_log` (`doa_templates_seeded`, `doa_template_saved`, `doa_template_deleted`).
+

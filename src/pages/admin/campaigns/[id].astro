@@ -295,13 +295,23 @@ function excerpt(text: string, max = 80): string {
 
     <!-- SECTION: Doa -->
     <section class="card" aria-labelledby="h-doa">
-      <h2 id="h-doa">Doa</h2>
+      <div class="card-head">
+        <h2 id="h-doa">Doa</h2>
+        <a href="/admin/doa" class="btn-ghost" target="_blank" rel="noopener noreferrer">Kelola Preset ↗</a>
+      </div>
       <p class="hint">
         Pilih satu preset untuk setiap bagian refleksi. Teks doa tampil di tab
         “Doa Muslim” dan “Harapan Baik” pada halaman reward.
       </p>
       {muslimTemplates.length === 0 && universalTemplates.length === 0 ? (
-        <p class="placeholder">Belum ada preset doa. Tambahkan template doa terlebih dahulu.</p>
+        <div class="empty-doa-box">
+          <p class="placeholder">Belum ada preset doa di database. Anda dapat memuat preset bawaan atau menambah preset secara kustom.</p>
+          <div class="empty-doa-actions">
+            <button type="button" id="btn-quick-seed-doa" class="btn-primary btn-small">Muat Preset Doa Bawaan</button>
+            <a href="/admin/doa" class="btn-secondary btn-small" target="_blank" rel="noopener noreferrer">Kelola Preset Doa ↗</a>
+          </div>
+          <p id="quick-seed-status" class="hint" role="status" aria-live="polite" hidden></p>
+        </div>
       ) : (
         <>
           <fieldset class="doa-group">
@@ -676,6 +686,35 @@ function excerpt(text: string, max = 80): string {
   .doa-option em { color: var(--color-text-muted); font-size: var(--text-body-sm); font-style: normal; }
   .doa-actions { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
   #doa-status { color: var(--color-text-muted); font-size: var(--text-body-sm); }
+  .btn-ghost {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    padding: 6px 10px;
+  }
+  .btn-ghost:hover {
+    color: var(--color-primary-hover);
+  }
+  .empty-doa-box {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+  .empty-doa-box .placeholder {
+    margin: 0;
+  }
+  .empty-doa-actions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    align-items: center;
+  }
 </style>
 
 <script>
@@ -921,6 +960,35 @@ function excerpt(text: string, max = 80): string {
       if (doaStatus) doaStatus.textContent = "";
     } finally {
       doaSave.disabled = false;
+    }
+  });
+
+  // Quick-seed preset doa bawaan dari dalam editor campaign
+  const btnQuickSeedDoa = $<HTMLButtonElement>("#btn-quick-seed-doa");
+  const quickSeedStatus = $<HTMLElement>("#quick-seed-status");
+  btnQuickSeedDoa?.addEventListener("click", async () => {
+    if (!btnQuickSeedDoa) return;
+    btnQuickSeedDoa.disabled = true;
+    if (quickSeedStatus) {
+      quickSeedStatus.hidden = false;
+      quickSeedStatus.textContent = "Memuat preset doa bawaan…";
+    }
+    try {
+      const res = await fetch("/admin/api/doa/seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        if (quickSeedStatus) quickSeedStatus.textContent = "Berhasil! Memuat ulang...";
+        window.location.reload();
+      } else {
+        if (quickSeedStatus) quickSeedStatus.textContent = "Gagal memuat preset doa bawaan.";
+        btnQuickSeedDoa.disabled = false;
+      }
+    } catch {
+      if (quickSeedStatus) quickSeedStatus.textContent = "Kesalahan jaringan. Coba lagi.";
+      btnQuickSeedDoa.disabled = false;
     }
   });
 
