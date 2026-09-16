@@ -1,1 +1,2 @@
-export { GET, prerender } from "./api/sitemap.xml";
+export const prerender = false;
+export { GET } from "./api/sitemap.xml";

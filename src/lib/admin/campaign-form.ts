@@ -152,7 +152,11 @@ export const emptyEnLocale = () => LOCALE_EMPTY([]);
  */
 export function mapSlugReason(
   reason: string | undefined,
-): { field: "slug"; message: string } | { field: "titleId"; message: string } | { field: "global"; message: string } | null {
+):
+  | { field: "slug"; message: string }
+  | { field: "titleId"; message: string }
+  | { field: "global"; message: string }
+  | null {
   switch (reason) {
     case "invalid-slug":
     case "invalid":

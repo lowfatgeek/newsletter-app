@@ -151,9 +151,7 @@ export async function reorderAssets(campaignId: string, assetIds: string[], audi
 export const listAssets = listCampaignAssets;
 
 export type FeaturedImageInput = { campaignId: string; filename: string; mimeType: string; body: ArrayBuffer };
-export type FeaturedImageResult =
-  | { ok: true; key: string }
-  | { ok: false; reason: "mime-not-allowed" | "too-large" };
+export type FeaturedImageResult = { ok: true; key: string } | { ok: false; reason: "mime-not-allowed" | "too-large" };
 
 /**
  * Featured image campaign: validasi image-only (MIME + ekstensi harus cocok),
@@ -176,10 +174,7 @@ export async function storeFeaturedImage(input: FeaturedImageInput): Promise<Fea
 
 /** Objek lama sengaja tidak dihapus dari R2 (mengikuti kebijakan removeAsset). */
 export async function removeFeaturedImage(campaignId: string, auditOpts?: AuditOpts): Promise<void> {
-  await db
-    .update(rewardCampaigns)
-    .set({ featuredImageKey: null })
-    .where(eq(rewardCampaigns.id, campaignId));
+  await db.update(rewardCampaigns).set({ featuredImageKey: null }).where(eq(rewardCampaigns.id, campaignId));
   await audit("campaign_image_removed", {
     adminUserId: auditOpts?.adminUserId ?? undefined,
     ip: auditOpts?.ip,

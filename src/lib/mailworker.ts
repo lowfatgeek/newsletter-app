@@ -13,12 +13,7 @@ export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promis
   await db
     .update(emailOutbox)
     .set({ status: "pending" })
-    .where(
-      and(
-        eq(emailOutbox.status, "processing"),
-        sql`scheduled_at < now() - interval '5 minutes'`
-      )
-    );
+    .where(and(eq(emailOutbox.status, "processing"), sql`scheduled_at < now() - interval '5 minutes'`));
 
   // 2. Ambil dan kunci baris secara atomik dalam transaksi:
   // FOR UPDATE SKIP LOCKED di dalam transaksi memastikan baris terkunci,
@@ -36,10 +31,7 @@ export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promis
     if (rows.length === 0) return [];
 
     const ids = rows.map((r) => r.id);
-    await tx
-      .update(emailOutbox)
-      .set({ status: "processing" })
-      .where(inArray(emailOutbox.id, ids));
+    await tx.update(emailOutbox).set({ status: "processing" }).where(inArray(emailOutbox.id, ids));
 
     return tx.select().from(emailOutbox).where(inArray(emailOutbox.id, ids));
   });
@@ -78,7 +70,12 @@ export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promis
         const backoffMs = 2 ** attempts * 60_000;
         await db
           .update(emailOutbox)
-          .set({ status: "pending", attempts, lastError: String(err).slice(0, 500), scheduledAt: new Date(Date.now() + backoffMs) })
+          .set({
+            status: "pending",
+            attempts,
+            lastError: String(err).slice(0, 500),
+            scheduledAt: new Date(Date.now() + backoffMs),
+          })
           .where(eq(emailOutbox.id, row.id));
       }
     }
