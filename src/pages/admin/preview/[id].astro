@@ -1,10 +1,12 @@
 ---
+import { and, eq } from "drizzle-orm";
 import ReflectionTabs from "../../../components/ReflectionTabs.astro";
 import RewardHero from "../../../components/RewardHero.astro";
 import RewardItemList from "../../../components/RewardItemList.astro";
 import { getCampaignById, getDoaTemplateById } from "../../../lib/admin/campaigns";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import type { RewardCampaignLocale } from "../../../lib/schema";
+import { db } from "../../../lib/db";
+import { doaTemplates, type RewardCampaignLocale } from "../../../lib/schema";
 
 // Token desain + font agar komponen publik dirender dengan gaya yang sama.
 import "@fontsource/plus-jakarta-sans/latin-400.css";
@@ -23,6 +25,20 @@ const data = await getCampaignById(id);
 if (!data) return new Response(null, { status: 404 });
 
 const { campaign } = data;
+const localeRow = data.locales.find((l) => l.locale === "id") ?? null;
+const rawItems = (localeRow?.rewardItems ?? []) as Array<{
+  name: string;
+  benefit: string;
+  format?: string | null;
+  size?: string | null;
+}>;
+const items = rawItems.map((it) => ({
+  name: it.name,
+  benefit: it.benefit,
+  format: it.format ?? undefined,
+  size: it.size ?? undefined,
+}));
+
 const statusLabel: Record<string, string> = {
   draft: "Draft",
   published: "Published",
@@ -30,13 +46,7 @@ const statusLabel: Record<string, string> = {
   archived: "Archived",
 };
 
-// Locale tampil: ID dulu, fallback EN bila ID belum diisi.
-const localeRow = (data.locales.find((l) => l.locale === "id") ??
-  data.locales.find((l) => l.locale === "en") ??
-  null) as RewardCampaignLocale | null;
-const items = localeRow && Array.isArray(localeRow.rewardItems) ? localeRow.rewardItems : [];
-
-// Badge fallback EN — teks dan gaya sama persis dengan composer broadcast
+// Kelengkapan konten EN untuk badge status — pola dari broadcast composer
 // (email-campaigns/[id].astro): tampil bila konten EN belum lengkap.
 const enRow = data.locales.find((l) => l.locale === "en") as RewardCampaignLocale | null;
 const enComplete = Boolean(enRow?.title?.trim() && enRow?.description?.trim());
@@ -50,7 +60,13 @@ async function doaContent(
   const sel = d.doaSelections.find((s) => s.variant === variant);
   if (!sel) return "";
   const tpl = await getDoaTemplateById(sel.templateId);
-  return tpl?.content ?? "";
+  if (!tpl) return "";
+  if (tpl.locale === "id") return tpl.content;
+  const [alt] = await db
+    .select()
+    .from(doaTemplates)
+    .where(and(eq(doaTemplates.variant, variant), eq(doaTemplates.locale, "id"), eq(doaTemplates.name, tpl.name)));
+  return alt?.content ?? tpl.content;
 }
 const muslimText = await doaContent(data, "muslim");
 const universalText = await doaContent(data, "universal");

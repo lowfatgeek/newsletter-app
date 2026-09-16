@@ -1,6 +1,7 @@
 ---
 import AdminLayout from "../../../layouts/AdminLayout.astro";
-import { getCampaignById, listDoaTemplates } from "../../../lib/admin/campaigns";
+import { getCampaignById } from "../../../lib/admin/campaigns";
+import { listGroupedDoaTemplates } from "../../../lib/admin/doa";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 
 // Route on-demand — guard cookie + data per-request.
@@ -52,10 +53,10 @@ const enItems = itemsOf(enRow);
 const assetCount = data.assets.length;
 const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount >= 1;
 
-// Preset doa dikelompokkan per variant untuk section Doa.
-const allTemplates = await listDoaTemplates();
-const muslimTemplates = allTemplates.filter((t) => t.variant === "muslim");
-const universalTemplates = allTemplates.filter((t) => t.variant === "universal");
+// Preset doa dikelompokkan per variant (berpasangan ID + EN).
+const groupedTemplates = await listGroupedDoaTemplates();
+const muslimGroups = groupedTemplates.filter((g) => g.variant === "muslim");
+const universalGroups = groupedTemplates.filter((g) => g.variant === "universal");
 const selectedMuslim = data.doaSelections.find((s) => s.variant === "muslim")?.templateId ?? null;
 const selectedUniversal = data.doaSelections.find((s) => s.variant === "universal")?.templateId ?? null;
 
@@ -303,7 +304,7 @@ function excerpt(text: string, max = 80): string {
         Pilih satu preset untuk setiap bagian refleksi. Teks doa tampil di tab
         “Doa Muslim” dan “Harapan Baik” pada halaman reward.
       </p>
-      {muslimTemplates.length === 0 && universalTemplates.length === 0 ? (
+      {muslimGroups.length === 0 && universalGroups.length === 0 ? (
         <div class="empty-doa-box">
           <p class="placeholder">Belum ada preset doa di database. Anda dapat memuat preset bawaan atau menambah preset secara kustom.</p>
           <div class="empty-doa-actions">
@@ -316,27 +317,71 @@ function excerpt(text: string, max = 80): string {
         <>
           <fieldset class="doa-group">
             <legend>Doa Muslim</legend>
-            {muslimTemplates.map((t) => (
-              <label class="doa-option">
-                <input type="radio" name="doa-muslim" value={t.id} checked={selectedMuslim === t.id} />
-                <span>
-                  <strong lang={t.locale}>{t.name}</strong>
-                  <em lang={t.locale}>{excerpt(t.content)}</em>
-                </span>
-              </label>
-            ))}
+            {muslimGroups.map((g) => {
+              const primaryId = g.idTemplate?.id ?? g.enTemplate?.id ?? "";
+              const isChecked = selectedMuslim === g.idTemplate?.id || (Boolean(g.enTemplate) && selectedMuslim === g.enTemplate?.id);
+              return (
+                <label class="doa-option">
+                  <input type="radio" name="doa-muslim" value={primaryId} checked={isChecked} />
+                  <div class="doa-option-content">
+                    <div class="doa-option-header">
+                      <strong>{g.name}</strong>
+                      {g.enTemplate ? (
+                        <span class="badge-bilingual">Bilingual (ID + EN)</span>
+                      ) : (
+                        <span class="badge-mono">Hanya ID</span>
+                      )}
+                    </div>
+                    {g.idTemplate && (
+                      <p class="doa-preview">
+                        <span class="locale-tag">ID</span>
+                        <em>{excerpt(g.idTemplate.content, 95)}</em>
+                      </p>
+                    )}
+                    {g.enTemplate && (
+                      <p class="doa-preview">
+                        <span class="locale-tag">EN</span>
+                        <em>{excerpt(g.enTemplate.content, 95)}</em>
+                      </p>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
           </fieldset>
           <fieldset class="doa-group">
             <legend>Harapan Baik (universal)</legend>
-            {universalTemplates.map((t) => (
-              <label class="doa-option">
-                <input type="radio" name="doa-universal" value={t.id} checked={selectedUniversal === t.id} />
-                <span>
-                  <strong lang={t.locale}>{t.name}</strong>
-                  <em lang={t.locale}>{excerpt(t.content)}</em>
-                </span>
-              </label>
-            ))}
+            {universalGroups.map((g) => {
+              const primaryId = g.idTemplate?.id ?? g.enTemplate?.id ?? "";
+              const isChecked = selectedUniversal === g.idTemplate?.id || (Boolean(g.enTemplate) && selectedUniversal === g.enTemplate?.id);
+              return (
+                <label class="doa-option">
+                  <input type="radio" name="doa-universal" value={primaryId} checked={isChecked} />
+                  <div class="doa-option-content">
+                    <div class="doa-option-header">
+                      <strong>{g.name}</strong>
+                      {g.enTemplate ? (
+                        <span class="badge-bilingual">Bilingual (ID + EN)</span>
+                      ) : (
+                        <span class="badge-mono">Hanya ID</span>
+                      )}
+                    </div>
+                    {g.idTemplate && (
+                      <p class="doa-preview">
+                        <span class="locale-tag">ID</span>
+                        <em>{excerpt(g.idTemplate.content, 95)}</em>
+                      </p>
+                    )}
+                    {g.enTemplate && (
+                      <p class="doa-preview">
+                        <span class="locale-tag">EN</span>
+                        <em>{excerpt(g.enTemplate.content, 95)}</em>
+                      </p>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
           </fieldset>
           <p id="doa-error" class="field-error" hidden></p>
           <div class="doa-actions">
@@ -673,17 +718,78 @@ function excerpt(text: string, max = 80): string {
   .status-line strong { color: var(--color-ink); }
   .status-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
 
-  .doa-group { border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-4); margin: 0 0 var(--space-4); }
+  .doa-group {
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    padding: var(--space-4);
+    margin: 0 0 var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
   .doa-group legend { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); padding: 0 var(--space-2); }
   .doa-option {
-    display: flex; align-items: flex-start; gap: var(--space-3);
-    padding: var(--space-3); border-radius: var(--radius-control);
-    font-weight: var(--font-weight-regular); font-size: var(--text-body); cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .doa-option:hover { background: var(--color-primary-subtle); }
-  .doa-option input { width: 20px; height: 20px; flex: none; margin-top: 2px; }
-  .doa-option strong { display: block; color: var(--color-ink); font-weight: var(--font-weight-semibold); }
-  .doa-option em { color: var(--color-text-muted); font-size: var(--text-body-sm); font-style: normal; }
+  .doa-option:hover {
+    background: var(--color-surface-subtle);
+    border-color: var(--color-primary);
+  }
+  .doa-option:has(input:checked) {
+    background: var(--color-primary-subtle);
+    border-color: var(--color-primary);
+  }
+  .doa-option input { width: 18px; height: 18px; flex: none; margin-top: 3px; accent-color: var(--color-primary); }
+  .doa-option-content { display: flex; flex-direction: column; gap: var(--space-2); flex: 1; min-width: 0; }
+  .doa-option-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+  .doa-option-header strong { color: var(--color-ink); font-weight: var(--font-weight-semibold); font-size: var(--text-body); }
+  .badge-bilingual {
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    background: var(--color-canvas);
+    border: 1px solid var(--color-primary);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+  }
+  .badge-mono {
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+  }
+  .doa-preview {
+    margin: 0;
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    line-height: 1.4;
+  }
+  .doa-preview em { font-style: normal; color: var(--color-text); }
+  .locale-tag {
+    font-size: 11px;
+    font-weight: var(--font-weight-bold);
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    color: var(--color-ink);
+    padding: 1px 5px;
+    border-radius: 4px;
+    flex: none;
+    letter-spacing: 0.05em;
+  }
   .doa-actions { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
   #doa-status { color: var(--color-text-muted); font-size: var(--text-body-sm); }
   .btn-ghost {
