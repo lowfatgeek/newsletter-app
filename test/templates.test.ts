@@ -1,19 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  confirmationEmail,
-  EMAIL_FROM,
-  escapeHtml,
-  maskedEmail,
-  otpEmail,
-  rewardAccessEmail,
-} from "../src/lib/templates";
-
-describe("maskedEmail", () => {
-  it("masks local part", () => {
-    expect(maskedEmail("budi@gmail.com")).toBe("bu**@gmail.com");
-    expect(maskedEmail("a@gmail.com")).toBe("a**@gmail.com");
-  });
-});
+import { confirmationEmail, EMAIL_FROM, escapeHtml, otpEmail, rewardAccessEmail } from "../src/lib/templates";
 
 describe("confirmationEmail", () => {
   it("id content mentions confirmation and link", () => {

@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { audit } from "../admin/audit";
 import { db } from "../db";
 import { env } from "../env";
+import { PG_UNIQUE_VIOLATION, pgErrorCode } from "../pgerror";
 import { type EmailCampaign, emailCampaignRecipients, emailCampaigns } from "../schema";
 import { isValidUuid } from "../uuid";
 import { validateContent } from "./content";
@@ -165,21 +166,9 @@ export async function claimForSending(campaignId: string): Promise<boolean> {
     return rows.length > 0;
   } catch (err) {
     // 23505 = unique_violation: campaign lain menang klaim lebih dulu.
-    if (pgErrorCode(err) === "23505") return false;
+    if (pgErrorCode(err) === PG_UNIQUE_VIOLATION) return false;
     throw err;
   }
-}
-
-/** Ambil SQLSTATE dari error postgres-js, termasuk yang dibungkus drizzle. */
-function pgErrorCode(err: unknown): string | undefined {
-  const seen = new Set<unknown>();
-  let current = err as { code?: string; cause?: unknown } | null | undefined;
-  while (current && !seen.has(current)) {
-    seen.add(current);
-    if (typeof current.code === "string") return current.code;
-    current = current.cause as { code?: string; cause?: unknown } | undefined;
-  }
-  return undefined;
 }
 
 /** Transisi status atomic dengan audit; membedakan not-found vs invalid-transition. */

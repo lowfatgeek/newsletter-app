@@ -19,19 +19,32 @@ export async function ensureAdmin(
   options?: EnsureAdminOptions,
 ): Promise<{ created: boolean; email: string; generatedPassword?: string }> {
   const email = env("ADMIN_EMAIL", "kelaswfa@gmail.com").toLowerCase();
-  const existing = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
-  if (existing.length > 0) {
-    if (options?.resetPassword) {
-      assertPasswordStrength(options.resetPassword);
-      await db
-        .update(adminUsers)
-        .set({ passwordHash: await hashPassword(options.resetPassword) })
-        .where(eq(adminUsers.email, email));
-    }
-    return { created: false, email };
-  }
-  const password = options?.resetPassword || process.env.ADMIN_PASSWORD || randomBytes(18).toString("base64url");
+  // Task 3.3 / 05-S5: baca lewat helper env() seperti variabel lain. Fallback
+  // "" dipakai karena ADMIN_PASSWORD memang opsional (dianggap tidak diset).
+  const configuredPassword = env("ADMIN_PASSWORD", "");
+  const password = options?.resetPassword || configuredPassword || randomBytes(18).toString("base64url");
   assertPasswordStrength(password);
-  await db.insert(adminUsers).values({ email, passwordHash: await hashPassword(password) });
-  return { created: true, email, generatedPassword: password === process.env.ADMIN_PASSWORD ? undefined : password };
+
+  // Task 3.4 / 08-N1: satu insert atomik. Sebelumnya select-then-insert bisa
+  // balapan (dua proses bootstrap bersamaan → unique violation 23505);
+  // onConflictDoNothing membuat tepat satu proses "menang" dan itulah yang
+  // dilaporkan sebagai created.
+  const [created] = await db
+    .insert(adminUsers)
+    .values({ email, passwordHash: await hashPassword(password) })
+    .onConflictDoNothing({ target: adminUsers.email })
+    .returning({ id: adminUsers.id });
+
+  if (created) {
+    return { created: true, email, generatedPassword: password === configuredPassword ? undefined : password };
+  }
+
+  if (options?.resetPassword) {
+    assertPasswordStrength(options.resetPassword);
+    await db
+      .update(adminUsers)
+      .set({ passwordHash: await hashPassword(options.resetPassword) })
+      .where(eq(adminUsers.email, email));
+  }
+  return { created: false, email };
 }

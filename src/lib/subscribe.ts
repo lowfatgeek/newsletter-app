@@ -14,7 +14,7 @@ import {
   rewardCampaigns,
   rewardClaims,
 } from "./schema";
-import { confirmationEmail, maskedEmail, rewardAccessEmail } from "./templates";
+import { confirmationEmail, rewardAccessEmail } from "./templates";
 import { verifyTimerToken } from "./timer";
 
 export type SubscribeInput = {
@@ -130,5 +130,3 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
   void import("./mailworker").then((w) => w.processOutbox()).catch(() => {}); // best-effort fast drain
   return { ok: true, alreadyConfirmed: false };
 }
-
-export { maskedEmail };

@@ -51,8 +51,8 @@ const dict = {
   },
   checkEmailTitle: { id: "Cek emailmu", en: "Check your email" },
   checkEmailBody: {
-    id: "Kami mengirim tautan ke {email}. Buka email dari KelasWFA, lalu klik tautannya.",
-    en: "We sent a link to {email}. Open the KelasWFA email and click the link.",
+    id: "Kami sudah mengirim tautan ke emailmu. Buka email dari KelasWFA, lalu klik tautannya.",
+    en: "We sent a link to your email. Open the KelasWFA email and click the link.",
   },
   itemFormat: { id: "Format", en: "Format" },
   itemSize: { id: "Ukuran", en: "Size" },

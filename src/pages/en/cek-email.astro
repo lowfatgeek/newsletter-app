@@ -1,14 +1,13 @@
 ---
 import PublicLayout from "../../layouts/PublicLayout.astro";
 import { t } from "../../lib/i18n";
-import { maskedEmail } from "../../lib/templates";
 
 export const prerender = false;
 
-// ?m= membawa email yang akan disamarkan — masking dilakukan di server.
-const raw = Astro.url.searchParams.get("m") ?? "";
-const masked = raw ? maskedEmail(raw) : null;
-const body = t("en", "checkEmailBody").replace("{email}", masked ?? "your email");
+// Task 3.1 / 01-F6: the ?m= masked-email param was never produced by
+// subscribe.ts (the address is deliberately kept out of the URL), so the copy
+// is static now.
+const body = t("en", "checkEmailBody");
 const error = Astro.url.searchParams.get("e");
 // ?s= membawa slug campaign asal — tombol "Resend" menaut kembali ke
 // landing campaign; fallback "/" bila tidak ada (mis. error pre-slug).

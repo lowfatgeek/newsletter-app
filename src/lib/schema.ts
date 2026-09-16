@@ -19,7 +19,6 @@ export const contacts = pgTable("contact", {
   locale: varchar("locale", { length: 2 }).notNull().default("id"),
   confirmationStatus: varchar("confirmation_status", { length: 20 }).notNull().default("pending"), // pending | confirmed
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
-  unsubscribeTokenHash: varchar("unsubscribe_token_hash", { length: 64 }).unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -304,12 +304,17 @@ export async function anonymizeContact(
   const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactId));
   if (!contact) return { ok: false, reason: "not-found" };
 
-  const claimIds = (
-    await db.select({ id: rewardClaims.id }).from(rewardClaims).where(eq(rewardClaims.contactId, contactId))
-  ).map((r) => r.id);
-
+  let claimsCount = 0;
   let tokensDeleted = 0;
   await db.transaction(async (tx) => {
+    // Task 3.6 / 04-N4: pembacaan claim dilakukan DI DALAM transaksi memakai
+    // executor tx — dulu di luar blok, sehingga claim yang dibuat di sela
+    // baca→hapus tidak ikut terhapus tokennya padahal kontaknya sudah
+    // dianonimkan (token hidup untuk kontak yang email-nya sudah dibuang).
+    const claimIds = (
+      await tx.select({ id: rewardClaims.id }).from(rewardClaims).where(eq(rewardClaims.contactId, contactId))
+    ).map((r) => r.id);
+    claimsCount = claimIds.length;
     if (claimIds.length > 0) {
       const deleted = await tx
         .delete(accessTokens)
@@ -326,7 +331,7 @@ export async function anonymizeContact(
   await audit("contact_anonymized", {
     adminUserId: auditOpts?.adminUserId ?? undefined,
     ip: auditOpts?.ip,
-    detail: { contactId, claimsCount: claimIds.length, tokensDeleted },
+    detail: { contactId, claimsCount, tokensDeleted },
   });
   return { ok: true };
 }

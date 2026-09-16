@@ -1,11 +1,6 @@
 export const EMAIL_FROM = "KelasWFA <admin@kelaswfa.my.id>";
 export const EMAIL_REPLY_TO = "admin@kelaswfa.my.id";
 
-export function maskedEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  return `${local.slice(0, 2)}**@${domain}`;
-}
-
 /** Escape karakter HTML berbahaya (&<>"') untuk konten email. */
 export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>

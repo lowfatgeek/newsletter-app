@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "../db";
+import { PG_UNIQUE_VIOLATION, pgErrorCode } from "../pgerror";
 import {
   campaignRedirects,
   doaSelections,
@@ -132,23 +133,32 @@ export async function changeSlug(
   }
 
   const oldSlug = camp.slug;
-  await db.transaction(async (tx) => {
-    await tx.update(rewardCampaigns).set({ slug: newSlug }).where(eq(rewardCampaigns.id, id));
-    // Kalau slug baru adalah slug lama campaign ini sendiri (rename balik),
-    // hapus redirect lama yang menunjuk ke diri sendiri agar resolver publik
-    // tidak loop. Redirect milik campaign lain (slug diklaim kembali) dipindah
-    // ke campaign ini lewat onConflictDoUpdate di bawah.
-    await tx
-      .delete(campaignRedirects)
-      .where(and(eq(campaignRedirects.oldSlug, newSlug), eq(campaignRedirects.campaignId, id)));
-    await tx
-      .insert(campaignRedirects)
-      .values({ campaignId: id, oldSlug })
-      .onConflictDoUpdate({
-        target: campaignRedirects.oldSlug,
-        set: { campaignId: id },
-      });
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.update(rewardCampaigns).set({ slug: newSlug }).where(eq(rewardCampaigns.id, id));
+      // Kalau slug baru adalah slug lama campaign ini sendiri (rename balik),
+      // hapus redirect lama yang menunjuk ke diri sendiri agar resolver publik
+      // tidak loop. Redirect milik campaign lain (slug diklaim kembali) dipindah
+      // ke campaign ini lewat onConflictDoUpdate di bawah.
+      await tx
+        .delete(campaignRedirects)
+        .where(and(eq(campaignRedirects.oldSlug, newSlug), eq(campaignRedirects.campaignId, id)));
+      await tx
+        .insert(campaignRedirects)
+        .values({ campaignId: id, oldSlug })
+        .onConflictDoUpdate({
+          target: campaignRedirects.oldSlug,
+          set: { campaignId: id },
+        });
+    });
+  } catch (err) {
+    // Task 3.5 / 08-N4: pre-check slug-taken di atas hanya menutup jalur
+    // sekuensial. Bila campaign lain memakai slug yang sama tepat di antara
+    // cek dan update, unique index reward_campaign.slug yang melempar 23505 —
+    // diterjemahkan ke hasil domain yang sama, bukan 500.
+    if (pgErrorCode(err) === PG_UNIQUE_VIOLATION) return { ok: false, reason: "slug-taken" };
+    throw err;
+  }
   await audit("slug_changed", {
     ...auditArgs(auditOpts),
     detail: { campaignId: id, oldSlug, newSlug },
