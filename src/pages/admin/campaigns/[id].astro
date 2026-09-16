@@ -189,17 +189,44 @@ function excerpt(text: string, max = 80): string {
         <legend>Daftar item reward</legend>
         <p class="hint">Nama dan manfaat singkat setiap item yang diterima subscriber.</p>
         <div id="items-id" class="items-list" data-locale="id">
-          {idItems.map((it) => (
-            <div class="item-row">
-              <input type="text" class="it-name" value={it.name} placeholder="Nama item" aria-label="Nama item (ID)" lang="id" />
-              <input type="text" class="it-benefit" value={it.benefit} placeholder="Manfaat singkat" aria-label="Manfaat item (ID)" lang="id" />
-              <input type="text" class="it-format" value={it.format ?? ""} placeholder="Format (opsional)" aria-label="Format item (ID)" />
-              <input type="text" class="it-size" value={it.size ?? ""} placeholder="Ukuran (opsional)" aria-label="Ukuran item (ID)" />
-              <button type="button" class="item-remove btn-ghost-danger" aria-label="Hapus item">Hapus</button>
+          {idItems.map((it, idx) => (
+            <div class="item-card item-row">
+              <div class="item-card-header">
+                <span class="item-badge">Item <span class="item-num">{idx + 1}</span></span>
+                <button type="button" class="item-remove btn-ghost-danger" aria-label="Hapus item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                    <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Hapus
+                </button>
+              </div>
+              <div class="item-card-grid">
+                <div class="field">
+                  <label class="item-field-label">Nama item <span class="wajib">Wajib</span></label>
+                  <input type="text" class="it-name" value={it.name} placeholder="Contoh: Template Spreadsheet Budget" aria-label="Nama item (ID)" lang="id" />
+                </div>
+                <div class="field">
+                  <label class="item-field-label">Manfaat singkat <span class="wajib">Wajib</span></label>
+                  <input type="text" class="it-benefit" value={it.benefit} placeholder="Contoh: Otomatis menghitung cashflow bulanan" aria-label="Manfaat item (ID)" lang="id" />
+                </div>
+                <div class="field">
+                  <label class="item-field-label">Format <span class="opsional">(Opsional)</span></label>
+                  <input type="text" class="it-format" value={it.format ?? ""} placeholder="Contoh: XLSX / PDF / Notion" aria-label="Format item (ID)" />
+                </div>
+                <div class="field">
+                  <label class="item-field-label">Ukuran <span class="opsional">(Opsional)</span></label>
+                  <input type="text" class="it-size" value={it.size ?? ""} placeholder="Contoh: 2.5 MB / 15 Halaman" aria-label="Ukuran item (ID)" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
-        <button type="button" id="add-item-id" class="btn-secondary btn-small">Tambah item</button>
+        <button type="button" id="add-item-id" class="btn-secondary btn-small btn-add-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+            <path d="M12 5v14m-7-7h14" />
+          </svg>
+          Tambah item
+        </button>
       </fieldset>
     </section>
 
@@ -220,18 +247,46 @@ function excerpt(text: string, max = 80): string {
 
       <fieldset class="items">
         <legend>Reward items</legend>
+        <p class="hint">Name and brief benefit of each item received by subscribers.</p>
         <div id="items-en" class="items-list" data-locale="en">
-          {enItems.map((it) => (
-            <div class="item-row">
-              <input type="text" class="it-name" value={it.name} placeholder="Item name" aria-label="Item name (EN)" lang="en" />
-              <input type="text" class="it-benefit" value={it.benefit} placeholder="Short benefit" aria-label="Item benefit (EN)" lang="en" />
-              <input type="text" class="it-format" value={it.format ?? ""} placeholder="Format (optional)" aria-label="Item format (EN)" />
-              <input type="text" class="it-size" value={it.size ?? ""} placeholder="Size (optional)" aria-label="Item size (EN)" />
-              <button type="button" class="item-remove btn-ghost-danger" aria-label="Remove item">Hapus</button>
+          {enItems.map((it, idx) => (
+            <div class="item-card item-row">
+              <div class="item-card-header">
+                <span class="item-badge">Item <span class="item-num">{idx + 1}</span></span>
+                <button type="button" class="item-remove btn-ghost-danger" aria-label="Remove item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                    <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Hapus
+                </button>
+              </div>
+              <div class="item-card-grid">
+                <div class="field">
+                  <label class="item-field-label">Item name</label>
+                  <input type="text" class="it-name" value={it.name} placeholder="e.g. Budget Spreadsheet Template" aria-label="Item name (EN)" lang="en" />
+                </div>
+                <div class="field">
+                  <label class="item-field-label">Short benefit</label>
+                  <input type="text" class="it-benefit" value={it.benefit} placeholder="e.g. Automatically track monthly cashflow" aria-label="Item benefit (EN)" lang="en" />
+                </div>
+                <div class="field">
+                  <label class="item-field-label">Format <span class="opsional">(Optional)</span></label>
+                  <input type="text" class="it-format" value={it.format ?? ""} placeholder="e.g. XLSX / PDF / Notion" aria-label="Item format (EN)" />
+                </div>
+                <div class="field">
+                  <label class="item-field-label">Size <span class="opsional">(Optional)</span></label>
+                  <input type="text" class="it-size" value={it.size ?? ""} placeholder="e.g. 2.5 MB / 15 Pages" aria-label="Item size (EN)" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
-        <button type="button" id="add-item-en" class="btn-secondary btn-small">Tambah item</button>
+        <button type="button" id="add-item-en" class="btn-secondary btn-small btn-add-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+            <path d="M12 5v14m-7-7h14" />
+          </svg>
+          Tambah item
+        </button>
       </fieldset>
     </section>
 
@@ -652,11 +707,88 @@ function excerpt(text: string, max = 80): string {
     margin: 0 0 var(--space-5);
   }
 
-  .items { border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-4); margin: 0; }
-  .items legend { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); padding: 0 var(--space-2); }
-  .items-list { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-3) 0; }
-  .item-row { display: grid; grid-template-columns: 1.2fr 1.6fr 0.9fr 0.9fr auto; gap: var(--space-2); align-items: center; }
-  @media (max-width: 768px) { .item-row { grid-template-columns: 1fr 1fr; } }
+  .items {
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-5);
+    margin: var(--space-4) 0 0;
+    background: var(--color-surface-subtle);
+  }
+  .items legend {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-body);
+    color: var(--color-ink);
+    padding: 0 var(--space-2);
+  }
+  .items-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: var(--space-4) 0;
+  }
+  .item-card {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    padding: var(--space-4) var(--space-5);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .item-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px dashed var(--color-border);
+  }
+  .item-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    background: var(--color-primary-subtle);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+  }
+  .item-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: auto;
+    padding: 4px 8px;
+    font-size: var(--text-body-sm);
+  }
+  .item-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3) var(--space-4);
+  }
+  .item-card-grid .field {
+    margin-bottom: 0;
+  }
+  .item-field-label {
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .btn-add-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  @media (max-width: 640px) {
+    .item-card-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 
   .placeholder {
     background: var(--color-surface-subtle);
@@ -996,19 +1128,52 @@ function excerpt(text: string, max = 80): string {
   descId?.addEventListener("input", updatePublishGate);
   updatePublishGate();
 
+  function updateItemNumbers(listId: string) {
+    const list = document.getElementById(listId);
+    if (!list) return;
+    const cards = list.querySelectorAll<HTMLElement>(".item-card");
+    cards.forEach((card, i) => {
+      const numEl = card.querySelector<HTMLElement>(".item-num");
+      if (numEl) numEl.textContent = String(i + 1);
+    });
+  }
+
   // Tambah/hapus item reward per locale.
   function addItemRow(listId: string, placeholderLang: "id" | "en") {
     const list = document.getElementById(listId);
     if (!list) return;
     const isEn = placeholderLang === "en";
+    const currentCount = list.querySelectorAll(".item-card").length;
     const row = document.createElement("div");
-    row.className = "item-row";
+    row.className = "item-card item-row";
     row.innerHTML = `
-      <input type="text" class="it-name" placeholder="${isEn ? "Item name" : "Nama item"}" aria-label="${isEn ? "Item name" : "Nama item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
-      <input type="text" class="it-benefit" placeholder="${isEn ? "Short benefit" : "Manfaat singkat"}" aria-label="${isEn ? "Item benefit" : "Manfaat item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
-      <input type="text" class="it-format" placeholder="${isEn ? "Format (optional)" : "Format (opsional)"}" aria-label="Format" />
-      <input type="text" class="it-size" placeholder="${isEn ? "Size (optional)" : "Ukuran (opsional)"}" aria-label="Ukuran" />
-      <button type="button" class="item-remove btn-ghost-danger" aria-label="Hapus item">Hapus</button>`;
+      <div class="item-card-header">
+        <span class="item-badge">Item <span class="item-num">${currentCount + 1}</span></span>
+        <button type="button" class="item-remove btn-ghost-danger" aria-label="${isEn ? "Remove item" : "Hapus item"}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+            <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+          Hapus
+        </button>
+      </div>
+      <div class="item-card-grid">
+        <div class="field">
+          <label class="item-field-label">${isEn ? "Item name" : "Nama item"} ${!isEn ? '<span class="wajib">Wajib</span>' : ""}</label>
+          <input type="text" class="it-name" placeholder="${isEn ? "e.g. Budget Spreadsheet Template" : "Contoh: Template Spreadsheet Budget"}" aria-label="${isEn ? "Item name" : "Nama item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
+        </div>
+        <div class="field">
+          <label class="item-field-label">${isEn ? "Short benefit" : "Manfaat singkat"} ${!isEn ? '<span class="wajib">Wajib</span>' : ""}</label>
+          <input type="text" class="it-benefit" placeholder="${isEn ? "e.g. Automatically track monthly cashflow" : "Contoh: Otomatis menghitung cashflow bulanan"}" aria-label="${isEn ? "Item benefit" : "Manfaat item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
+        </div>
+        <div class="field">
+          <label class="item-field-label">${isEn ? "Format" : "Format"} <span class="opsional">(${isEn ? "Optional" : "Opsional"})</span></label>
+          <input type="text" class="it-format" placeholder="${isEn ? "e.g. XLSX / PDF / Notion" : "Contoh: XLSX / PDF / Notion"}" aria-label="Format" />
+        </div>
+        <div class="field">
+          <label class="item-field-label">${isEn ? "Size" : "Ukuran"} <span class="opsional">(${isEn ? "Optional" : "Opsional"})</span></label>
+          <input type="text" class="it-size" placeholder="${isEn ? "e.g. 2.5 MB / 15 Pages" : "Contoh: 2.5 MB / 15 Halaman"}" aria-label="Ukuran" />
+        </div>
+      </div>`;
     list.appendChild(row);
     row.querySelector<HTMLInputElement>(".it-name")?.focus();
   }
@@ -1016,7 +1181,15 @@ function excerpt(text: string, max = 80): string {
   document.getElementById("add-item-en")?.addEventListener("click", () => addItemRow("items-en", "en"));
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (target.classList?.contains("item-remove")) target.closest(".item-row")?.remove();
+    const removeBtn = target.closest(".item-remove");
+    if (removeBtn) {
+      const card = removeBtn.closest(".item-card");
+      const list = card?.parentElement;
+      card?.remove();
+      if (list && list.id) {
+        updateItemNumbers(list.id);
+      }
+    }
   });
 
   // Pilihan preset doa: simpan lewat API doa (satu route tersendiri).
