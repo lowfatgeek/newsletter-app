@@ -40,13 +40,20 @@ COPY --from=build /app/src ./src
 
 # Astro node-standalone membaca HOST dan PORT dari env.
 # 0.0.0.0 wajib agar bisa dijangkau dari luar container (reverse proxy Easypanel).
+# CATATAN PORT: nilai PORT di bawah hanya DEFAULT image. Easypanel menyuntikkan
+# PORT miliknya saat runtime dan env runtime selalu menang atas ENV image — jadi
+# jangan pernah menganggap port-nya 4321 sebelum melihat baris log
+# "[@astrojs/node] Server listening on ... :<port>".
 ENV HOST=0.0.0.0
 ENV PORT=4321
 EXPOSE 4321
 
 # Health check bawaan Docker: GET /api/health harus 200.
+# Port diambil dari PORT runtime (fallback 4321) — angka tetap di sini pernah
+# membuat container selalu "unhealthy" begitu Easypanel menyuntik PORT lain,
+# karena check-nya menembak port yang tidak ada yang mendengarkan.
 # (Easypanel memakai health check-nya sendiri; ini untuk `docker run` manual.)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:4321/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 CMD ["node", "./dist/server/entry.mjs"]

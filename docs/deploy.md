@@ -148,14 +148,46 @@ di produksi kecuali yang memang flag (`true`/`false`).
    - Tambah domain → `kado.kelaswfa.my.id` → Easypanel otomatis menerbitkan
      sertifikat HTTPS (Let's Encrypt). Tunggu status **Active**.
    - Pastikan HTTPS redirect aktif (http → https).
-5. Klik **Deploy**. Tunggu sampai status **Running** dan log menampilkan:
+5. Klik **Deploy**. Tunggu sampai status **Running** dan log menampilkan (angka
+   port harus sama dengan yang di-set di panel — lihat catatan port di bawah):
    ```
-   [@astrojs/node] Server listening on ... :4321
+   [@astrojs/node] Server listening on
+     local: http://localhost:<PORT>
+     network: http://10.x.x.x:<PORT>
    ```
 
-> **Catatan port:** container menjalankan aplikasi di port `4321` (diatur lewat
-> `ENV PORT=4321` di Dockerfile). Easypanel otomatis mendeteksi port ini dari
-> `EXPOSE`. Kalau panel menanyakan port manual, isi `4321`.
+> **Catatan port (penting).** Port aplikasi ditentukan oleh env `PORT` saat
+> runtime. Image punya default `4321` (`ENV PORT=4321`), tetapi **Easypanel
+> menyuntikkan `PORT` miliknya sendiri**, dan env runtime selalu menang atas
+> `ENV` di image. Jadi angka yang benar adalah angka di baris log:
+>
+> ```
+> [@astrojs/node] Server listening on
+>   local: http://localhost:<PORT>
+>   network: http://10.x.x.x:<PORT>
+> ```
+>
+> Aturan wajibnya: **port di tab Ports/Domains Easypanel harus sama dengan
+> `<PORT>` di log itu.** Kalau log menunjukkan `:80` sementara panel di-set
+> `4321`, request dari browser tidak akan pernah sampai (502/504) dan indikator
+> service tetap kuning. Dua cara menyamakannya:
+>
+> - **Pakai 4321** (sesuai dokumentasi ini): set port service ke `4321`, lalu di
+>   tab **Environment** tambahkan `PORT=4321` supaya nilai itu yang dipakai
+>   runtime (menimpa suntikan Easypanel). Redeploy → log harus menampilkan `:4321`.
+> - **Ikut Easypanel (mis. 80)**: biarkan `PORT` dari panel apa adanya dan set
+>   port service ke nilai yang sama dengan log. Aplikasi tetap jalan — tapi
+>   samakan juga angka di dokumen runbook Anda agar tidak membingungkan.
+>
+> Verifikasi cepat dari tab **Console** service:
+>
+> ```bash
+> printenv | grep -E '^(HOST|PORT)='
+> node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/health').then(r=>r.text()).then(t=>console.log('health',t)).catch(e=>console.log('ERR',e.message))"
+> ```
+>
+> Output pertama menunjukkan port yang benar-benar dipakai; output kedua harus
+> `health {"status":"ok"}`.
 
 ### B5. Jalankan migrasi database (sekali saja)
 
@@ -346,6 +378,9 @@ Lanjutan wajib ada di `docs/operations.md` §1 — ringkasnya:
 
 | Gejala | Kemungkinan penyebab | Perbaikan |
 |---|---|---|
+| Status service **kuning** & log `Server listening` berulang tiap 1–2 menit | Health check image menembak port yang salah (mis. `4321` padahal runtime `PORT=80`) → container selalu `unhealthy` dan di-restart | Perbaikan di Dockerfile (health check ikut `$PORT`) sudah ada; pastikan deploy memakai image terbaru, lalu samakan port seperti catatan port di B4 |
+| Log menampilkan `:80` padahal panel di-set `4321` | Easypanel menyuntik `PORT` sendiri dan menimpa `ENV PORT=4321` image | Set port service = nilai di log, atau tambahkan `PORT=4321` di tab Environment lalu samakan port service ke `4321` |
+| Domain jalan tapi 502/504 | Port di tab Ports/Domains ≠ port di log | Jalankan dua perintah verifikasi di catatan B4, lalu samakan angkanya |
 | `/api/health` → `{"status":"error"}` (503) | `DATABASE_URL` salah / DB belum bisa dijangkau | Cek URL, user, password; di Easypanel pakai URL internal (`@db`), bukan `localhost` |
 | Halaman 500 semua | Secret belum lengkap / migrasi belum jalan | Cek log service; jalankan `db:migrate`; pastikan `TOKEN_SECRET` ter-set |
 | Cron 401 | `CRON_SECRET` beda antara cron dan app | Samakan nilainya di kedua tempat |
