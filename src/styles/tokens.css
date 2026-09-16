@@ -72,6 +72,9 @@ body {
   outline: none;
   box-shadow: var(--focus-ring);
 }
+[hidden] {
+  display: none !important;
+}
 
 /* Task 2.11 / 06-A11y5: skip link tersembunyi sampai mendapat focus keyboard. */
 .skip-link {

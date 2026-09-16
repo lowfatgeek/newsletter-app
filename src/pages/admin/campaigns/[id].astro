@@ -102,7 +102,13 @@ function excerpt(text: string, max = 80): string {
           <label id="featured-image-label">Banner / Featured Image</label>
           <input id="f-image" type="hidden" value={campaign.featuredImageKey ?? ""} />
 
-          <div id="image-preview-card" class="image-preview-card" hidden={!campaign.featuredImageKey}>
+          <!-- Tampilan jika sudah ada gambar terpasang -->
+          <div
+            id="image-preview-card"
+            class="image-preview-card"
+            style={!campaign.featuredImageKey ? "display: none;" : ""}
+            hidden={!campaign.featuredImageKey}
+          >
             <div class="image-preview-wrapper">
               <img
                 id="image-preview-img"
@@ -112,37 +118,51 @@ function excerpt(text: string, max = 80): string {
               />
             </div>
             <div class="image-preview-actions">
-              <button type="button" id="btn-change-image" class="btn-secondary btn-small">Ganti Gambar</button>
-              <button type="button" id="btn-delete-image" class="btn-ghost-danger btn-small">Hapus Gambar</button>
+              <button type="button" id="btn-change-image" class="btn-secondary btn-small">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                Ganti Gambar
+              </button>
+              <button type="button" id="btn-delete-image" class="btn-ghost-danger btn-small">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                Hapus Gambar
+              </button>
             </div>
           </div>
 
+          <!-- Tampilan dropzone jika belum ada gambar -->
           <div
             id="image-dropzone"
             class="image-dropzone"
             role="button"
             tabindex="0"
             aria-labelledby="featured-image-label"
+            style={campaign.featuredImageKey ? "display: none;" : ""}
             hidden={Boolean(campaign.featuredImageKey)}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true">
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-              <circle cx="9" cy="9" r="2"/>
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-            </svg>
-            <p>Pilih atau tarik banner gambar ke sini (<strong>PNG, JPG, WebP</strong> · maks 5 MB)</p>
+            <div class="dropzone-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+            </div>
+            <div class="dropzone-text">
+              <strong>Pilih atau tarik banner gambar ke sini</strong>
+              <span>Format: PNG, JPG, WebP · Maksimal 5 MB · Rasio optimal 16:9</span>
+            </div>
           </div>
 
           <input id="image-file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
 
-          <div id="image-upload-progress" class="upload-progress" hidden>
+          <!-- Indikator progress saat upload -->
+          <div id="image-upload-progress" class="upload-progress" style="display: none;" hidden>
             <div class="progress-track" aria-hidden="true">
               <div id="image-progress-bar" class="progress-bar" style="width: 100%;"></div>
             </div>
-            <span class="hint">Mengunggah gambar…</span>
+            <span class="hint">Mengunggah gambar ke storage…</span>
           </div>
 
-          <p id="image-error" class="field-error" hidden></p>
+          <p id="image-error" class="field-error" style="display: none;" hidden></p>
         </div>
         <div class="field field-check">
           <input id="f-indexable" type="checkbox" checked={campaign.indexable} />
@@ -455,36 +475,67 @@ function excerpt(text: string, max = 80): string {
   .field-featured-image { grid-column: 1 / -1; }
   .image-dropzone {
     background: var(--color-surface-subtle);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-control);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-card);
     color: var(--color-text-muted);
-    padding: var(--space-5);
+    padding: var(--space-6) var(--space-5);
     text-align: center;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   }
   .image-dropzone:hover, .image-dropzone.dragover {
     border-color: var(--color-primary);
     background: var(--color-primary-subtle);
   }
   .image-dropzone:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
-  .image-dropzone p { margin: var(--space-2) 0 0; font-size: var(--text-body-sm); }
+  .dropzone-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dropzone-text strong {
+    color: var(--color-ink);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-semibold);
+  }
+  .dropzone-text span {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+  }
   .image-preview-card {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    padding: var(--space-3);
+    padding: var(--space-4);
     border: var(--border-default);
-    border-radius: var(--radius-control);
-    background: var(--color-surface-subtle);
-    max-width: 480px;
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-card);
+    max-width: 540px;
   }
   .image-preview-wrapper {
     width: 100%;
-    max-height: 220px;
+    aspect-ratio: 16 / 9;
+    max-height: 280px;
     border-radius: var(--radius-image);
     overflow: hidden;
-    background: var(--color-canvas);
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -499,6 +550,11 @@ function excerpt(text: string, max = 80): string {
     display: flex;
     align-items: center;
     gap: var(--space-3);
+  }
+  .image-preview-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
   }
   label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); color: var(--color-text); }
   .wajib {
@@ -882,6 +938,7 @@ function excerpt(text: string, max = 80): string {
   function showImageError(msg: string) {
     if (imageError) {
       imageError.textContent = msg;
+      imageError.style.display = "block";
       imageError.hidden = false;
     }
   }
@@ -889,6 +946,7 @@ function excerpt(text: string, max = 80): string {
   function clearImageError() {
     if (imageError) {
       imageError.textContent = "";
+      imageError.style.display = "none";
       imageError.hidden = true;
     }
   }
@@ -906,9 +964,18 @@ function excerpt(text: string, max = 80): string {
       return;
     }
 
-    if (imageUploadProgress) imageUploadProgress.hidden = false;
-    if (imageDropzone) imageDropzone.hidden = true;
-    if (imagePreviewCard) imagePreviewCard.hidden = true;
+    if (imageUploadProgress) {
+      imageUploadProgress.style.display = "flex";
+      imageUploadProgress.hidden = false;
+    }
+    if (imageDropzone) {
+      imageDropzone.style.display = "none";
+      imageDropzone.hidden = true;
+    }
+    if (imagePreviewCard) {
+      imagePreviewCard.style.display = "none";
+      imagePreviewCard.hidden = true;
+    }
 
     try {
       const formData = new FormData();
@@ -924,8 +991,14 @@ function excerpt(text: string, max = 80): string {
         if (imagePreviewImg) {
           imagePreviewImg.src = `/admin/api/campaigns/${campaignId}/image?t=${Date.now()}`;
         }
-        if (imagePreviewCard) imagePreviewCard.hidden = false;
-        if (imageDropzone) imageDropzone.hidden = true;
+        if (imagePreviewCard) {
+          imagePreviewCard.style.display = "flex";
+          imagePreviewCard.hidden = false;
+        }
+        if (imageDropzone) {
+          imageDropzone.style.display = "none";
+          imageDropzone.hidden = true;
+        }
       } else {
         showImageError(
           data.reason === "too-large"
@@ -935,20 +1008,35 @@ function excerpt(text: string, max = 80): string {
               : "Gagal mengunggah gambar. Coba lagi.",
         );
         if (fImageInput?.value) {
-          if (imagePreviewCard) imagePreviewCard.hidden = false;
+          if (imagePreviewCard) {
+            imagePreviewCard.style.display = "flex";
+            imagePreviewCard.hidden = false;
+          }
         } else {
-          if (imageDropzone) imageDropzone.hidden = false;
+          if (imageDropzone) {
+            imageDropzone.style.display = "flex";
+            imageDropzone.hidden = false;
+          }
         }
       }
     } catch {
       showImageError("Terjadi kesalahan jaringan saat mengunggah gambar.");
       if (fImageInput?.value) {
-        if (imagePreviewCard) imagePreviewCard.hidden = false;
+        if (imagePreviewCard) {
+          imagePreviewCard.style.display = "flex";
+          imagePreviewCard.hidden = false;
+        }
       } else {
-        if (imageDropzone) imageDropzone.hidden = false;
+        if (imageDropzone) {
+          imageDropzone.style.display = "flex";
+          imageDropzone.hidden = false;
+        }
       }
     } finally {
-      if (imageUploadProgress) imageUploadProgress.hidden = true;
+      if (imageUploadProgress) {
+        imageUploadProgress.style.display = "none";
+        imageUploadProgress.hidden = true;
+      }
       if (imageFileInput) imageFileInput.value = "";
     }
   }
@@ -995,8 +1083,14 @@ function excerpt(text: string, max = 80): string {
       if (res.ok && data.ok) {
         if (fImageInput) fImageInput.value = "";
         if (imagePreviewImg) imagePreviewImg.src = "";
-        if (imagePreviewCard) imagePreviewCard.hidden = true;
-        if (imageDropzone) imageDropzone.hidden = false;
+        if (imagePreviewCard) {
+          imagePreviewCard.style.display = "none";
+          imagePreviewCard.hidden = true;
+        }
+        if (imageDropzone) {
+          imageDropzone.style.display = "flex";
+          imageDropzone.hidden = false;
+        }
       } else {
         showImageError("Gagal menghapus gambar.");
       }
