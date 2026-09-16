@@ -21,7 +21,7 @@ async function seedAdmin() {
 describe("login flow", () => {
   beforeEach(async () => {
     await resetDb();
-    setEnv({ MOCK_EMAILIT: "true" });
+    setEnv({ MOCK_EMAILIT: "true", ADMIN_EMAIL: "kelaswfa@gmail.com" });
   });
 
   it("startLogin wrong password → generic invalid + audit", async () => {

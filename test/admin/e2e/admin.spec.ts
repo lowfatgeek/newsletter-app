@@ -46,16 +46,16 @@ test("admin e2e: login → OTP → CMS buat campaign → publish → halaman pub
   await expect(page).toHaveURL(/^.*\/admin\/?$/);
   await expect(page.getByRole("heading", { name: "Dashboard Funnel" })).toBeVisible();
 
-  // e. Buat campaign baru via UI → editor terbuka.
+  // e. Buat campaign baru via UI → editor langsung terbuka (instant draft).
   await page.goto("/admin/campaigns");
   await expect(page.getByRole("heading", { name: "Reward Campaign" })).toBeVisible();
   await page.getByRole("link", { name: "Buat reward campaign" }).first().click();
-  await expect(page).toHaveURL(/\/admin\/campaigns\/new$/);
-  const slug = `admin-e2e-${Math.random().toString(36).slice(2, 8)}`;
-  await page.fill("#slug", slug);
-  await page.click("#new-submit");
   await expect(page).toHaveURL(/\/admin\/campaigns\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: "Detail" })).toBeVisible();
+
+  // Set slug khusus e2e agar cleanup DB seed menghapusnya (slug like 'admin-e2e-%')
+  const slug = `admin-e2e-${Math.random().toString(36).slice(2, 8)}`;
+  await page.fill("#f-slug", slug);
 
   // Isi konten ID + simpan.
   await page.fill("#f-title-id", "Hadiah E2E Admin");

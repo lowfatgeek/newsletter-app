@@ -98,10 +98,51 @@ function excerpt(text: string, max = 80): string {
           <label for="f-order">Urutan tampil</label>
           <input id="f-order" type="number" value={campaign.sortOrder} min="0" step="1" />
         </div>
-        <div class="field">
-          <label for="f-image">Featured image (storage key)</label>
-          <input id="f-image" type="text" value={campaign.featuredImageKey ?? ""} placeholder="k/contoh.png" spellcheck="false" />
-          <p class="hint">Kunci objek storage; unggah file tersedia pada bagian Reward files.</p>
+        <div class="field field-featured-image">
+          <label id="featured-image-label">Banner / Featured Image</label>
+          <input id="f-image" type="hidden" value={campaign.featuredImageKey ?? ""} />
+
+          <div id="image-preview-card" class="image-preview-card" hidden={!campaign.featuredImageKey}>
+            <div class="image-preview-wrapper">
+              <img
+                id="image-preview-img"
+                src={campaign.featuredImageKey ? `/admin/api/campaigns/${campaign.id}/image` : ""}
+                alt="Banner Campaign"
+                loading="lazy"
+              />
+            </div>
+            <div class="image-preview-actions">
+              <button type="button" id="btn-change-image" class="btn-secondary btn-small">Ganti Gambar</button>
+              <button type="button" id="btn-delete-image" class="btn-ghost-danger btn-small">Hapus Gambar</button>
+            </div>
+          </div>
+
+          <div
+            id="image-dropzone"
+            class="image-dropzone"
+            role="button"
+            tabindex="0"
+            aria-labelledby="featured-image-label"
+            hidden={Boolean(campaign.featuredImageKey)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            <p>Pilih atau tarik banner gambar ke sini (<strong>PNG, JPG, WebP</strong> · maks 5 MB)</p>
+          </div>
+
+          <input id="image-file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+
+          <div id="image-upload-progress" class="upload-progress" hidden>
+            <div class="progress-track" aria-hidden="true">
+              <div id="image-progress-bar" class="progress-bar" style="width: 100%;"></div>
+            </div>
+            <span class="hint">Mengunggah gambar…</span>
+          </div>
+
+          <p id="image-error" class="field-error" hidden></p>
         </div>
         <div class="field field-check">
           <input id="f-indexable" type="checkbox" checked={campaign.indexable} />
@@ -411,6 +452,54 @@ function excerpt(text: string, max = 80): string {
   .field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
   .field-check { flex-direction: row; align-items: center; gap: var(--space-3); }
   .field-check input { width: 20px; height: 20px; }
+  .field-featured-image { grid-column: 1 / -1; }
+  .image-dropzone {
+    background: var(--color-surface-subtle);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+    padding: var(--space-5);
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .image-dropzone:hover, .image-dropzone.dragover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+  }
+  .image-dropzone:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--color-primary); }
+  .image-dropzone p { margin: var(--space-2) 0 0; font-size: var(--text-body-sm); }
+  .image-preview-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-subtle);
+    max-width: 480px;
+  }
+  .image-preview-wrapper {
+    width: 100%;
+    max-height: 220px;
+    border-radius: var(--radius-image);
+    overflow: hidden;
+    background: var(--color-canvas);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .image-preview-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .image-preview-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
   label { font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); color: var(--color-text); }
   .wajib {
     display: inline-block;
@@ -556,6 +645,35 @@ function excerpt(text: string, max = 80): string {
   // Slug tersimpan terakhir — dipakai untuk membatalkan perubahan slug saat
   // admin membatalkan konfirmasi redirect.
   let savedSlug = slugInput?.value ?? "";
+  // Auto-slug aktif bila slug masih berupa draft otomatis atau belum pernah diedit manual
+  let isAutoSlug = savedSlug.startsWith("draft-") || !(titleId?.value.trim());
+
+  function slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 120);
+  }
+
+  slugInput?.addEventListener("input", () => {
+    isAutoSlug = false;
+    const slugHint = $<HTMLElement>("#slug-hint");
+    if (slugHint && slugInput) slugHint.textContent = `Alamat publik: /r/${slugInput.value.trim()}`;
+  });
+
+  titleId?.addEventListener("input", () => {
+    if (isAutoSlug && slugInput) {
+      const generated = slugify(titleId.value);
+      if (generated) {
+        slugInput.value = generated;
+        const slugHint = $<HTMLElement>("#slug-hint");
+        if (slugHint) slugHint.textContent = `Alamat publik: /r/${generated}`;
+      }
+    }
+  });
 
   function nowClock(): string {
     const d = new Date();
@@ -747,6 +865,143 @@ function excerpt(text: string, max = 80): string {
       if (doaStatus) doaStatus.textContent = "";
     } finally {
       doaSave.disabled = false;
+    }
+  });
+
+  // ===== Featured image: dropzone + upload + preview + delete =====
+  const imageFileInput = $<HTMLInputElement>("#image-file-input");
+  const imageDropzone = $<HTMLElement>("#image-dropzone");
+  const imagePreviewCard = $<HTMLElement>("#image-preview-card");
+  const imagePreviewImg = $<HTMLImageElement>("#image-preview-img");
+  const imageUploadProgress = $<HTMLElement>("#image-upload-progress");
+  const imageError = $<HTMLElement>("#image-error");
+  const btnChangeImage = $<HTMLButtonElement>("#btn-change-image");
+  const btnDeleteImage = $<HTMLButtonElement>("#btn-delete-image");
+  const fImageInput = $<HTMLInputElement>("#f-image");
+
+  function showImageError(msg: string) {
+    if (imageError) {
+      imageError.textContent = msg;
+      imageError.hidden = false;
+    }
+  }
+
+  function clearImageError() {
+    if (imageError) {
+      imageError.textContent = "";
+      imageError.hidden = true;
+    }
+  }
+
+  async function uploadFeaturedImage(file: File) {
+    clearImageError();
+    const validTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      showImageError("Format tidak didukung. Gunakan file PNG, JPG, atau WebP.");
+      return;
+    }
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      showImageError("Ukuran file melebihi batas 5 MB.");
+      return;
+    }
+
+    if (imageUploadProgress) imageUploadProgress.hidden = false;
+    if (imageDropzone) imageDropzone.hidden = true;
+    if (imagePreviewCard) imagePreviewCard.hidden = true;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`/admin/api/campaigns/${campaignId}/image`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && data.key) {
+        if (fImageInput) fImageInput.value = data.key;
+        if (imagePreviewImg) {
+          imagePreviewImg.src = `/admin/api/campaigns/${campaignId}/image?t=${Date.now()}`;
+        }
+        if (imagePreviewCard) imagePreviewCard.hidden = false;
+        if (imageDropzone) imageDropzone.hidden = true;
+      } else {
+        showImageError(
+          data.reason === "too-large"
+            ? "Ukuran file melebihi batas 5 MB."
+            : data.reason === "invalid-type"
+              ? "Format gambar tidak didukung."
+              : "Gagal mengunggah gambar. Coba lagi.",
+        );
+        if (fImageInput?.value) {
+          if (imagePreviewCard) imagePreviewCard.hidden = false;
+        } else {
+          if (imageDropzone) imageDropzone.hidden = false;
+        }
+      }
+    } catch {
+      showImageError("Terjadi kesalahan jaringan saat mengunggah gambar.");
+      if (fImageInput?.value) {
+        if (imagePreviewCard) imagePreviewCard.hidden = false;
+      } else {
+        if (imageDropzone) imageDropzone.hidden = false;
+      }
+    } finally {
+      if (imageUploadProgress) imageUploadProgress.hidden = true;
+      if (imageFileInput) imageFileInput.value = "";
+    }
+  }
+
+  imageDropzone?.addEventListener("click", () => imageFileInput?.click());
+  btnChangeImage?.addEventListener("click", () => imageFileInput?.click());
+
+  imageDropzone?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      imageFileInput?.click();
+    }
+  });
+
+  imageDropzone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    imageDropzone.classList.add("dragover");
+  });
+
+  imageDropzone?.addEventListener("dragleave", () => {
+    imageDropzone.classList.remove("dragover");
+  });
+
+  imageDropzone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    imageDropzone.classList.remove("dragover");
+    const file = e.dataTransfer?.files?.[0];
+    if (file) void uploadFeaturedImage(file);
+  });
+
+  imageFileInput?.addEventListener("change", () => {
+    const file = imageFileInput.files?.[0];
+    if (file) void uploadFeaturedImage(file);
+  });
+
+  btnDeleteImage?.addEventListener("click", async () => {
+    if (!confirm("Hapus banner/featured image dari campaign ini?")) return;
+    clearImageError();
+    try {
+      const res = await fetch(`/admin/api/campaigns/${campaignId}/image`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        if (fImageInput) fImageInput.value = "";
+        if (imagePreviewImg) imagePreviewImg.src = "";
+        if (imagePreviewCard) imagePreviewCard.hidden = true;
+        if (imageDropzone) imageDropzone.hidden = false;
+      } else {
+        showImageError("Gagal menghapus gambar.");
+      }
+    } catch {
+      showImageError("Terjadi kesalahan jaringan saat menghapus gambar.");
     }
   });
 

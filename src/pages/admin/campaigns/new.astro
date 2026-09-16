@@ -16,9 +16,9 @@ if (!admin) return Astro.redirect("/admin/login");
   </p>
 
   <form id="new-form" novalidate>
-    <label for="slug">Slug <span class="wajib">Wajib</span></label>
-    <input id="slug" name="slug" type="text" autocomplete="off" spellcheck="false" required />
-    <p id="slug-hint" class="hint">Huruf kecil, angka, dan tanda hubung. Contoh: starter-kit</p>
+    <label for="slug">Slug <span style="color: var(--color-text-muted); font-size: var(--text-body-sm); font-weight: normal;">(Opsional)</span></label>
+    <input id="slug" name="slug" type="text" autocomplete="off" spellcheck="false" placeholder="Biarkan kosong untuk generate otomatis" />
+    <p id="slug-hint" class="hint">Huruf kecil, angka, dan tanda hubung. Kosongkan untuk langsung membuat draft.</p>
     <p id="slug-error" class="error" role="alert" hidden></p>
 
     <button type="submit" id="new-submit">Buat campaign</button>

@@ -23,6 +23,7 @@ export default defineConfig({
     // server selalu sinkron.
     env: {
       ...process.env,
+      ASTRO_DEV_BACKGROUND: "false",
       TEST_TIMER_MS: "100",
       ADMIN_EMAIL: process.env.ADMIN_EMAIL ?? "kelaswfa@gmail.com",
       ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? "AdminPassword123",

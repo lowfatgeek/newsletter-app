@@ -38,13 +38,13 @@ function fmtDate(d: Date | null): string {
       <h1>Reward Campaign</h1>
       <p class="helper">Kelola halaman reward: konten dua bahasa, file hadiah, doa, dan status tayang.</p>
     </div>
-    <a href="/admin/campaigns/new" class="btn-primary">Buat reward campaign</a>
+    <a href="/admin/campaigns/new" class="btn-primary create-campaign-btn">Buat reward campaign</a>
   </div>
 
   {rows.length === 0 ? (
     <div class="empty">
       <p>Belum ada reward campaign. Buat campaign pertama untuk mulai mengatur hadiah.</p>
-      <a href="/admin/campaigns/new" class="btn-primary">Buat reward campaign</a>
+      <a href="/admin/campaigns/new" class="btn-primary create-campaign-btn">Buat reward campaign</a>
     </div>
   ) : (
     <div class="table-wrap">
@@ -176,3 +176,35 @@ function fmtDate(d: Date | null): string {
     .page-head { flex-direction: column; }
   }
 </style>
+
+<script>
+  const createBtns = document.querySelectorAll<HTMLAnchorElement>(".create-campaign-btn");
+  createBtns.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const originalText = btn.textContent;
+      btn.textContent = "Membuat draft…";
+      btn.style.pointerEvents = "none";
+      btn.style.opacity = "0.7";
+      try {
+        const res = await fetch("/admin/api/campaigns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.ok && data.id) {
+          window.location.assign(`/admin/campaigns/${data.id}`);
+          return;
+        }
+        window.location.assign("/admin/campaigns/new");
+      } catch {
+        window.location.assign("/admin/campaigns/new");
+      } finally {
+        btn.textContent = originalText;
+        btn.style.pointerEvents = "";
+        btn.style.opacity = "";
+      }
+    });
+  });
+</script>
