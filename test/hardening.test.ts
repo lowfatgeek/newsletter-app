@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
@@ -12,7 +13,7 @@ import { cronAuthorized } from "../src/lib/cron-auth";
 import { db } from "../src/lib/db";
 import { clientIp } from "../src/lib/ip";
 import { adminUsers, contacts, emailOutbox, trustedDevices } from "../src/lib/schema";
-import { applySecurityHeaders, onRequest, SECURITY_CSP } from "../src/middleware";
+import { applySecurityHeaders, cspWithInlineScriptHashes, onRequest, SECURITY_CSP } from "../src/middleware";
 import { POST as logoutPOST } from "../src/pages/admin/api/logout";
 import { resetDb, setEnv } from "./helpers";
 
@@ -65,6 +66,64 @@ describe("hardening: security headers middleware", () => {
     const prod = new Headers();
     applySecurityHeaders(prod, true);
     expect(prod.get("Strict-Transport-Security")).toBe("max-age=31536000; includeSubDomains");
+  });
+});
+
+describe("hardening: CSP inline-script hashing (astro build meng-inline <script>)", () => {
+  const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("base64");
+
+  it("no inline scripts → CSP unchanged", () => {
+    expect(cspWithInlineScriptHashes(SECURITY_CSP, "<html><body>halo</body></html>")).toBe(SECURITY_CSP);
+  });
+
+  it("external src script is not hashed", () => {
+    const html = '<script src="/_astro/x.js"></script>';
+    expect(cspWithInlineScriptHashes(SECURITY_CSP, html)).toBe(SECURITY_CSP);
+  });
+
+  it("inline script body is added as sha256 hash to script-src", () => {
+    const body = "console.log('hai');";
+    const out = cspWithInlineScriptHashes(SECURITY_CSP, `<script>${body}</script>`);
+    expect(out).toContain(`'sha256-${sha256(body)}'`);
+    expect(out).toMatch(/script-src 'self' 'sha256-[A-Za-z0-9+/=]+'/);
+    // Direktif lain tidak berubah; 'unsafe-inline' tidak pernah ditambahkan ke script-src.
+    expect(out).toContain("frame-ancestors 'none'");
+    expect(out).not.toMatch(/script-src[^;]*unsafe-inline/);
+  });
+
+  it("script type=module is hashed; type=application/json is skipped", () => {
+    const mod = "import x from 'y';";
+    const json = '{"a":1}';
+    const out = cspWithInlineScriptHashes(
+      SECURITY_CSP,
+      `<script type="module">${mod}</script><script type="application/json">${json}</script>`,
+    );
+    expect(out).toContain(`'sha256-${sha256(mod)}'`);
+    expect(out).not.toContain(`'sha256-${sha256(json)}'`);
+  });
+
+  it("tag with nonce or src attr is not hashable (skipped)", () => {
+    const body = "alert(1)";
+    expect(cspWithInlineScriptHashes(SECURITY_CSP, `<script nonce="abc">${body}</script>`)).not.toContain(sha256(body));
+    expect(cspWithInlineScriptHashes(SECURITY_CSP, `<script src="/a.js">${body}</script>`)).toBe(SECURITY_CSP);
+  });
+
+  it("onRequest on an HTML page response extends the CSP header with the inline hash", async () => {
+    const body = "document.getElementById('x');";
+    const html = `<html><head><script>${body}</script></head><body>ok</body></html>`;
+    const page = new Response(html, {
+      headers: { "Content-Security-Policy": SECURITY_CSP, "content-type": "text/html; charset=utf-8" },
+    });
+    const out = (await onRequest({} as never, (async () => page) as never)) as Response;
+    expect(out.headers.get("Content-Security-Policy")).toContain(`'sha256-${sha256(body)}'`);
+    // Body tetap utuh setelah dibuffer ulang.
+    expect(await out.clone().text()).toBe(html);
+  });
+
+  it("onRequest leaves non-HTML responses unbuffered and CSP untouched", async () => {
+    const api = new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } });
+    const out = (await onRequest({} as never, (async () => api) as never)) as Response;
+    expect(out.headers.get("Content-Security-Policy")).toBe(SECURITY_CSP);
   });
 });
 
