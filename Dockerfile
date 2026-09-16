@@ -48,12 +48,18 @@ ENV HOST=0.0.0.0
 ENV PORT=4321
 EXPOSE 4321
 
-# Health check bawaan Docker: GET /api/health harus 200.
+# Health check bawaan Docker: proses HTTP hidup? Sengaja memakai /api/live
+# (liveness, tanpa DB), BUKAN /api/health (readiness, 503 bila DB mati) —
+# supaya gangguan database atau DATABASE_URL yang belum benar tidak membuat
+# container di-restart/stop dan Console tetap bisa dibuka untuk diagnosa.
 # Port diambil dari PORT runtime (fallback 4321) — angka tetap di sini pernah
 # membuat container selalu "unhealthy" begitu Easypanel menyuntik PORT lain,
 # karena check-nya menembak port yang tidak ada yang mendengarkan.
 # (Easypanel memakai health check-nya sendiri; ini untuk `docker run` manual.)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
-CMD ["node", "./dist/server/entry.mjs"]
+# Preflight mencetak HOST/PORT efektif + status koneksi DB ke log container
+# (diagnosa tanpa Console), lalu menjalankan server sebagai PID 1 via exec
+# supaya sinyal SIGTERM dari Easypanel diteruskan langsung ke Node.
+CMD ["sh", "-c", "node scripts/preflight.mjs; exec node ./dist/server/entry.mjs"]

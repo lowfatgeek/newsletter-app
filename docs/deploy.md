@@ -122,10 +122,16 @@ di produksi kecuali yang memang flag (`true`/`false`).
 
 1. Di dalam project, klik **+ Service** → pilih **Postgres** → beri nama `db`.
 2. Biarkan versi default (16) → **Create**.
-3. Klik service `db` → tab **Overview** → catat **Connection URL** internal
+3. Klik service Postgres → tab **Overview** → catat **Connection URL** internal
    (bentuknya seperti `postgres://postgres:<password>@db:5432/kelaswfa`).
    URL internal ini yang dipakai sebagai `DATABASE_URL` — jangan pakai URL
    publik bila ada, supaya trafik DB tidak keluar dari jaringan Docker.
+   > **Host harus sama dengan nama service-nya.** Nama service di Easypanel
+   > adalah hostname internal di jaringan Docker. Kalau service Postgres Anda
+   > dinamai `kadodb`, maka URL-nya `postgres://postgres:<password>@kadodb:5432/...`
+   > — menulis `@db` akan gagal resolve dan `/api/health` balas 503. Nama host
+   > yang dipakai aplikasi selalu tercetak di log start:
+   > `[preflight] DB OK → kadodb:5432/kelaswfa`.
 4. (Opsional tapi disarankan) Di tab **Backups** service Postgres, aktifkan
    backup otomatis bila template Easypanel menyediakannya.
 
@@ -158,36 +164,44 @@ di produksi kecuali yang memang flag (`true`/`false`).
 
 > **Catatan port (penting).** Port aplikasi ditentukan oleh env `PORT` saat
 > runtime. Image punya default `4321` (`ENV PORT=4321`), tetapi **Easypanel
-> menyuntikkan `PORT` miliknya sendiri**, dan env runtime selalu menang atas
-> `ENV` di image. Jadi angka yang benar adalah angka di baris log:
+> menyuntikkan `PORT` sendiri dari konfigurasi port di panel**, dan env runtime
+> selalu menang atas `ENV` di image. **Menambahkan `PORT=4321` di tab
+> Environment tidak cukup** kalau port panel masih `80` — nilai panel yang
+> menang. Sumber kebenarannya adalah baris preflight di log service:
 >
 > ```
+> [preflight] NODE_ENV=production HOST=0.0.0.0 PORT=80 (Dockerfile default: HOST=0.0.0.0 PORT=4321)
+> [preflight] DB OK → kadodb:5432/kelaswfa
 > [@astrojs/node] Server listening on
->   local: http://localhost:<PORT>
->   network: http://10.x.x.x:<PORT>
+>   local: http://localhost:80
+>   network: http://10.x.x.x:80
 > ```
 >
 > Aturan wajibnya: **port di tab Ports/Domains Easypanel harus sama dengan
-> `<PORT>` di log itu.** Kalau log menunjukkan `:80` sementara panel di-set
-> `4321`, request dari browser tidak akan pernah sampai (502/504) dan indikator
-> service tetap kuning. Dua cara menyamakannya:
+> `PORT=` di baris preflight.** Kalau tidak sama, request dari browser tidak
+> pernah sampai (502/504). Dua cara menyamakannya:
 >
-> - **Pakai 4321** (sesuai dokumentasi ini): set port service ke `4321`, lalu di
->   tab **Environment** tambahkan `PORT=4321` supaya nilai itu yang dipakai
->   runtime (menimpa suntikan Easypanel). Redeploy → log harus menampilkan `:4321`.
-> - **Ikut Easypanel (mis. 80)**: biarkan `PORT` dari panel apa adanya dan set
->   port service ke nilai yang sama dengan log. Aplikasi tetap jalan — tapi
->   samakan juga angka di dokumen runbook Anda agar tidak membingungkan.
+> - **Pakai 4321** (sesuai dokumentasi ini): ubah **port di tab Ports** menjadi
+>   `4321` (bukan hanya menambah env `PORT`), lalu Deploy ulang → preflight
+>   harus mencetak `PORT=4321` dan log server `:4321`.
+> - **Ikut Easypanel (mis. 80)**: biarkan apa adanya dan pastikan domain
+>   diarahkan ke port yang sama dengan baris preflight.
 >
-> Verifikasi cepat dari tab **Console** service:
+> **Liveness vs readiness.** `HEALTHCHECK` image memakai `/api/live` (proses
+> hidup, tanpa DB) supaya masalah database tidak membuat container di-restart
+> atau di-stop — dengan begitu tab Console tetap bisa dibuka saat DB bermasalah.
+> Kesiapan database dipantau lewat `/api/health` (503 bila DB tak terjangkau),
+> dan statusnya sudah tercetak di baris `[preflight] DB ...` setiap start.
+>
+> Kalau Console tersedia, verifikasi cepatnya:
 >
 > ```bash
 > printenv | grep -E '^(HOST|PORT)='
-> node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/health').then(r=>r.text()).then(t=>console.log('health',t)).catch(e=>console.log('ERR',e.message))"
+> node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/live').then(r=>r.text()).then(t=>console.log('live',t)).catch(e=>console.log('ERR',e.message))"
+> node -e "const p=process.env.PORT||4321;fetch('http://127.0.0.1:'+p+'/api/health').then(r=>r.status+' '+r.text()).then(console.log)"
 > ```
 >
-> Output pertama menunjukkan port yang benar-benar dipakai; output kedua harus
-> `health {"status":"ok"}`.
+> Baris terakhir harus `200 {"status":"ok"}`.
 
 ### B5. Jalankan migrasi database (sekali saja)
 
@@ -378,10 +392,13 @@ Lanjutan wajib ada di `docs/operations.md` §1 — ringkasnya:
 
 | Gejala | Kemungkinan penyebab | Perbaikan |
 |---|---|---|
-| Status service **kuning** & log `Server listening` berulang tiap 1–2 menit | Health check image menembak port yang salah (mis. `4321` padahal runtime `PORT=80`) → container selalu `unhealthy` dan di-restart | Perbaikan di Dockerfile (health check ikut `$PORT`) sudah ada; pastikan deploy memakai image terbaru, lalu samakan port seperti catatan port di B4 |
-| Log menampilkan `:80` padahal panel di-set `4321` | Easypanel menyuntik `PORT` sendiri dan menimpa `ENV PORT=4321` image | Set port service = nilai di log, atau tambahkan `PORT=4321` di tab Environment lalu samakan port service ke `4321` |
-| Domain jalan tapi 502/504 | Port di tab Ports/Domains ≠ port di log | Jalankan dua perintah verifikasi di catatan B4, lalu samakan angkanya |
-| `/api/health` → `{"status":"error"}` (503) | `DATABASE_URL` salah / DB belum bisa dijangkau | Cek URL, user, password; di Easypanel pakai URL internal (`@db`), bukan `localhost` |
+| **No running containers found** di Console, indikator kuning, Memory `0.0 B` | Deployment tidak pernah sehat lalu container di-stop; atau proses keluar sendiri | Buka tab **Deployments** → lihat deployment terakhir: commit yang di-build, status, dan log lengkap. Pastikan commit terbaru benar-benar ter-deploy (cek hash-nya), lalu **Stop → Deploy** ulang |
+| Status service **kuning** & log `Server listening` berulang tiap 1–2 menit | Health check image menembak port yang salah (mis. `4321` padahal runtime `PORT=80`) → container selalu `unhealthy` dan di-restart | Image terbaru sudah memakai `/api/live` + `$PORT`; pastikan deploy memakai commit terbaru, lalu samakan port seperti catatan port di B4 |
+| Sudah tambah env `PORT=4321` tapi log tetap `:80` | Nilai port di panel (tab Ports) menang atas env manual | Ubah **port di tab Ports** ke `4321`, bukan hanya menambah env; lihat baris `[preflight] ... PORT=` untuk memastikan |
+| Log menampilkan `:80` padahal panel di-set `4321` | Port di tab Ports/Domains ≠ port yang dipakai app | Set port service = nilai `PORT=` di baris preflight |
+| Domain jalan tapi 502/504 | Port di tab Ports/Domains ≠ port di log | Jalankan perintah verifikasi di catatan B4, lalu samakan angkanya |
+| `[preflight] DB GAGAL` di log / `/api/health` → 503 | Host `DATABASE_URL` tidak cocok nama service Postgres, kredensial salah, atau DB belum dibuat | Samakan host dengan nama service (`@kadodb`, bukan `@db`); cek user/password/dbname di tab Overview service Postgres |
+| `/api/health` → `{"status":"error"}` (503) tapi `/api/live` 200 | DB belum bisa dijangkau (app sendiri hidup) | Isi/benahi `DATABASE_URL`, lalu jalankan `db:migrate` |
 | Halaman 500 semua | Secret belum lengkap / migrasi belum jalan | Cek log service; jalankan `db:migrate`; pastikan `TOKEN_SECRET` ter-set |
 | Cron 401 | `CRON_SECRET` beda antara cron dan app | Samakan nilainya di kedua tempat |
 | Cron 5xx | DB/R2/Emailit error | Baca log service `web` saat menit cron berjalan |
