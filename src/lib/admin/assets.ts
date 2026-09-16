@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../db";
+import { listCampaignAssets } from "../rewards";
 import { rewardAssets } from "../schema";
 import { ALLOWED_MIME, MAX_UPLOAD_BYTES, putObject } from "../storage";
 import { audit } from "./audit";
@@ -146,10 +147,5 @@ export async function reorderAssets(campaignId: string, assetIds: string[], audi
   });
 }
 
-export async function listAssets(campaignId: string) {
-  return db
-    .select()
-    .from(rewardAssets)
-    .where(eq(rewardAssets.campaignId, campaignId))
-    .orderBy(asc(rewardAssets.sortOrder));
-}
+/** Aset campaign untuk panel admin — satu implementasi dengan halaman akses publik. */
+export const listAssets = listCampaignAssets;

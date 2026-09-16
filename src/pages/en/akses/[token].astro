@@ -1,10 +1,8 @@
 ---
-import { eq } from "drizzle-orm";
 import PublicLayout from "../../../layouts/PublicLayout.astro";
 import { resolveAccess } from "../../../lib/access-page";
 import { humanSize } from "../../../lib/admin/format";
-import { db } from "../../../lib/db";
-import { rewardAssets } from "../../../lib/schema";
+import { listCampaignAssets } from "../../../lib/rewards";
 
 export const prerender = false;
 
@@ -17,11 +15,7 @@ const { sessionToken, campaignId, content } = resolved;
 const { fallbackToId } = content.localeRow("en");
 const locale = fallbackToId ? "id" : "en";
 
-const assets = await db
-  .select()
-  .from(rewardAssets)
-  .where(eq(rewardAssets.campaignId, campaignId))
-  .orderBy(rewardAssets.sortOrder);
+const assets = await listCampaignAssets(campaignId);
 ---
 <PublicLayout title={locale === "en" ? "Your gift is ready" : "Kadonya siap dibuka"} lang={locale} noindex>
   <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
@@ -29,16 +23,37 @@ const assets = await db
     <p style="color: var(--color-text-muted); margin: 0 0 var(--space-6);">
       {locale === "en" ? "Download links are valid for 1 hour." : "Link unduhan berlaku 1 jam."}
     </p>
-    <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3);">
-      {assets.map((a) => (
-        <li style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);">
-          <div>
-            <strong style="color: var(--color-ink);">{locale === "en" && a.nameEn ? a.nameEn : a.nameId}</strong>
-            <p style="margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-body-sm);">{a.mimeType} · {humanSize(Number(a.sizeBytes))}</p>
-          </div>
-          <a href={`/api/download/${sessionToken}/${a.id}`} referrerpolicy="no-referrer" style="background: var(--color-primary); color: var(--color-surface-raised); text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">{locale === "en" ? "Secure download" : "Unduh aman"}</a>
-        </li>
-      ))}
-    </ul>
+    {assets.length === 0 ? (
+      <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); display: flex; gap: var(--space-4); align-items: flex-start;">
+        <span aria-hidden="true" style="color: var(--color-text-muted); display: inline-flex; flex: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+            <path d="M3 13.5 5.2 5.4A2 2 0 0 1 7.1 4h9.8a2 2 0 0 1 1.9 1.4L21 13.5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <path d="M3 13.5h4.3l1 1.8h7.4l1-1.8H21"></path>
+          </svg>
+        </span>
+        <div>
+          <strong style="color: var(--color-ink); display: block; margin-bottom: 4px;">
+            {locale === "en" ? "No download files yet" : "Berkas unduhan belum tersedia"}
+          </strong>
+          <p style="margin: 0; color: var(--color-text-muted); font-size: var(--text-body-sm); line-height: 1.6;">
+            {locale === "en"
+              ? "This gift has no files attached yet. Save this link and try again later, or contact the KelasWFA admin if you think this is a mistake."
+              : "Hadiah ini belum dilengkapi berkas. Simpan tautan ini dan coba lagi nanti, atau hubungi admin KelasWFA bila menurutmu ini keliru."}
+          </p>
+        </div>
+      </div>
+    ) : (
+      <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3);">
+        {assets.map((a) => (
+          <li style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);">
+            <div>
+              <strong style="color: var(--color-ink);">{locale === "en" && a.nameEn ? a.nameEn : a.nameId}</strong>
+              <p style="margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-body-sm);">{a.mimeType} · {humanSize(Number(a.sizeBytes))}</p>
+            </div>
+            <a href={`/api/download/${sessionToken}/${a.id}`} referrerpolicy="no-referrer" style="background: var(--color-primary); color: var(--color-surface-raised); text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">{locale === "en" ? "Secure download" : "Unduh aman"}</a>
+          </li>
+        ))}
+      </ul>
+    )}
   </main>
 </PublicLayout>

@@ -105,6 +105,19 @@ export async function progressOf(campaignId: string): Promise<{ total: number; s
   return { total: row?.total ?? 0, sentSoFar: row?.sentSoFar ?? 0 };
 }
 
+/**
+ * Jumlah recipient kampanye dengan status tertentu. Dipakai halaman laporan
+ * untuk menggerbangi tombol "Kirim ulang yang gagal" (task 3.8 / 04-N1:
+ * query ini dulu berupa SQL mentah di dalam file .astro).
+ */
+export async function countRecipients(campaignId: string, status: RecipientStatusFilter): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(emailCampaignRecipients)
+    .where(and(eq(emailCampaignRecipients.campaignId, campaignId), eq(emailCampaignRecipients.status, status)));
+  return row?.n ?? 0;
+}
+
 // ===== Laporan: tabel recipient + resend yang gagal (Task 12) =====
 
 export type RecipientStatusFilter = "pending" | "sent" | "failed" | "cancelled";

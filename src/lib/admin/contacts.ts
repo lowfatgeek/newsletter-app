@@ -159,6 +159,21 @@ export async function listContacts(filter: ContactsFilter): Promise<{ rows: Cont
 }
 
 /**
+ * Label campaign untuk chip filter aktif di daftar kontak: judul locale ID,
+ * fallback slug, null bila campaign tidak ada. (task 3.8 / 04-N1 — dipindahkan
+ * dari src/pages/admin/contacts/index.astro)
+ */
+export async function getCampaignFilterLabel(campaignId: string): Promise<string | null> {
+  const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, campaignId));
+  if (!camp) return null;
+  const [loc] = await db
+    .select()
+    .from(rewardCampaignLocales)
+    .where(and(eq(rewardCampaignLocales.campaignId, camp.id), eq(rewardCampaignLocales.locale, "id")));
+  return loc?.title ?? camp.slug;
+}
+
+/**
  * Detail satu kontak: profil, langganan marketing, riwayat consent, dan
  * claim (slug + judul campaign locale id dengan fallback, status, tanggal).
  * Null bila kontak tidak ada.

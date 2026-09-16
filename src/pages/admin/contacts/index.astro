@@ -1,10 +1,7 @@
 ---
-import { and, eq } from "drizzle-orm";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
-import { listContacts } from "../../../lib/admin/contacts";
+import { getCampaignFilterLabel, listContacts } from "../../../lib/admin/contacts";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import { db } from "../../../lib/db";
-import { rewardCampaignLocales, rewardCampaigns } from "../../../lib/schema";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;
@@ -30,17 +27,7 @@ if (!Number.isFinite(offset) || offset < 0) offset = 0;
 const { rows, total } = await listContacts({ status, campaignId, search, limit: PAGE_SIZE, offset });
 
 // Label campaign untuk chip filter aktif.
-let campaignLabel: string | null = null;
-if (campaignId) {
-  const [camp] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, campaignId));
-  if (camp) {
-    const [loc] = await db
-      .select()
-      .from(rewardCampaignLocales)
-      .where(and(eq(rewardCampaignLocales.campaignId, camp.id), eq(rewardCampaignLocales.locale, "id")));
-    campaignLabel = loc?.title ?? camp.slug;
-  }
-}
+const campaignLabel = campaignId ? await getCampaignFilterLabel(campaignId) : null;
 
 /** Query params dengan satu filter dibuang (untuk chip yang bisa dihapus). */
 function listParams(exclude?: "status" | "campaignId" | "search" | "offset"): string {

@@ -1,13 +1,10 @@
 ---
-import { eq } from "drizzle-orm";
 import ReflectionTabs from "../../../components/ReflectionTabs.astro";
 import RewardHero from "../../../components/RewardHero.astro";
 import RewardItemList from "../../../components/RewardItemList.astro";
-import { getCampaignById } from "../../../lib/admin/campaigns";
+import { getCampaignById, getDoaTemplateById } from "../../../lib/admin/campaigns";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import { db } from "../../../lib/db";
 import type { RewardCampaignLocale } from "../../../lib/schema";
-import { doaTemplates } from "../../../lib/schema";
 
 // Token desain + font agar komponen publik dirender dengan gaya yang sama.
 import "@fontsource/plus-jakarta-sans/latin-400.css";
@@ -52,7 +49,7 @@ async function doaContent(
 ): Promise<string> {
   const sel = d.doaSelections.find((s) => s.variant === variant);
   if (!sel) return "";
-  const [tpl] = await db.select().from(doaTemplates).where(eq(doaTemplates.id, sel.templateId));
+  const tpl = await getDoaTemplateById(sel.templateId);
   return tpl?.content ?? "";
 }
 const muslimText = await doaContent(data, "muslim");

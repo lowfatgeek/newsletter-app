@@ -347,3 +347,38 @@ atau naikkan plan Emailit lebih dulu. Pantau `sent_today` (§4d) agar tidak
 melewati batas harian; pengiriman yang gagal karena kuota akan tercatat di
 `email_deliveries.error` dan bisa di-retry dari UI (`retry-failed`).
 Tombol retry dibatasi 3x per jam per campaign (429 "Terlalu sering. Coba lagi nanti.").
+
+---
+
+## 8. Batasan metrik funnel (apa yang TIDAK bisa dihitung)
+
+Kartu-kartu di `/admin` (`dashboard Funnel`) dihitung murni dari data yang sudah
+tersimpan di tabel — tanpa event log maupun tracking tambahan (task 3.12 / 07-P4):
+
+| Kartu | Sumber | Catatan |
+| --- | --- | --- |
+| Total kontak | `contact` | termasuk yang belum konfirmasi |
+| Terkonfirmasi 30 hari | `contact.confirmed_at` | jendela 30 hari terakhir |
+| Subscriber aktif | `marketing_subscription.status = 'active'` | — |
+| Total klaim | `reward_claim` | — |
+| Email konfirmasi | `email_outbox.email_type = 'confirmation'` | antrean, bukan status kirim |
+| Email akses hadiah | `email_outbox.email_type = 'reward_access'` | antrean, bukan status kirim |
+| Unduhan diterbitkan | `access_token.type = 'session'` | token sesi yang terbit |
+| Berhenti berlangganan | `marketing_subscription.status = 'unsubscribed'` | — |
+| Reward access rate | unduhan / email akses terkirim | rasio dua kartu di atas |
+
+Yang secara sengaja **tidak** tersedia:
+
+- **visit → submit** dan **halaman dilihat**: tidak ada page-view yang ditulis ke
+  database, jadi asal kunjungan tidak bisa diatribusikan ke campaign. Angka klaim
+  hanya menunjukkan hasil akhir, bukan konversi dari kunjungan.
+- **open rate / read rate**: tidak ada open pixel (DESIGN.md) — angka klik
+  (`email_campaign_recipient.clicked_at`) hanya menandai klik tautan, dan hanya
+  untuk kampanye broadcast, bukan email transaksional.
+- **deliverability transaksional**: `email_outbox` mencatat antrean/percobaan
+  kirim; status delivered/bounce per email transaksional tidak disimpan. Untuk
+  broadcast, angka delivered/failed/bounced tersedia di laporan per campaign
+  (`email_deliveries`).
+
+Bila angka-angka ini dibutuhkan, tambahkan tabel event (page view / open pixel)
+terlebih dahulu — jangan memperkirakan dari data yang ada.

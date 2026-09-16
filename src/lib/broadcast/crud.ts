@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { audit } from "../admin/audit";
 import { db } from "../db";
 import { type EmailCampaign, emailCampaigns } from "../schema";
@@ -138,4 +138,22 @@ export async function getEmailCampaignById(id: string): Promise<EmailCampaign | 
   if (!isValidUuid(id)) return null;
   const [row] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
   return row ?? null;
+}
+
+/**
+ * Baris ringkas semua kampanye broadcast untuk daftar admin, terbaru dulu
+ * (task 3.8 / 04-N1 — dipindahkan dari src/pages/admin/email-campaigns/index.astro).
+ */
+export async function listEmailCampaignRows() {
+  return db
+    .select({
+      id: emailCampaigns.id,
+      status: emailCampaigns.status,
+      subjectId: emailCampaigns.subjectId,
+      scheduledAt: emailCampaigns.scheduledAt,
+      snapshotAt: emailCampaigns.snapshotAt,
+      createdAt: emailCampaigns.createdAt,
+    })
+    .from(emailCampaigns)
+    .orderBy(desc(emailCampaigns.createdAt));
 }

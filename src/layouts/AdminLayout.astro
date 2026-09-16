@@ -20,8 +20,13 @@ const { title, admin = null } = Astro.props;
     <title>{title} — KelasWFA Admin</title>
   </head>
   <body>
+    {/* Task 3.11 / 06-A11y6: drawer navigasi mobile tanpa JS (checkbox + label).
+        Input sengaja tetap fokusable (bukan `hidden`) agar bisa dibuka lewat
+        keyboard dengan Space; scrim adalah label → klik di luar = tutup. */}
+    <input id="admin-nav-toggle" class="admin-nav-toggle" type="checkbox" />
+    {admin && <label for="admin-nav-toggle" class="admin-nav-scrim" aria-hidden="true"></label>}
     {admin && (
-      <aside class="admin-sidebar">
+      <aside class="admin-sidebar" id="admin-nav">
         <strong class="admin-brand">KelasWFA Admin</strong>
         <nav class="admin-nav" aria-label="Navigasi admin">
           <a href="/admin/campaigns">Reward Campaign</a>
@@ -38,7 +43,14 @@ const { title, admin = null } = Astro.props;
     <main class={admin ? "admin-main" : "admin-auth"}>
       {admin && (
         <header class="admin-mobile-bar">
-          <span>{admin.email}</span>
+          <label for="admin-nav-toggle" class="admin-nav-burger" aria-label="Buka navigasi admin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+              <path d="M4 7h16"></path>
+              <path d="M4 12h16"></path>
+              <path d="M4 17h16"></path>
+            </svg>
+          </label>
+          <span class="admin-mobile-email">{admin.email}</span>
           <form method="post" action="/admin/api/logout">
             <button type="submit">Keluar</button>
           </form>
@@ -56,6 +68,17 @@ const { title, admin = null } = Astro.props;
     background: var(--color-canvas);
     color: var(--color-text);
   }
+  /* Kontrol drawer hanya relevan di mobile — di desktop checkbox dimatikan
+     agar tidak bisa di-Tab ke elemen tak terlihat. */
+  .admin-nav-toggle { display: none; }
+  .admin-nav-burger { display: none; }
+  .admin-nav-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(21, 59, 53, 0.45);
+  }
   .admin-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
@@ -66,6 +89,8 @@ const { title, admin = null } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+    z-index: 30;
+    overflow-y: auto;
   }
   .admin-brand { margin-bottom: var(--space-5); color: var(--color-canvas); }
   .admin-nav { display: flex; flex-direction: column; gap: var(--space-2); }
@@ -101,9 +126,52 @@ const { title, admin = null } = Astro.props;
     max-width: var(--auth-content);
     margin: 0 auto;
   }
-  /* Mobile: sidebar disembunyikan; logout tersedia di header konten. */
+  /* Mobile: sidebar jadi drawer (buka lewat tombol burger, tutup via scrim). */
   @media (max-width: 1023px) {
-    .admin-sidebar { display: none; }
+    .admin-nav-toggle {
+      display: block;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      opacity: 0;
+    }
+    .admin-sidebar {
+      transform: translateX(-100%);
+      visibility: hidden;
+      transition:
+        transform 200ms ease,
+        visibility 200ms ease;
+      box-shadow: var(--shadow-card);
+    }
+    .admin-nav-toggle:checked ~ .admin-sidebar {
+      transform: translateX(0);
+      visibility: visible;
+    }
+    .admin-nav-toggle:checked ~ .admin-nav-scrim { display: block; }
+    .admin-nav-toggle:focus-visible ~ main .admin-nav-burger {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    .admin-nav-burger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 44px;
+      height: 44px;
+      border: var(--border-default);
+      border-radius: var(--radius-control);
+      background: var(--color-surface-raised);
+      color: var(--color-ink);
+      cursor: pointer;
+    }
+    .admin-mobile-email {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .admin-main { margin-left: 0; max-width: none; padding: var(--space-4); }
     .admin-mobile-bar {
       display: flex;

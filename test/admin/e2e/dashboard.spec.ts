@@ -74,3 +74,32 @@ test("admin audit: /admin/audit 200 + tabel terlihat", async ({ page }) => {
   // Login OTP baru saja menulis audit → minimal 1 baris.
   expect(await page.locator("tbody tr").count()).toBeGreaterThan(0);
 });
+
+// Task 3.11 / 06-A11y6: di mobile sidebar jadi drawer — tombol burger membuka
+// (checkbox + label, tetap jalan tanpa JS), scrim menutupnya.
+test.describe("drawer navigasi admin (mobile)", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("burger membuka drawer, tautan navigasi & scrim bekerja", async ({ page }) => {
+    await loginAdmin(page);
+
+    const sidebar = page.locator(".admin-sidebar");
+    const navLink = (name: string) =>
+      page.getByRole("navigation", { name: "Navigasi admin" }).getByRole("link", { name });
+    await expect(sidebar).toBeHidden();
+    await expect(page.locator(".admin-mobile-bar")).toBeVisible();
+
+    await page.locator(".admin-nav-burger").click();
+    await expect(sidebar).toBeVisible();
+    await expect(navLink("Kontak")).toBeVisible();
+
+    // Scrim menutup drawer lagi (klik di area kanan sidebar).
+    await page.locator(".admin-nav-scrim").click({ position: { x: 320, y: 400 } });
+    await expect(sidebar).toBeHidden();
+
+    // Navigasi lewat drawer mengarah ke halaman admin yang dituju.
+    await page.locator(".admin-nav-burger").click();
+    await navLink("Kontak").click();
+    await expect(page).toHaveURL(/\/admin\/contacts$/);
+  });
+});

@@ -1,9 +1,7 @@
 ---
-import { and, asc, desc, eq } from "drizzle-orm";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { listCampaignRows } from "../../../lib/admin/campaigns";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import { db } from "../../../lib/db";
-import { rewardCampaignLocales, rewardCampaigns } from "../../../lib/schema";
 
 // Route on-demand — data tabel + guard cookie bersifat per-request.
 export const prerender = false;
@@ -12,21 +10,7 @@ const admin = await requireAdminOrRedirect(Astro);
 if (!admin) return Astro.redirect("/admin/login");
 
 // Nama campaign = judul locale ID (fallback slug bila locale belum diisi).
-const rows = await db
-  .select({
-    id: rewardCampaigns.id,
-    slug: rewardCampaigns.slug,
-    status: rewardCampaigns.status,
-    publishedAt: rewardCampaigns.publishedAt,
-    createdAt: rewardCampaigns.createdAt,
-    titleId: rewardCampaignLocales.title,
-  })
-  .from(rewardCampaigns)
-  .leftJoin(
-    rewardCampaignLocales,
-    and(eq(rewardCampaignLocales.campaignId, rewardCampaigns.id), eq(rewardCampaignLocales.locale, "id")),
-  )
-  .orderBy(asc(rewardCampaigns.sortOrder), desc(rewardCampaigns.createdAt));
+const rows = await listCampaignRows();
 
 const statusMeta: Record<string, { label: string; tone: "muted" | "success" | "warning" }> = {
   draft: { label: "Draft", tone: "muted" },

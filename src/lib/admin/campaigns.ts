@@ -1,6 +1,7 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from "../pgerror";
+import { listCampaignAssets } from "../rewards";
 import {
   campaignRedirects,
   doaSelections,
@@ -314,6 +315,9 @@ export async function duplicateCampaign(id: string, auditOpts?: AuditOpts): Prom
   return newId;
 }
 
+/**
+ * Campaign lengkap untuk editor: row campaign, locale, aset, pilihan doa.
+ */
 export async function getCampaignById(id: string) {
   // Guard 1.9: id non-UUID dari path parameter → null (404), bukan 500 dari
   // error syntax PostgreSQL 22P02.
@@ -321,13 +325,52 @@ export async function getCampaignById(id: string) {
   const [campaign] = await db.select().from(rewardCampaigns).where(eq(rewardCampaigns.id, id));
   if (!campaign) return null;
   const locales = await db.select().from(rewardCampaignLocales).where(eq(rewardCampaignLocales.campaignId, id));
-  const assets = await db
-    .select()
-    .from(rewardAssets)
-    .where(eq(rewardAssets.campaignId, id))
-    .orderBy(asc(rewardAssets.sortOrder));
+  const assets = await listCampaignAssets(id);
   const selections = await db.select().from(doaSelections).where(eq(doaSelections.campaignId, id));
   return { campaign, locales, assets, doaSelections: selections };
+}
+
+// ===== Query daftar/preset untuk halaman admin (task 3.8 / 04-N1) =====
+
+/**
+ * Baris daftar campaign untuk /admin/campaigns: judul locale ID (null bila
+ * locale belum diisi — halaman memakai slug sebagai fallback).
+ */
+export async function listCampaignRows() {
+  return db
+    .select({
+      id: rewardCampaigns.id,
+      slug: rewardCampaigns.slug,
+      status: rewardCampaigns.status,
+      publishedAt: rewardCampaigns.publishedAt,
+      createdAt: rewardCampaigns.createdAt,
+      titleId: rewardCampaignLocales.title,
+    })
+    .from(rewardCampaigns)
+    .leftJoin(
+      rewardCampaignLocales,
+      and(eq(rewardCampaignLocales.campaignId, rewardCampaigns.id), eq(rewardCampaignLocales.locale, "id")),
+    )
+    .orderBy(asc(rewardCampaigns.sortOrder), desc(rewardCampaigns.createdAt));
+}
+
+/** Daftar campaign ringkas (id + slug) untuk chip segmen audiens broadcast. */
+export async function listCampaignSlugs() {
+  return db
+    .select({ id: rewardCampaigns.id, slug: rewardCampaigns.slug })
+    .from(rewardCampaigns)
+    .orderBy(asc(rewardCampaigns.createdAt));
+}
+
+/** Semua preset doa, urut variant lalu nama (picker di editor campaign). */
+export async function listDoaTemplates() {
+  return db.select().from(doaTemplates).orderBy(asc(doaTemplates.variant), asc(doaTemplates.name));
+}
+
+/** Satu preset doa (preview teks doa di halaman preview campaign). */
+export async function getDoaTemplateById(id: string) {
+  const [tpl] = await db.select().from(doaTemplates).where(eq(doaTemplates.id, id));
+  return tpl ?? null;
 }
 
 /**

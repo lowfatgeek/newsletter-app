@@ -1,21 +1,13 @@
 ---
-import { asc, eq } from "drizzle-orm";
 import PublicLayout from "../layouts/PublicLayout.astro";
-import { db } from "../lib/db";
-import { rewardCampaigns } from "../lib/schema";
+import { firstPublishedCampaignSlug } from "../lib/rewards";
 
 // Root tidak lagi jadi stub terindeks (task 11-C1): redirect ke campaign
 // published teratas, atau fallback noindex bila belum ada campaign.
 export const prerender = false;
 
-const [featured] = await db
-  .select({ slug: rewardCampaigns.slug })
-  .from(rewardCampaigns)
-  .where(eq(rewardCampaigns.status, "published"))
-  .orderBy(asc(rewardCampaigns.sortOrder), asc(rewardCampaigns.createdAt))
-  .limit(1);
-
-if (featured) return Astro.redirect(`/r/${featured.slug}`, 302);
+const featuredSlug = await firstPublishedCampaignSlug();
+if (featuredSlug) return Astro.redirect(`/r/${featuredSlug}`, 302);
 ---
 <PublicLayout title="KelasWFA Kado" noindex={true}>
   <main style="max-width: var(--funnel-content); margin: var(--space-16) auto; text-align: center; padding: 0 var(--space-4);">

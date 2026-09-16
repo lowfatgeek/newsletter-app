@@ -24,6 +24,15 @@ const errorText: Record<string, string> = {
 <PublicLayout title={t("id", "checkEmailTitle")} lang="id" noindex>
   <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
     <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card);">
+      <span
+        aria-hidden="true"
+        style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-pill); background: var(--color-primary-subtle); color: var(--color-primary); margin: 0 0 var(--space-4);"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+          <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect>
+          <path d="m3.4 6.4 8.6 6.3 8.6-6.3"></path>
+        </svg>
+      </span>
       <h1 style="color: var(--color-ink); margin: 0 0 var(--space-4);">{t("id", "checkEmailTitle")}</h1>
       <p style="color: var(--color-text-muted); line-height: 1.6; margin: 0 0 var(--space-4);">
         {body}

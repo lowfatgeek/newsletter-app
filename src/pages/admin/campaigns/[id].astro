@@ -1,10 +1,7 @@
 ---
-import { asc } from "drizzle-orm";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
-import { getCampaignById } from "../../../lib/admin/campaigns";
+import { getCampaignById, listDoaTemplates } from "../../../lib/admin/campaigns";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
-import { db } from "../../../lib/db";
-import { doaTemplates } from "../../../lib/schema";
 
 // Route on-demand — guard cookie + data per-request.
 export const prerender = false;
@@ -56,7 +53,7 @@ const assetCount = data.assets.length;
 const canPublishBase = Boolean(idRow?.title && idRow?.description) && assetCount >= 1;
 
 // Preset doa dikelompokkan per variant untuk section Doa.
-const allTemplates = await db.select().from(doaTemplates).orderBy(asc(doaTemplates.variant), asc(doaTemplates.name));
+const allTemplates = await listDoaTemplates();
 const muslimTemplates = allTemplates.filter((t) => t.variant === "muslim");
 const universalTemplates = allTemplates.filter((t) => t.variant === "universal");
 const selectedMuslim = data.doaSelections.find((s) => s.variant === "muslim")?.templateId ?? null;

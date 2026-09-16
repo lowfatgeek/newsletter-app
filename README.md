@@ -54,7 +54,7 @@ email/asset tidak keluar ke provider saat dev.
 | `npm run seed` | Seed data dev + bersihkan sisa baris e2e |
 | `npm run admin:bootstrap` | Buat admin dari `ADMIN_EMAIL` / set password |
 | `npm test` | Unit/integration test (Vitest, butuh Postgres) |
-| `npm run test:e2e` / `npx playwright test` | E2E (Playwright, 5 test) |
+| `npm run test:e2e` / `npx playwright test` | E2E (Playwright, 10 test / 5 berkas spec) |
 | `npx playwright test test/broadcast/e2e/broadcast.spec.ts` | E2E broadcast saja |
 
 Test memakai database yang sama dengan `DATABASE_URL`; `test/helpers.ts`
@@ -99,6 +99,7 @@ konfigurasi tambahan.
    | `ADMIN_SESSION_TTL_HOURS` | tidak | Default 12 |
    | `RATE_LIMIT_IP_PER_HOUR` / `RATE_LIMIT_EMAIL_PER_HOUR` | tidak | Default 10 / 5 |
    | `EMAILIT_MAX_PER_SECOND` / `EMAILIT_MAX_PER_DAY` | tidak | Default 2 / 5000 |
+   | `TEST_SEND_ADDRESSES` | tidak | Allowlist tombol "Kirim uji" di editor email campaign (comma-separated, default `kelaswfa@gmail.com`). Alamat di luar daftar ditolak; kirim uji tidak menyentuh recipient/statistik |
    | `MOCK_EMAILIT` / `MOCK_R2` / `MO_BROADCAST` | tidak | Biarkan kosong/false di produksi |
 
 4. Cron sudah didefinisikan di `vercel.json` (dua job tiap menit):

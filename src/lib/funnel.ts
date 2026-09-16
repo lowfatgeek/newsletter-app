@@ -1,4 +1,5 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, type SQL, sql } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 import { db } from "./db";
 import { accessTokens, contacts, emailOutbox, marketingSubscriptions, rewardClaims } from "./schema";
 
@@ -13,19 +14,8 @@ export type FunnelStats = {
   unsubscribedTotal: number;
 };
 
-async function count(
-  table:
-    | typeof contacts
-    | typeof rewardClaims
-    | typeof emailOutbox
-    | typeof accessTokens
-    | typeof marketingSubscriptions,
-  where?: ReturnType<typeof eq> | ReturnType<typeof and> | ReturnType<typeof gte> | ReturnType<typeof sql>,
-): Promise<number> {
-  const rows = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(table as any)
-    .where(where as any);
+async function count(table: PgTable, where?: SQL): Promise<number> {
+  const rows = await db.select({ n: sql<number>`count(*)::int` }).from(table).where(where);
   return rows[0]?.n ?? 0;
 }
 

@@ -1,12 +1,10 @@
 ---
-import { asc } from "drizzle-orm";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { listCampaignSlugs } from "../../../lib/admin/campaigns";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
 import { countAudience, validateFilter } from "../../../lib/broadcast/audience";
 import { getEmailCampaignById } from "../../../lib/broadcast/crud";
-import { db } from "../../../lib/db";
 import { env } from "../../../lib/env";
-import { rewardCampaigns } from "../../../lib/schema";
 
 // Route on-demand — guard cookie + data per-request.
 export const prerender = false;
@@ -26,10 +24,7 @@ const storedFilter = validateFilter(campaign.audienceFilter);
 const initialCount = storedFilter.ok ? await countAudience(storedFilter.filter) : null;
 
 // Daftar reward campaign untuk segmen claim (chip memakai slug).
-const claimRows = await db
-  .select({ id: rewardCampaigns.id, slug: rewardCampaigns.slug })
-  .from(rewardCampaigns)
-  .orderBy(asc(rewardCampaigns.createdAt));
+const claimRows = await listCampaignSlugs();
 
 const adminEmail = env("ADMIN_EMAIL", "kelaswfa@gmail.com");
 const caps = {

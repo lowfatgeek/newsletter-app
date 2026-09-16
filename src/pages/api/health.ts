@@ -1,15 +1,10 @@
 import type { APIRoute } from "astro";
-import { sql } from "drizzle-orm";
-import { db } from "../../lib/db";
+import { databaseHealthy } from "../../lib/health";
 
 // Route on-demand — tidak pernah diprerender.
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-  try {
-    await db.execute(sql`select 1`);
-    return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
-  } catch {
-    return new Response(JSON.stringify({ status: "error" }), { status: 503 });
-  }
+  const healthy = await databaseHealthy();
+  return new Response(JSON.stringify({ status: healthy ? "ok" : "error" }), { status: healthy ? 200 : 503 });
 };

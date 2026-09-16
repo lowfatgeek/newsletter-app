@@ -1,11 +1,13 @@
 ---
-import { eq, sql } from "drizzle-orm";
 import AdminLayout from "../../../../layouts/AdminLayout.astro";
 import { requireAdminOrRedirect } from "../../../../lib/admin/guard";
 import { getEmailCampaignById } from "../../../../lib/broadcast/crud";
-import { campaignStats, listRecipients, type RecipientStatusFilter } from "../../../../lib/broadcast/stats";
-import { db } from "../../../../lib/db";
-import { emailCampaignRecipients } from "../../../../lib/schema";
+import {
+  campaignStats,
+  countRecipients,
+  listRecipients,
+  type RecipientStatusFilter,
+} from "../../../../lib/broadcast/stats";
 
 // Route on-demand — guard cookie + data tabel per-request.
 export const prerender = false;
@@ -17,13 +19,12 @@ const id = Astro.params.id ?? "";
 // Task 2.6 / 07-P3: jalan paralel — dulu serial 3 roundtrip (campaign,
 // stats, failedCount). progressOf dihapus karena total/sentSoFar identik
 // dengan stats.recipients/stats.sent.
-const [campaign, stats, [failedCount]] = await Promise.all([
+// Task 3.8 / 04-N1: failedCount lewat countRecipients() di lib — halaman ini
+// tidak lagi menyimpan SQL mentah (murni view/presentasi).
+const [campaign, stats, failedCount] = await Promise.all([
   getEmailCampaignById(id),
   campaignStats(id),
-  db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(emailCampaignRecipients)
-    .where(sql`${emailCampaignRecipients.campaignId} = ${id} and ${emailCampaignRecipients.status} = 'failed'`),
+  countRecipients(id, "failed"),
 ]);
 if (!campaign) return new Response(null, { status: 404 });
 
@@ -34,7 +35,7 @@ const progress = { total: stats.recipients, sentSoFar: stats.sent };
 
 // Resend gagal hanya untuk kampanye yang masih bisa diproses worker
 // (prinsip sama dengan retryFailedRecipients di lib).
-const retryAllowed = ["sending", "queued", "completed", "failed"].includes(status) && (failedCount?.n ?? 0) > 0;
+const retryAllowed = ["sending", "queued", "completed", "failed"].includes(status) && failedCount > 0;
 
 // ===== Filter status + pagination (limit 50) =====
 const LIMIT = 50;
@@ -65,7 +66,6 @@ function pageUrl(nextPage: number, nextStatus?: RecipientStatusFilter): string {
   const qs = params.toString();
   return `/admin/email-campaigns/${id}/laporan${qs ? `?${qs}` : ""}`;
 }
-const currentPageUrl = pageUrl(page, statusFilter);
 const noFilterUrl = pageUrl(1);
 
 // ===== Label + badge (ikon + teks, DESIGN.md §6) =====
@@ -318,7 +318,7 @@ const showActions = canPause || canResume || canCancel || retryAllowed;
   <dialog id="retry-modal" class="modal">
     <h2>Kirim ulang yang gagal?</h2>
     <p>
-      Sebanyak <strong class="num">{nf.format(failedCount?.n ?? 0)}</strong> penerima
+      Sebanyak <strong class="num">{nf.format(failedCount)}</strong> penerima
       yang gagal akan dikembalikan ke antrean dan dikirim ulang oleh worker pada
       tick berikutnya dengan limit yang sama ({nf.format(campaign.maxPerMinute)}
       pesan/menit · {nf.format(campaign.maxPerHour)} pesan/jam).
