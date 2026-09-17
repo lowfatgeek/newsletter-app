@@ -1403,7 +1403,12 @@ function excerpt(text: string, max = 80): string {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Fallback if response is non-JSON HTML error
+      }
       if (res.ok && data.ok && data.key) {
         if (fImageInput) fImageInput.value = data.key;
         if (imagePreviewImg) {
@@ -1418,13 +1423,15 @@ function excerpt(text: string, max = 80): string {
           imageDropzone.hidden = true;
         }
       } else {
-        showImageError(
-          data.reason === "too-large"
+        console.error("[Image Upload Failed]", res.status, data);
+        const errMsg = data.error
+          ? `Gagal mengunggah: ${data.error}`
+          : data.reason === "too-large"
             ? "Ukuran file melebihi batas 5 MB."
             : data.reason === "invalid-type"
               ? "Format gambar tidak didukung."
-              : "Gagal mengunggah gambar. Coba lagi.",
-        );
+              : "Gagal mengunggah gambar. Coba lagi.";
+        showImageError(errMsg);
         if (fImageInput?.value) {
           if (imagePreviewCard) {
             imagePreviewCard.style.display = "flex";
@@ -1437,8 +1444,10 @@ function excerpt(text: string, max = 80): string {
           }
         }
       }
-    } catch {
-      showImageError("Terjadi kesalahan jaringan saat mengunggah gambar.");
+    } catch (err) {
+      console.error("[Image Upload Network Error]", err);
+      const msg = err instanceof Error ? err.message : "Kesalahan jaringan";
+      showImageError(`Terjadi kesalahan saat mengunggah gambar (${msg}).`);
       if (fImageInput?.value) {
         if (imagePreviewCard) {
           imagePreviewCard.style.display = "flex";
@@ -1610,25 +1619,28 @@ function excerpt(text: string, max = 80): string {
     };
     xhr.onload = () => {
       if (uploadProgress) uploadProgress.hidden = true;
-      let data: { ok?: boolean; reason?: string; assets?: AssetView[] } = {};
+      let data: { ok?: boolean; reason?: string; error?: string; assets?: AssetView[] } = {};
       try { data = JSON.parse(xhr.responseText); } catch { /* fallthrough */ }
       if (xhr.status >= 200 && xhr.status < 300 && data.ok && data.assets) {
         renderAssets(data.assets);
         if (assetStatus) assetStatus.textContent = `File "${file.name}" terunggah.`;
         return;
       }
+      console.error("[Asset Upload Failed]", xhr.status, data, xhr.responseText);
       const reason = data.reason;
-      showAssetError(
-        reason === "mime-not-allowed"
+      const errMsg = data.error
+        ? `Gagal mengunggah: ${data.error}`
+        : reason === "mime-not-allowed"
           ? "Format file tidak didukung. Gunakan PDF, ZIP, DOCX, XLSX, PPTX, PNG, JPG, atau WebP."
           : reason === "too-large"
             ? "Ukuran file melebihi batas 100 MB."
             : reason === "unauthorized"
               ? "Sesi berakhir. Muat ulang halaman untuk masuk kembali."
-              : "Gagal mengunggah file. Coba lagi.",
-      );
+              : "Gagal mengunggah file. Coba lagi.";
+      showAssetError(errMsg);
     };
-    xhr.onerror = () => {
+    xhr.onerror = (e) => {
+      console.error("[Asset Upload Network Error]", e);
       if (uploadProgress) uploadProgress.hidden = true;
       showAssetError("Terjadi kesalahan jaringan saat mengunggah. Coba lagi.");
     };

@@ -74,19 +74,25 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
     return json({ ok: false, reason: "invalid" }, 400);
   }
 
-  const stored = await storeFeaturedImage({
-    campaignId: id,
-    filename: file.name,
-    mimeType: file.type,
-    body,
-  });
-  if (!stored.ok) {
-    // Sertakan batas agar klien bisa menampilkan pesan ukuran tanpa hardcode.
-    return json({ ok: false, reason: stored.reason, maxBytes: MAX_IMAGE_BYTES }, 400);
-  }
+  try {
+    const stored = await storeFeaturedImage({
+      campaignId: id,
+      filename: file.name,
+      mimeType: file.type,
+      body,
+    });
+    if (!stored.ok) {
+      // Sertakan batas agar klien bisa menampilkan pesan ukuran tanpa hardcode.
+      return json({ ok: false, reason: stored.reason, maxBytes: MAX_IMAGE_BYTES }, 400);
+    }
 
-  await updateCampaignMeta(id, { featuredImageKey: stored.key }, { adminUserId: admin.id, ip });
-  return json({ ok: true, key: stored.key });
+    await updateCampaignMeta(id, { featuredImageKey: stored.key }, { adminUserId: admin.id, ip });
+    return json({ ok: true, key: stored.key });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[Featured Image Upload Error] campaign=${id}:`, err);
+    return json({ ok: false, reason: "storage-failed", error: msg }, 500);
+  }
 };
 
 /** DELETE /admin/api/campaigns/[id]/image — lepas referensi featured image. */

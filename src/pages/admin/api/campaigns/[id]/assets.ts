@@ -96,8 +96,10 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
     if (!res.ok) return json({ ok: false, reason: res.reason }, 400);
     const assets = await listAssets(campaignId);
     return json({ ok: true, asset: assetView(assets.find((a) => a.id === res.id)!), assets: assets.map(assetView) });
-  } catch {
-    return json({ ok: false, reason: "upload-failed" }, 500);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[Asset Upload Error] campaign=${campaignId}:`, err);
+    return json({ ok: false, reason: "upload-failed", error: msg }, 500);
   }
 };
 
