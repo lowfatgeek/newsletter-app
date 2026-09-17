@@ -193,14 +193,14 @@ function excerpt(text: string, max = 80): string {
             <div class="item-card item-row">
               <div class="item-card-header">
                 <span class="item-badge">Item <span class="item-num">{idx + 1}</span></span>
-                <button type="button" class="item-remove btn-ghost-danger" aria-label="Hapus item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <button type="button" class="item-remove" aria-label="Hapus item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
                     <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
                   Hapus
                 </button>
               </div>
-              <div class="item-card-grid">
+              <div class="item-card-body">
                 <div class="field">
                   <label class="item-field-label">Nama item <span class="wajib">Wajib</span></label>
                   <input type="text" class="it-name" value={it.name} placeholder="Contoh: Template Spreadsheet Budget" aria-label="Nama item (ID)" lang="id" />
@@ -209,13 +209,15 @@ function excerpt(text: string, max = 80): string {
                   <label class="item-field-label">Manfaat singkat <span class="wajib">Wajib</span></label>
                   <input type="text" class="it-benefit" value={it.benefit} placeholder="Contoh: Otomatis menghitung cashflow bulanan" aria-label="Manfaat item (ID)" lang="id" />
                 </div>
-                <div class="field">
-                  <label class="item-field-label">Format <span class="opsional">(Opsional)</span></label>
-                  <input type="text" class="it-format" value={it.format ?? ""} placeholder="Contoh: XLSX / PDF / Notion" aria-label="Format item (ID)" />
-                </div>
-                <div class="field">
-                  <label class="item-field-label">Ukuran <span class="opsional">(Opsional)</span></label>
-                  <input type="text" class="it-size" value={it.size ?? ""} placeholder="Contoh: 2.5 MB / 15 Halaman" aria-label="Ukuran item (ID)" />
+                <div class="item-card-meta-grid">
+                  <div class="field">
+                    <label class="item-field-label">Format <span class="opsional">(Opsional)</span></label>
+                    <input type="text" class="it-format" value={it.format ?? ""} placeholder="Contoh: XLSX / PDF / Notion" aria-label="Format item (ID)" />
+                  </div>
+                  <div class="field">
+                    <label class="item-field-label">Ukuran <span class="opsional">(Opsional)</span></label>
+                    <input type="text" class="it-size" value={it.size ?? ""} placeholder="Contoh: 2.5 MB / 15 Halaman" aria-label="Ukuran item (ID)" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -253,14 +255,14 @@ function excerpt(text: string, max = 80): string {
             <div class="item-card item-row">
               <div class="item-card-header">
                 <span class="item-badge">Item <span class="item-num">{idx + 1}</span></span>
-                <button type="button" class="item-remove btn-ghost-danger" aria-label="Remove item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <button type="button" class="item-remove" aria-label="Remove item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
                     <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
                   Hapus
                 </button>
               </div>
-              <div class="item-card-grid">
+              <div class="item-card-body">
                 <div class="field">
                   <label class="item-field-label">Item name</label>
                   <input type="text" class="it-name" value={it.name} placeholder="e.g. Budget Spreadsheet Template" aria-label="Item name (EN)" lang="en" />
@@ -269,13 +271,15 @@ function excerpt(text: string, max = 80): string {
                   <label class="item-field-label">Short benefit</label>
                   <input type="text" class="it-benefit" value={it.benefit} placeholder="e.g. Automatically track monthly cashflow" aria-label="Item benefit (EN)" lang="en" />
                 </div>
-                <div class="field">
-                  <label class="item-field-label">Format <span class="opsional">(Optional)</span></label>
-                  <input type="text" class="it-format" value={it.format ?? ""} placeholder="e.g. XLSX / PDF / Notion" aria-label="Item format (EN)" />
-                </div>
-                <div class="field">
-                  <label class="item-field-label">Size <span class="opsional">(Optional)</span></label>
-                  <input type="text" class="it-size" value={it.size ?? ""} placeholder="e.g. 2.5 MB / 15 Pages" aria-label="Item size (EN)" />
+                <div class="item-card-meta-grid">
+                  <div class="field">
+                    <label class="item-field-label">Format <span class="opsional">(Optional)</span></label>
+                    <input type="text" class="it-format" value={it.format ?? ""} placeholder="e.g. XLSX / PDF / Notion" aria-label="Item format (EN)" />
+                  </div>
+                  <div class="field">
+                    <label class="item-field-label">Size <span class="opsional">(Optional)</span></label>
+                    <input type="text" class="it-size" value={it.size ?? ""} placeholder="e.g. 2.5 MB / 15 Pages" aria-label="Item size (EN)" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -720,57 +724,85 @@ function excerpt(text: string, max = 80): string {
     color: var(--color-ink);
     padding: 0 var(--space-2);
   }
-  .items-list {
+  :global(.items-list) {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
     margin: var(--space-4) 0;
   }
-  .item-card {
+  :global(.item-card) {
     background: var(--color-surface-raised);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-control);
     padding: var(--space-4) var(--space-5);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 3px rgba(21, 59, 53, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  :global(.item-card:hover),
+  :global(.item-card:focus-within) {
+    border-color: #cbd5e1;
+    box-shadow: 0 3px 8px rgba(21, 59, 53, 0.07);
+  }
+  :global(.item-card-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-3);
+    border-bottom: 1px dashed var(--color-border);
+  }
+  :global(.item-badge) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    background: var(--color-primary-subtle);
+    padding: 3px 12px;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.03em;
+  }
+  :global(.item-remove) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-danger);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  :global(.item-remove:hover) {
+    background: var(--color-danger-subtle);
+    border-color: rgba(181, 60, 74, 0.2);
+    text-decoration: none;
+  }
+  :global(.item-card-body) {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
   }
-  .item-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: var(--space-2);
-    border-bottom: 1px dashed var(--color-border);
-  }
-  .item-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: var(--text-body-sm);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-primary);
-    background: var(--color-primary-subtle);
-    padding: 2px 10px;
-    border-radius: var(--radius-pill);
-  }
-  .item-remove {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    min-height: auto;
-    padding: 4px 8px;
-    font-size: var(--text-body-sm);
-  }
-  .item-card-grid {
+  :global(.item-card-meta-grid) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-3) var(--space-4);
   }
-  .item-card-grid .field {
+  :global(.item-card .field) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
     margin-bottom: 0;
   }
-  .item-field-label {
+  :global(.item-field-label) {
     font-size: 13px;
     font-weight: var(--font-weight-semibold);
     color: var(--color-ink);
@@ -778,14 +810,51 @@ function excerpt(text: string, max = 80): string {
     align-items: center;
     gap: var(--space-2);
   }
+  :global(.item-card input[type="text"]) {
+    font-family: inherit;
+    font-size: var(--text-body);
+    padding: 10px 14px;
+    min-height: 42px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  :global(.item-card input[type="text"]::placeholder) {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+  :global(.item-card input[type="text"]:focus-visible) {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-color: var(--color-primary);
+  }
+  :global(.item-card .wajib) {
+    display: inline-block;
+    margin-left: var(--space-1);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    border-radius: var(--radius-pill);
+    padding: 1px 8px;
+    font-size: 11px;
+  }
+  :global(.item-card .opsional) {
+    font-size: 11px;
+    font-weight: var(--font-weight-normal);
+    color: var(--color-text-muted);
+  }
   .btn-add-item {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    margin-top: var(--space-2);
+    margin-top: var(--space-3);
   }
   @media (max-width: 640px) {
-    .item-card-grid {
+    :global(.item-card-meta-grid) {
       grid-template-columns: 1fr;
     }
   }
@@ -834,17 +903,17 @@ function excerpt(text: string, max = 80): string {
     transition: width 0.15s ease;
   }
 
-  .asset-list { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-  .asset-row {
+  :global(.asset-list) { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+  :global(.asset-row) {
     display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);
     border: var(--border-default); border-radius: var(--radius-control); padding: var(--space-3) var(--space-4);
-    font-size: var(--text-body-sm);
+    font-size: var(--text-body-sm); background: var(--color-surface-raised);
   }
-  .asset-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .asset-info strong { color: var(--color-ink); overflow-wrap: anywhere; }
-  .asset-info span { color: var(--color-text-muted); }
-  .asset-actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
-  .asset-list .placeholder { margin: 0; }
+  :global(.asset-info) { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  :global(.asset-info strong) { color: var(--color-ink); overflow-wrap: anywhere; }
+  :global(.asset-info span) { color: var(--color-text-muted); }
+  :global(.asset-actions) { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+  :global(.asset-list .placeholder) { margin: 0; }
 
   .status-line { color: var(--color-text); font-size: var(--text-body-sm); margin: 0 0 var(--space-4); }
   .status-line strong { color: var(--color-ink); }
@@ -1149,14 +1218,14 @@ function excerpt(text: string, max = 80): string {
     row.innerHTML = `
       <div class="item-card-header">
         <span class="item-badge">Item <span class="item-num">${currentCount + 1}</span></span>
-        <button type="button" class="item-remove btn-ghost-danger" aria-label="${isEn ? "Remove item" : "Hapus item"}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+        <button type="button" class="item-remove" aria-label="${isEn ? "Remove item" : "Hapus item"}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
             <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
           Hapus
         </button>
       </div>
-      <div class="item-card-grid">
+      <div class="item-card-body">
         <div class="field">
           <label class="item-field-label">${isEn ? "Item name" : "Nama item"} ${!isEn ? '<span class="wajib">Wajib</span>' : ""}</label>
           <input type="text" class="it-name" placeholder="${isEn ? "e.g. Budget Spreadsheet Template" : "Contoh: Template Spreadsheet Budget"}" aria-label="${isEn ? "Item name" : "Nama item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
@@ -1165,13 +1234,15 @@ function excerpt(text: string, max = 80): string {
           <label class="item-field-label">${isEn ? "Short benefit" : "Manfaat singkat"} ${!isEn ? '<span class="wajib">Wajib</span>' : ""}</label>
           <input type="text" class="it-benefit" placeholder="${isEn ? "e.g. Automatically track monthly cashflow" : "Contoh: Otomatis menghitung cashflow bulanan"}" aria-label="${isEn ? "Item benefit" : "Manfaat item"} (${placeholderLang.toUpperCase()})" lang="${placeholderLang}" />
         </div>
-        <div class="field">
-          <label class="item-field-label">${isEn ? "Format" : "Format"} <span class="opsional">(${isEn ? "Optional" : "Opsional"})</span></label>
-          <input type="text" class="it-format" placeholder="${isEn ? "e.g. XLSX / PDF / Notion" : "Contoh: XLSX / PDF / Notion"}" aria-label="Format" />
-        </div>
-        <div class="field">
-          <label class="item-field-label">${isEn ? "Size" : "Ukuran"} <span class="opsional">(${isEn ? "Optional" : "Opsional"})</span></label>
-          <input type="text" class="it-size" placeholder="${isEn ? "e.g. 2.5 MB / 15 Pages" : "Contoh: 2.5 MB / 15 Halaman"}" aria-label="Ukuran" />
+        <div class="item-card-meta-grid">
+          <div class="field">
+            <label class="item-field-label">${isEn ? "Format" : "Format"} <span class="opsional">(${isEn ? "Optional" : "Opsional"})</span></label>
+            <input type="text" class="it-format" placeholder="${isEn ? "e.g. XLSX / PDF / Notion" : "Contoh: XLSX / PDF / Notion"}" aria-label="Format" />
+          </div>
+          <div class="field">
+            <label class="item-field-label">${isEn ? "Size" : "Ukuran"} <span class="opsional">(${isEn ? "Optional" : "Opsional"})</span></label>
+            <input type="text" class="it-size" placeholder="${isEn ? "e.g. 2.5 MB / 15 Pages" : "Contoh: 2.5 MB / 15 Halaman"}" aria-label="Ukuran" />
+          </div>
         </div>
       </div>`;
     list.appendChild(row);
