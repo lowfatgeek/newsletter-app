@@ -47,12 +47,18 @@ describe("asset upload", () => {
     expect(validateUpload({ filename: "hero.webp", mimeType: "image/webp", sizeBytes: 1024 }).ok).toBe(true);
 
     // OS/browser variations & generic fallbacks
-    expect(validateUpload({ filename: "a.zip", mimeType: "application/x-zip-compressed", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "a.zip", mimeType: "application/x-zip-compressed", sizeBytes: 1024 }).ok).toBe(
+      true,
+    );
     expect(validateUpload({ filename: "a.docx", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
     expect(validateUpload({ filename: "a.xlsx", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
     expect(validateUpload({ filename: "a.pptx", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
-    expect(validateUpload({ filename: "hero.webp", mimeType: "application/octet-stream", sizeBytes: 1024 }).ok).toBe(true);
-    expect(validateUpload({ filename: "doc.pdf", mimeType: "application/octet-stream", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "hero.webp", mimeType: "application/octet-stream", sizeBytes: 1024 }).ok).toBe(
+      true,
+    );
+    expect(validateUpload({ filename: "doc.pdf", mimeType: "application/octet-stream", sizeBytes: 1024 }).ok).toBe(
+      true,
+    );
     expect(validateUpload({ filename: "photo.jpg", mimeType: "image/pjpeg", sizeBytes: 1024 }).ok).toBe(true);
 
     // Rejections

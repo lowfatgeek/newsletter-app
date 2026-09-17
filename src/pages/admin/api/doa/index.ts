@@ -57,10 +57,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ ok: false, reason: "invalid" }, 400);
   }
 
-  const res = await upsertDoaTemplate(
-    { variant, name, contentId, contentEn },
-    auditOpts(request, admin.id),
-  );
+  const res = await upsertDoaTemplate({ variant, name, contentId, contentEn }, auditOpts(request, admin.id));
 
   if (!res.ok) return json({ ok: false, reason: res.reason }, 400);
   return json({ ok: true });

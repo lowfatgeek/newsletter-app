@@ -27,10 +27,7 @@ describe("doa admin lib", () => {
     const second = await ensureDefaultDoaTemplates(AUDIT);
     expect(second.inserted).toBe(0);
 
-    const audits = await db
-      .select()
-      .from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "doa_templates_seeded"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "doa_templates_seeded"));
     expect(audits).toHaveLength(1);
   });
 
@@ -106,10 +103,7 @@ describe("doa admin lib", () => {
     expect(updated?.idTemplate?.content).toBe("Teks Indonesia Diperbarui");
     expect(updated?.enTemplate).toBeUndefined(); // EN dihapus jika kosong
 
-    const audits = await db
-      .select()
-      .from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "doa_template_saved"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "doa_template_saved"));
     expect(audits).toHaveLength(2);
   });
 
@@ -152,10 +146,7 @@ describe("doa admin lib", () => {
     const groups = await listGroupedDoaTemplates();
     expect(groups.find((g) => g.name === "Harapan Sementara")).toBeUndefined();
 
-    const audits = await db
-      .select()
-      .from(adminAuditLog)
-      .where(eq(adminAuditLog.action, "doa_template_deleted"));
+    const audits = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "doa_template_deleted"));
     expect(audits).toHaveLength(1);
   });
 });

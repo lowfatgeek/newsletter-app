@@ -127,19 +127,10 @@ export async function upsertDoaTemplate(
     const [existingId] = await tx
       .select()
       .from(doaTemplates)
-      .where(
-        and(
-          eq(doaTemplates.variant, input.variant),
-          eq(doaTemplates.locale, "id"),
-          eq(doaTemplates.name, name),
-        ),
-      );
+      .where(and(eq(doaTemplates.variant, input.variant), eq(doaTemplates.locale, "id"), eq(doaTemplates.name, name)));
 
     if (existingId) {
-      await tx
-        .update(doaTemplates)
-        .set({ content: contentId })
-        .where(eq(doaTemplates.id, existingId.id));
+      await tx.update(doaTemplates).set({ content: contentId }).where(eq(doaTemplates.id, existingId.id));
     } else {
       await tx.insert(doaTemplates).values({
         variant: input.variant,
@@ -153,20 +144,11 @@ export async function upsertDoaTemplate(
     const [existingEn] = await tx
       .select()
       .from(doaTemplates)
-      .where(
-        and(
-          eq(doaTemplates.variant, input.variant),
-          eq(doaTemplates.locale, "en"),
-          eq(doaTemplates.name, name),
-        ),
-      );
+      .where(and(eq(doaTemplates.variant, input.variant), eq(doaTemplates.locale, "en"), eq(doaTemplates.name, name)));
 
     if (contentEn) {
       if (existingEn) {
-        await tx
-          .update(doaTemplates)
-          .set({ content: contentEn })
-          .where(eq(doaTemplates.id, existingEn.id));
+        await tx.update(doaTemplates).set({ content: contentEn }).where(eq(doaTemplates.id, existingEn.id));
       } else {
         await tx.insert(doaTemplates).values({
           variant: input.variant,

@@ -138,7 +138,11 @@ body {
   text-decoration: none;
   cursor: pointer;
   box-sizing: border-box;
-  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease;
 }
 .btn-primary:active:not(:disabled),
 .btn-secondary:active:not(:disabled),
