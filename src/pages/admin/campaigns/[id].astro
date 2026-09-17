@@ -153,7 +153,7 @@ function excerpt(text: string, max = 80): string {
             </div>
           </div>
 
-          <input id="image-file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+          <input id="image-file-input" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" hidden />
 
           <!-- Indikator progress saat upload -->
           <div id="image-upload-progress" class="upload-progress" style="display: none;" hidden>
@@ -1371,10 +1371,22 @@ function excerpt(text: string, max = 80): string {
 
   async function uploadFeaturedImage(file: File) {
     clearImageError();
-    const validTypes = ["image/png", "image/jpeg", "image/pjpeg", "image/x-png", "image/webp"];
+    const validTypes = [
+      "image/png",
+      "image/x-png",
+      "image/jpeg",
+      "image/pjpeg",
+      "image/jpg",
+      "image/webp",
+      "image/x-webp",
+    ];
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     const validExts = [".png", ".jpg", ".jpeg", ".webp"];
-    if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+    if (file.type && !validTypes.includes(file.type) && !validExts.includes(ext)) {
+      showImageError("Format tidak didukung. Gunakan file PNG, JPG, atau WebP.");
+      return;
+    }
+    if (!file.type && !validExts.includes(ext)) {
       showImageError("Format tidak didukung. Gunakan file PNG, JPG, atau WebP.");
       return;
     }

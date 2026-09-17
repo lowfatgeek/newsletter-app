@@ -2,27 +2,50 @@ import { AwsV4Signer } from "aws4fetch";
 import { env } from "./env";
 
 export const ALLOWED_MIME = [
+  // PDF
   "application/pdf",
   "application/x-pdf",
+  "application/acrobat",
+  "applications/vnd.pdf",
+  "text/pdf",
+  // ZIP
   "application/zip",
   "application/x-zip-compressed",
   "application/x-zip",
   "multipart/x-zip",
-  "application/octet-stream",
+  // OOXML (Word, Excel, PowerPoint)
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/msword",
+  "application/vnd.ms-excel",
+  "application/msexcel",
+  "application/vnd.ms-powerpoint",
+  "application/mspowerpoint",
+  // Images (PNG, JPG, WebP)
   "image/png",
   "image/x-png",
   "image/jpeg",
   "image/pjpeg",
+  "image/jpg",
   "image/webp",
+  "image/x-webp",
+  // Generic binary fallback (when OS/browser doesn't know the MIME)
+  "application/octet-stream",
 ];
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 // Featured image halaman reward: hanya raster, dibatasi jauh lebih kecil dari
 // file reward karena dimuat eager di hero (RewardHero 1200×630).
-export const IMAGE_MIME = ["image/png", "image/jpeg", "image/webp"];
+export const IMAGE_MIME = [
+  "image/png",
+  "image/x-png",
+  "image/jpeg",
+  "image/pjpeg",
+  "image/jpg",
+  "image/webp",
+  "image/x-webp",
+];
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export function assertAssetDownloadable(asset: { mimeType: string; sizeBytes: number }): void {

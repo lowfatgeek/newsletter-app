@@ -31,9 +31,17 @@ export const CANONICAL_MIME: Record<string, string> = {
 
 // Peta ekstensi → variasi MIME yang sah dikirim browser/OS.
 // Di Windows, file ZIP sering dikirim sebagai application/x-zip-compressed oleh Chrome/Edge.
-// Beberapa sistem/browser juga dapat mengirim application/octet-stream atau x-zip.
+// File Office tanpa Microsoft Office sering dikirim sebagai zip atau octet-stream.
+// File WebP pada Windows tanpa codec WebP sering dikirim sebagai octet-stream atau tanpa mime.
 export const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
-  pdf: ["application/pdf", "application/x-pdf", "application/octet-stream"],
+  pdf: [
+    "application/pdf",
+    "application/x-pdf",
+    "application/acrobat",
+    "applications/vnd.pdf",
+    "text/pdf",
+    "application/octet-stream",
+  ],
   zip: [
     "application/zip",
     "application/x-zip-compressed",
@@ -43,26 +51,34 @@ export const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
   ],
   docx: [
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
     "application/zip",
     "application/x-zip-compressed",
+    "application/x-zip",
     "application/octet-stream",
   ],
   xlsx: [
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "application/msexcel",
     "application/zip",
     "application/x-zip-compressed",
+    "application/x-zip",
     "application/octet-stream",
   ],
   pptx: [
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.ms-powerpoint",
+    "application/mspowerpoint",
     "application/zip",
     "application/x-zip-compressed",
+    "application/x-zip",
     "application/octet-stream",
   ],
-  png: ["image/png", "image/x-png"],
-  jpg: ["image/jpeg", "image/pjpeg", "image/jpg"],
-  jpeg: ["image/jpeg", "image/pjpeg", "image/jpg"],
-  webp: ["image/webp"],
+  png: ["image/png", "image/x-png", "application/octet-stream"],
+  jpg: ["image/jpeg", "image/pjpeg", "image/jpg", "application/octet-stream"],
+  jpeg: ["image/jpeg", "image/pjpeg", "image/jpg", "application/octet-stream"],
+  webp: ["image/webp", "image/x-webp", "application/octet-stream"],
 };
 
 function extOf(filename: string): string {
@@ -200,9 +216,12 @@ export type FeaturedImageResult = { ok: true; key: string } | { ok: false; reaso
  */
 export async function storeFeaturedImage(input: FeaturedImageInput): Promise<FeaturedImageResult> {
   const ext = extOf(input.filename);
+  if (!["png", "jpg", "jpeg", "webp"].includes(ext)) {
+    return { ok: false, reason: "mime-not-allowed" };
+  }
   const allowed = EXT_TO_ALLOWED_MIMES[ext];
   const mime = input.mimeType || "application/octet-stream";
-  if (!IMAGE_MIME.includes(mime) && !["image/x-png", "image/pjpeg", "image/jpg"].includes(mime)) {
+  if (!IMAGE_MIME.includes(mime) && mime !== "application/octet-stream") {
     return { ok: false, reason: "mime-not-allowed" };
   }
   if (!allowed || !allowed.includes(mime)) {
@@ -210,7 +229,7 @@ export async function storeFeaturedImage(input: FeaturedImageInput): Promise<Fea
   }
   if (input.body.byteLength > MAX_IMAGE_BYTES) return { ok: false, reason: "too-large" };
 
-  const canonicalMime = CANONICAL_MIME[ext] ?? input.mimeType;
+  const canonicalMime = CANONICAL_MIME[ext] ?? "image/jpeg";
   const storageKey = `featured/${input.campaignId}/${crypto.randomUUID()}-${sanitizeFilename(input.filename)}`;
   await putObject(storageKey, input.body, canonicalMime);
   return { ok: true, key: storageKey };

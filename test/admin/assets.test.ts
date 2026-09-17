@@ -16,10 +16,46 @@ describe("asset upload", () => {
     setEnv({ MOCK_R2: "false" });
   });
 
-  it("validates mime and size", () => {
-    expect(validateUpload({ filename: "a.pdf", mimeType: "application/pdf", sizeBytes: 1024 }).ok).toBe(true);
+  it("validates mime and size across all supported extensions and variants", () => {
+    // Standard formats
+    expect(validateUpload({ filename: "doc.pdf", mimeType: "application/pdf", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "archive.zip", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
+    expect(
+      validateUpload({
+        filename: "file.docx",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        sizeBytes: 1024,
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateUpload({
+        filename: "sheet.xlsx",
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        sizeBytes: 1024,
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateUpload({
+        filename: "slides.pptx",
+        mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        sizeBytes: 1024,
+      }).ok,
+    ).toBe(true);
+    expect(validateUpload({ filename: "image.png", mimeType: "image/png", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "photo.jpg", mimeType: "image/jpeg", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "photo.jpeg", mimeType: "image/jpeg", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "hero.webp", mimeType: "image/webp", sizeBytes: 1024 }).ok).toBe(true);
+
+    // OS/browser variations & generic fallbacks
     expect(validateUpload({ filename: "a.zip", mimeType: "application/x-zip-compressed", sizeBytes: 1024 }).ok).toBe(true);
-    expect(validateUpload({ filename: "a.zip", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "a.docx", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "a.xlsx", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "a.pptx", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "hero.webp", mimeType: "application/octet-stream", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "doc.pdf", mimeType: "application/octet-stream", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "photo.jpg", mimeType: "image/pjpeg", sizeBytes: 1024 }).ok).toBe(true);
+
+    // Rejections
     expect(validateUpload({ filename: "a.exe", mimeType: "application/x-msdownload", sizeBytes: 1 })).toEqual({
       ok: false,
       reason: "mime-not-allowed",
