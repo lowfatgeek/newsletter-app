@@ -32,12 +32,18 @@ export const GET: APIRoute = async ({ cookies, params }) => {
   let url: string;
   try {
     url = await presignDownloadUrl(key, 300);
-  } catch {
+  } catch (err) {
+    console.error(`[Admin Campaign Image] Presign error for campaign=${params.id} key=${key}:`, err);
     return json({ ok: false, reason: "storage-error" }, 502);
   }
-  const res = Response.redirect(url, 302);
-  res.headers.set("Cache-Control", "no-store");
-  return res;
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: url,
+      "Cache-Control": "no-store",
+    },
+  });
 };
 
 /**
