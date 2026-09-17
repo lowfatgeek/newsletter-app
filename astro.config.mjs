@@ -16,6 +16,14 @@ const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
 
 // https://astro.build/config
 export default defineConfig({
+  site: process.env.PUBLIC_SITE_URL || "https://kado.kelaswfa.my.id",
+  security: {
+    // Nonaktifkan checkOrigin bawaan Astro karena aplikasi berjalan di balik
+    // reverse-proxy (Docker/Easypanel/Traefik) yang memicu false-positive 403
+    // ("Cross-site POST form submissions are forbidden"). Validasi Origin sudah
+    // ditangani secara aman dan proxy-aware oleh verifyAdminOrigin() di guard.ts.
+    checkOrigin: false,
+  },
   adapter: isVercel
     ? vercel()
     : node({
