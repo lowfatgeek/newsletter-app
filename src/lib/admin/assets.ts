@@ -16,10 +16,8 @@ import type { AuditOpts } from "./campaigns";
 export type ValidateInput = { filename: string; mimeType: string; sizeBytes: number };
 export type ValidateResult = { ok: true } | { ok: false; reason: "mime-not-allowed" | "too-large" };
 
-// Peta ekstensi → MIME OOXML/image yang sah. Ekstensi harus cocok dengan MIME
-// yang dikirim browser agar file bermimetype js/exe tidak lolos hanya karena
-// berganti nama menjadi .pdf.
-const EXT_TO_MIME: Record<string, string> = {
+// Canonical MIME untuk setiap format ekstensi yang didukung saat disimpan ke DB/R2.
+export const CANONICAL_MIME: Record<string, string> = {
   pdf: "application/pdf",
   zip: "application/zip",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -31,6 +29,42 @@ const EXT_TO_MIME: Record<string, string> = {
   webp: "image/webp",
 };
 
+// Peta ekstensi → variasi MIME yang sah dikirim browser/OS.
+// Di Windows, file ZIP sering dikirim sebagai application/x-zip-compressed oleh Chrome/Edge.
+// Beberapa sistem/browser juga dapat mengirim application/octet-stream atau x-zip.
+export const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
+  pdf: ["application/pdf", "application/x-pdf", "application/octet-stream"],
+  zip: [
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/x-zip",
+    "multipart/x-zip",
+    "application/octet-stream",
+  ],
+  docx: [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/octet-stream",
+  ],
+  xlsx: [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/octet-stream",
+  ],
+  pptx: [
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/octet-stream",
+  ],
+  png: ["image/png", "image/x-png"],
+  jpg: ["image/jpeg", "image/pjpeg", "image/jpg"],
+  jpeg: ["image/jpeg", "image/pjpeg", "image/jpg"],
+  webp: ["image/webp"],
+};
+
 function extOf(filename: string): string {
   const base = filename.toLowerCase();
   const dot = base.lastIndexOf(".");
@@ -38,9 +72,13 @@ function extOf(filename: string): string {
 }
 
 export function validateUpload(input: ValidateInput): ValidateResult {
-  if (!ALLOWED_MIME.includes(input.mimeType)) return { ok: false, reason: "mime-not-allowed" };
-  const expected = EXT_TO_MIME[extOf(input.filename)];
-  if (!expected || expected !== input.mimeType) return { ok: false, reason: "mime-not-allowed" };
+  const ext = extOf(input.filename);
+  const allowed = EXT_TO_ALLOWED_MIMES[ext];
+  if (!allowed) return { ok: false, reason: "mime-not-allowed" };
+
+  const mime = input.mimeType || "application/octet-stream";
+  if (!ALLOWED_MIME.includes(mime)) return { ok: false, reason: "mime-not-allowed" };
+  if (!allowed.includes(mime)) return { ok: false, reason: "mime-not-allowed" };
   if (input.sizeBytes > MAX_UPLOAD_BYTES) return { ok: false, reason: "too-large" };
   return { ok: true };
 }
@@ -73,11 +111,14 @@ export async function storeAsset(
   });
   if (!validation.ok) return validation;
 
+  const ext = extOf(input.filename);
+  const canonicalMime = CANONICAL_MIME[ext] ?? (input.mimeType || "application/octet-stream");
+
   // Checksum dihitung langsung dari byte body (createHash — bukan sha256Hex
   // yang menerima string).
   const checksum = createHash("sha256").update(Buffer.from(input.body)).digest("hex");
   const storageKey = `rewards/${input.campaignId}/${crypto.randomUUID()}-${sanitizeFilename(input.filename)}`;
-  await putObject(storageKey, input.body, input.mimeType);
+  await putObject(storageKey, input.body, canonicalMime);
 
   // nameId default: nama file asli tanpa ekstensi.
   const original = input.filename.replace(/\.[^.]+$/, "").trim();
@@ -89,7 +130,7 @@ export async function storeAsset(
       campaignId: input.campaignId,
       storageKey,
       nameId: nameId.slice(0, 200),
-      mimeType: input.mimeType,
+      mimeType: canonicalMime,
       sizeBytes: input.body.byteLength,
       checksum,
       sortOrder: input.sortOrder ?? 0,
@@ -105,42 +146,40 @@ export async function storeAsset(
       filename: input.filename,
       storageKey,
       sizeBytes: input.body.byteLength,
+      checksum,
     },
   });
+
   return { ok: true, id: row.id, storageKey };
 }
 
-/** Hapus ROW asset saja — objek R2 tidak dihapus (PRD 7.2). */
-export async function removeAsset(assetId: string, auditOpts?: AuditOpts): Promise<{ ok: true }> {
-  const [row] = await db.select().from(rewardAssets).where(eq(rewardAssets.id, assetId));
-  if (row) {
-    await db.delete(rewardAssets).where(eq(rewardAssets.id, assetId));
+/** Hapus asset dari database (file R2 sengaja tidak dihapus otomatis). */
+export async function removeAsset(assetId: string, auditOpts?: AuditOpts): Promise<void> {
+  const [deleted] = await db.delete(rewardAssets).where(eq(rewardAssets.id, assetId)).returning();
+  if (deleted) {
     await audit("asset_removed", {
       adminUserId: auditOpts?.adminUserId ?? undefined,
       ip: auditOpts?.ip,
-      detail: { campaignId: row.campaignId, assetId, storageKey: row.storageKey },
+      detail: { campaignId: deleted.campaignId, assetId: deleted.id, storageKey: deleted.storageKey },
     });
   }
-  return { ok: true };
 }
 
-/**
- * Simpan urutan tampil asset: sortOrder = index di array assetId yang
- * diberikan. Asset campaign lain yang tidak ada di array diabaikan.
- */
+/** Reorder array of asset ids: sort_order di-assign 0..N-1. */
 export async function reorderAssets(campaignId: string, assetIds: string[], auditOpts?: AuditOpts): Promise<void> {
-  const owned = await db
-    .select({ id: rewardAssets.id })
-    .from(rewardAssets)
-    .where(eq(rewardAssets.campaignId, campaignId));
-  const ownedIds = new Set(owned.map((o) => o.id));
-  let i = 0;
-  for (const id of assetIds) {
-    if (!ownedIds.has(id)) continue;
-    await db.update(rewardAssets).set({ sortOrder: i }).where(eq(rewardAssets.id, id));
-    i += 1;
-  }
-  await audit("asset_reordered", {
+  const existing = await listCampaignAssets(campaignId);
+  const ownedIds = new Set(existing.map((a) => a.id));
+
+  await db.transaction(async (tx) => {
+    let order = 0;
+    for (const id of assetIds) {
+      if (!ownedIds.has(id)) continue;
+      await tx.update(rewardAssets).set({ sortOrder: order }).where(eq(rewardAssets.id, id));
+      order++;
+    }
+  });
+
+  await audit("assets_reordered", {
     adminUserId: auditOpts?.adminUserId ?? undefined,
     ip: auditOpts?.ip,
     detail: { campaignId, order: assetIds.filter((id) => ownedIds.has(id)) },
@@ -156,19 +195,24 @@ export type FeaturedImageResult = { ok: true; key: string } | { ok: false; reaso
 /**
  * Featured image campaign: validasi image-only (MIME + ekstensi harus cocok),
  * batas 5 MB, lalu tulis objek ke R2. Tidak ada baris reward_asset — gambar
- * hero bukan file reward yang bisa diklaim, jadi hanya key-nya yang disimpan
+ * hero bukan file reward yang bisa klaim, jadi hanya key-nya yang disimpan
  * di kolom featured_image_key oleh endpoint pemanggil.
  */
 export async function storeFeaturedImage(input: FeaturedImageInput): Promise<FeaturedImageResult> {
-  if (!IMAGE_MIME.includes(input.mimeType)) return { ok: false, reason: "mime-not-allowed" };
-  const expected = EXT_TO_MIME[extOf(input.filename)];
-  if (!expected || !IMAGE_MIME.includes(expected) || expected !== input.mimeType) {
+  const ext = extOf(input.filename);
+  const allowed = EXT_TO_ALLOWED_MIMES[ext];
+  const mime = input.mimeType || "application/octet-stream";
+  if (!IMAGE_MIME.includes(mime) && !["image/x-png", "image/pjpeg", "image/jpg"].includes(mime)) {
+    return { ok: false, reason: "mime-not-allowed" };
+  }
+  if (!allowed || !allowed.includes(mime)) {
     return { ok: false, reason: "mime-not-allowed" };
   }
   if (input.body.byteLength > MAX_IMAGE_BYTES) return { ok: false, reason: "too-large" };
 
+  const canonicalMime = CANONICAL_MIME[ext] ?? input.mimeType;
   const storageKey = `featured/${input.campaignId}/${crypto.randomUUID()}-${sanitizeFilename(input.filename)}`;
-  await putObject(storageKey, input.body, input.mimeType);
+  await putObject(storageKey, input.body, canonicalMime);
   return { ok: true, key: storageKey };
 }
 

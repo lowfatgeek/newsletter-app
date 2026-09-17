@@ -1371,8 +1371,10 @@ function excerpt(text: string, max = 80): string {
 
   async function uploadFeaturedImage(file: File) {
     clearImageError();
-    const validTypes = ["image/png", "image/jpeg", "image/webp"];
-    if (!validTypes.includes(file.type)) {
+    const validTypes = ["image/png", "image/jpeg", "image/pjpeg", "image/x-png", "image/webp"];
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    const validExts = [".png", ".jpg", ".jpeg", ".webp"];
+    if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
       showImageError("Format tidak didukung. Gunakan file PNG, JPG, atau WebP.");
       return;
     }

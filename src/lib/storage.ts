@@ -3,12 +3,19 @@ import { env } from "./env";
 
 export const ALLOWED_MIME = [
   "application/pdf",
+  "application/x-pdf",
   "application/zip",
+  "application/x-zip-compressed",
+  "application/x-zip",
+  "multipart/x-zip",
+  "application/octet-stream",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "image/png",
+  "image/x-png",
   "image/jpeg",
+  "image/pjpeg",
   "image/webp",
 ];
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;

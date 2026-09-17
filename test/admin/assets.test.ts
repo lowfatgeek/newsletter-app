@@ -18,6 +18,8 @@ describe("asset upload", () => {
 
   it("validates mime and size", () => {
     expect(validateUpload({ filename: "a.pdf", mimeType: "application/pdf", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "a.zip", mimeType: "application/x-zip-compressed", sizeBytes: 1024 }).ok).toBe(true);
+    expect(validateUpload({ filename: "a.zip", mimeType: "application/zip", sizeBytes: 1024 }).ok).toBe(true);
     expect(validateUpload({ filename: "a.exe", mimeType: "application/x-msdownload", sizeBytes: 1 })).toEqual({
       ok: false,
       reason: "mime-not-allowed",
@@ -75,13 +77,15 @@ describe("asset upload", () => {
       {
         campaignId,
         filename: "Modul 2026.zip",
-        mimeType: "application/zip",
+        mimeType: "application/x-zip-compressed",
         body: new TextEncoder().encode("zipbytes").buffer as ArrayBuffer,
         nameId: "Modul 2026",
         sortOrder: 0,
       },
       { adminUserId: null, ip: "1.1.1.1" },
     )) as { ok: true; id: string };
+    const [row] = await db.select().from(rewardAssets).where(eq(rewardAssets.id, res.id));
+    expect(row.mimeType).toBe("application/zip");
     await removeAsset(res.id, { adminUserId: null, ip: "1.1.1.1" });
     const audits = await db.select().from(adminAuditLog).orderBy(asc(adminAuditLog.createdAt));
     expect(audits.map((a) => a.action)).toContain("asset_uploaded");
