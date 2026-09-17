@@ -1263,8 +1263,8 @@ function excerpt(text: string, max = 80): string {
     }
   }
 
-  async function save(redirectConfirmed: boolean): Promise<void> {
-    if (!saveBtn) return;
+  async function save(redirectConfirmed: boolean): Promise<boolean> {
+    if (!saveBtn) return false;
     clearErrors();
     saveBtn.disabled = true;
     if (saveStatus) saveStatus.textContent = "Menyimpan…";
@@ -1288,16 +1288,16 @@ function excerpt(text: string, max = 80): string {
       if (data.ok) {
         savedSlug = slugInput?.value ?? savedSlug;
         if (saveStatus) saveStatus.textContent = `Tersimpan ${nowClock()}`;
-        return;
+        return true;
       }
       if (data.reason === "published-requires-confirmation") {
         const ok = window.confirm(
           "Campaign ini sudah pernah dipublikasikan. Mengubah slug akan membuat alamat lama dialihkan otomatis ke alamat baru. Lanjutkan menyimpan slug baru?",
         );
-        if (ok) { await save(true); return; }
+        if (ok) { return await save(true); }
         if (slugInput) slugInput.value = savedSlug;
         if (saveStatus) saveStatus.textContent = "";
-        return;
+        return false;
       }
       if (data.reason === "invalid-slug" || data.reason === "slug-taken") {
         showFieldError(slugError, data.reason === "slug-taken"
@@ -1313,9 +1313,11 @@ function excerpt(text: string, max = 80): string {
         showFieldError(globalError, "Terjadi kesalahan saat menyimpan. Coba lagi.");
       }
       if (saveStatus) saveStatus.textContent = "";
+      return false;
     } catch {
       showFieldError(globalError, "Terjadi kesalahan jaringan. Coba lagi.");
       if (saveStatus) saveStatus.textContent = "";
+      return false;
     } finally {
       saveBtn.disabled = false;
     }
@@ -1909,6 +1911,13 @@ function excerpt(text: string, max = 80): string {
       if (!window.confirm(msg)) return;
       btn.disabled = true;
       try {
+        if (action === "publish") {
+          const saved = await save(false);
+          if (!saved) {
+            btn.disabled = false;
+            return;
+          }
+        }
         const res = await fetch(`/admin/api/campaigns/${campaignId}/status`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
