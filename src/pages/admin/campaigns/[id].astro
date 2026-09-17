@@ -346,7 +346,12 @@ function excerpt(text: string, max = 80): string {
             <div class="asset-actions">
               <button type="button" class="btn-secondary btn-small asset-up" aria-label={`Naikkan urutan ${a.nameId}`} disabled={i === 0}>↑</button>
               <button type="button" class="btn-secondary btn-small asset-down" aria-label={`Turunkan urutan ${a.nameId}`} disabled={i === data.assets.length - 1}>↓</button>
-              <button type="button" class="btn-ghost-danger asset-delete">Hapus</button>
+              <button type="button" class="btn-ghost-danger asset-delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Hapus
+              </button>
             </div>
           </li>
         ))}
@@ -963,6 +968,71 @@ function excerpt(text: string, max = 80): string {
   :global(.asset-info strong) { color: var(--color-ink); overflow-wrap: anywhere; }
   :global(.asset-info span) { color: var(--color-text-muted); }
   :global(.asset-actions) { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+  :global(.asset-actions button) {
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+  }
+  :global(.asset-actions .asset-up),
+  :global(.asset-actions .asset-down) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    color: var(--color-ink);
+    font-size: 15px;
+    line-height: 1;
+  }
+  :global(.asset-actions .asset-up:hover:not(:disabled)),
+  :global(.asset-actions .asset-down:hover:not(:disabled)) {
+    background: var(--color-surface-subtle);
+    border-color: #cbd5e1;
+  }
+  :global(.asset-actions .asset-up:active:not(:disabled)),
+  :global(.asset-actions .asset-down:active:not(:disabled)) {
+    transform: translateY(1px);
+  }
+  :global(.asset-actions .asset-up:disabled),
+  :global(.asset-actions .asset-down:disabled) {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: var(--color-surface-subtle);
+  }
+  :global(.asset-actions .asset-delete) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    color: var(--color-danger);
+    text-decoration: none;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+  :global(.asset-actions .asset-delete:hover:not(:disabled)) {
+    background: var(--color-danger-subtle);
+    border-color: rgba(181, 60, 74, 0.2);
+  }
+  :global(.asset-actions .asset-delete:active:not(:disabled)) {
+    transform: translateY(1px);
+  }
+  :global(.asset-actions .asset-delete:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   :global(.asset-list .placeholder) { margin: 0; }
 
   .status-line { color: var(--color-text); font-size: var(--text-body-sm); margin: 0 0 var(--space-4); }
@@ -1671,7 +1741,12 @@ function excerpt(text: string, max = 80): string {
         actions.innerHTML = `
           <button type="button" class="btn-secondary btn-small asset-up" aria-label="Naikkan urutan" ${i === 0 ? "disabled" : ""}>↑</button>
           <button type="button" class="btn-secondary btn-small asset-down" aria-label="Turunkan urutan" ${i === assets.length - 1 ? "disabled" : ""}>↓</button>
-          <button type="button" class="btn-ghost-danger asset-delete">Hapus</button>`;
+          <button type="button" class="btn-ghost-danger asset-delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+              <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Hapus
+          </button>`;
         li.append(info, actions);
         return li;
       }),

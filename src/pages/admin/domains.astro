@@ -167,17 +167,42 @@ function fmtDate(d: Date): string {
   }
   td strong { color: var(--color-ink); }
   td { color: var(--color-text); vertical-align: middle; }
-  tbody tr:last-child td { border-bottom: none; }
-  .actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+  .actions, :global(.actions) { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+  .actions .btn-secondary, :global(.actions .btn-secondary), :global(.domain-toggle) {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-surface-raised); border: var(--border-default);
+    color: var(--color-ink); border-radius: var(--radius-control);
+    padding: 8px 14px; min-height: 36px;
+    font-family: inherit; font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .actions .btn-secondary:hover, :global(.actions .btn-secondary:hover), :global(.domain-toggle:hover) {
+    background: var(--color-surface-subtle);
+    border-color: #cbd5e1;
+  }
+  .actions .btn-ghost-danger, :global(.actions .btn-ghost-danger), :global(.domain-remove) {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent; color: var(--color-danger);
+    text-decoration: none; cursor: pointer; font-family: inherit;
+    border-radius: var(--radius-control);
+    padding: 6px 12px; font-size: var(--text-body-sm); font-weight: var(--font-weight-semibold);
+    min-height: 36px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .actions .btn-ghost-danger:hover, :global(.actions .btn-ghost-danger:hover), :global(.domain-remove:hover) {
+    background: var(--color-danger-subtle);
+    border-color: rgba(181, 60, 74, 0.2);
+  }
 
-  .badge {
+  .badge, :global(.badge) {
     display: inline-flex; align-items: center;
     border-radius: var(--radius-pill);
     padding: 4px 10px;
     font-weight: var(--font-weight-semibold);
   }
-  .badge-active { background: var(--color-success-subtle); color: var(--color-success); }
-  .badge-inactive { background: var(--color-surface-subtle); color: var(--color-text-muted); }
+  .badge-active, :global(.badge-active) { background: var(--color-success-subtle); color: var(--color-success); }
+  .badge-inactive, :global(.badge-inactive) { background: var(--color-surface-subtle); color: var(--color-text-muted); }
   .empty p { color: var(--color-text-muted); margin: 0; }
 
   @media (max-width: 640px) {
