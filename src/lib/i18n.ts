@@ -1,16 +1,16 @@
 export type Locale = "id" | "en";
 
 const dict = {
-  overline: { id: "KADO DARI KELASWFA", en: "A GIFT FROM KELASWFA" },
+  overline: { id: "BAYAR DENGAN DOA", en: "PAY WITH A PRAYER" },
   reflectionHeading: {
-    id: "Luangkan sejenak untuk doa atau harapan baik.",
-    en: "Take a moment for a prayer or kind wish.",
+    id: "Baca dulu buat unlock",
+    en: "Read first to unlock",
   },
   tabMuslim: { id: "Doa Muslim", en: "Muslim Prayer" },
   tabUniversal: { id: "Harapan Baik", en: "Kind Wish" },
   timerInitial: {
-    id: "Tombol akan terbuka setelah 30 detik.",
-    en: "The button unlocks in 30 seconds.",
+    id: "Unlock setelah 30 detik. Baca doa dulu.",
+    en: "Unlocks in 30 seconds. Read the prayer first.",
   },
   timerDone: {
     id: "Terima kasih sudah meluangkan waktu. Sekarang, masukkan emailmu.",
@@ -36,7 +36,7 @@ const dict = {
     en: "I agree to receive KelasWFA newsletter and updates again.",
   },
   submittingCta: { id: "Mengirim...", en: "Sending..." },
-  submitCta: { id: "Kirim tautan hadiah", en: "Send my gift link" },
+  submitCta: { id: "KIRIM LINK DOWNLOAD", en: "SEND DOWNLOAD LINK" },
   errorDomain: {
     id: "Domain email ini belum didukung. Coba email lain ya.",
     en: "This email domain is not supported yet. Try another email.",
