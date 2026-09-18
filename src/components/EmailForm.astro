@@ -72,7 +72,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   <p id="form-error" role="alert" hidden style="background: var(--color-danger-subtle); color: var(--color-danger); border-radius: var(--radius-control); padding: var(--space-3); margin-top: var(--space-3); font-size: var(--text-body-sm);"></p>
 
   <p style="font-size: var(--text-body-sm); color: var(--color-text-muted); margin-top: var(--space-3); line-height: 1.58;">
-    {copy.consent}<a href={privacyHref} style="text-decoration: underline; color: var(--color-info);">{copy.privacy}</a>.
+    {copy.consent}{" "}<a href={privacyHref} style="text-decoration: underline; color: var(--color-info);">{copy.privacy}</a>.
   </p>
 
   <!--
