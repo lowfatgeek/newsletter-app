@@ -427,5 +427,10 @@ Wajib diimplementasikan:
   - **Tab nonaktif:** Teks Quiet Moss (`--color-text-muted`), bergaris bawah transparan, beralih ke Ink Forest (`--color-ink`) saat hover.
 - **Rasional & Hasil:** Tampilan seketika terasa lapang (*airy*), tenang, dan elegan (*quiet luxury*). Memberikan pengalaman membaca yang khidmat sesuai nilai *warm editorial utility*, tanpa tumpukan kotak/border yang sempit, dengan tetap 100% mematuhi spesifikasi aksesibilitas WAI-ARIA APG dan touch target 44px.
 
+### Addendum 2026-09: Roadmap Redesign Halaman Reward ("The Split Gift Desk")
+- **Task Terdaftar:** Rencana eksekusi redesign visual halaman reward publik (`/r/[slug]` dan `/en/r/[slug]`) tercatat di [`docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md`](../docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md).
+- **Arah Desain:** Menggunakan Macrostructure 15 Hallmark (*Split Studio / Workbench Asymmetric*) untuk menyajikan *The Showcase* (Cover & Daftar Hadiah) dan *The Unlock Ritual* (Doa & Form Klaim) dalam layout dua kolom asimetris di desktop (collapse 1 kolom di mobile), tanpa mengubah copywriting maupun tokens.
+
+
 
 

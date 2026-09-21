@@ -1,3 +1,13 @@
+## Active Next Task: Reward Page Redesign ("The Split Gift Desk")
+
+Task prioritas berikutnya terkait UI/UX adalah **Redesign Halaman Reward Publik (`/r/[slug]` dan `/en/r/[slug]`)**.
+- **Spesifikasi Lengkap**: [`docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md`](docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md)
+- **Konsep Terpilih**: Konsep No. 2 — **"The Split Gift Desk"** (Macrostructure Hallmark: *Split Studio / Workbench Asymmetric*).
+- **Aturan Terkunci**:
+  1. Copywriting 100% TETAP (tidak boleh diubah).
+  2. Design tokens & filosofi `.agents/DESIGN.md` TETAP dipertahankan.
+  3. Logika bisnis timer 30 detik anti-bot dan form klaim tetap 100%.
+
 ## Development
 
 When starting the dev server, use background mode:
