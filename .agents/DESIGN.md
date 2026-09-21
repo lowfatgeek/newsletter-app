@@ -161,11 +161,11 @@ Gunakan border `1px solid #E7DED0` sebagai pemisah utama. Shadow hanya memberi h
 - White atau Linen Surface, radius 20px, border halus, padding 24px mobile / 32px desktop.
 - Heading: “Luangkan sejenak untuk doa atau harapan baik.”
 - Tab setara: `Doa Muslim` dan `Harapan Baik`; lebar seimbang dan keyboard-accessible.
-- **Track Tablist:** Segmented control track berlatar Linen Surface (`--color-surface-subtle`), border Paper Border (`--color-border`), padding 4px (`--space-1`), dan radius 12px (`--radius-control`).
-- **Tab aktif:** Forest Tint background (`--color-primary-subtle`), Forest Action text (`--color-primary`), border-radius 8px, soft shadow (`0 1px 2px rgba(21, 59, 53, 0.06)`).
+- **Track Tablist:** Segmented control track berlatar Linen Surface (`--color-surface-subtle`), border Paper Border halus (`1px solid rgba(231, 222, 208, 0.8)`), padding 4px (`--space-1`), radius 12px (`--radius-control`), dan lebar maksimal proporsional `440px` (responsif 100% di mobile).
+- **Tab aktif:** White Surface (`--color-surface-raised` / `#FFFFFF`), teks Forest Action (`--color-primary` / `#176B5B`), border-radius 8px, elevated tactile shadow (`0 2px 6px rgba(21, 59, 53, 0.08), 0 1px 2px rgba(21, 59, 53, 0.04)`).
 - **Tab nonaktif:** transparan di dalam track Linen Surface dengan warna Body Moss (`--color-text`), hover ke Ink Forest (`--color-ink`).
 - Isi tab adalah teks utama, bukan caption. Jangan gunakan simbol agama sebagai dekorasi besar; bentuk abstrak netral diperbolehkan.
-*(Catatan: Menggunakan pola Segmented Control Track demi kejelasan affordance interaktif di layar sentuh/mobile dan desktop, mencegah tab nonaktif tampak seperti teks statis).*
+*(Catatan: Menggunakan pola Segmented Control Track dengan elevated white pill demi kejelasan affordance interaktif di layar sentuh/mobile dan desktop, mengeliminasi tabrakan temperatur warna pastel, dan menciptakan kedalaman taktil).*
 
 ### Timer panel
 
@@ -327,7 +327,7 @@ Wajib diimplementasikan:
 
 1. Buat reward landing hero KelasWFA Kado pada Ivory Paper `#FFFCF5`, dengan konten claim maksimal 680px. Tampilkan preview reward, tiga benefit konkret, heading Plus Jakarta Sans 700, dan satu CTA Forest Action `#176B5B`. Tambahkan maksimal dua aksen geometris kecil. Hindari mascot, crypto visual, gradient, dan confetti.
 
-2. Buat panel Doa Muslim dan Harapan Baik dengan White Surface, radius 20px, border `#E7DED0`, padding 24px. Tablist menggunakan Segmented Control Track Linen Surface (`#F7F1E6`) dengan padding 4px dan radius 12px; tab aktif berupa pill Forest Tint (`#E5F2EE`) dengan teks Forest Action (`#176B5B`). Teks doa memakai 18px/1.7. Tambahkan countdown Gold Tint dan CTA email disabled yang jelas sebelum 30 detik selesai.
+2. Buat panel Doa Muslim dan Harapan Baik dengan White Surface, radius 20px, border `#E7DED0`, padding 24px. Tablist menggunakan Segmented Control Track Linen Surface (`#F7F1E6`, max-width 440px) dengan padding 4px dan radius 12px; tab aktif berupa elevated pill White (`#FFFFFF`) dengan teks Forest Action (`#176B5B`) dan shadow halus. Teks doa memakai 18px/1.7. Tambahkan countdown Gold Tint dan CTA email disabled yang jelas sebelum 30 detik selesai.
 
 3. Buat form claim mobile-first dengan label email permanen, input 48px, focus ring hijau, copy newsletter + privacy policy, dan satu button full-width “Kirim tautan hadiah”. Error memakai Rose Tint dengan teks spesifik.
 
@@ -418,9 +418,10 @@ Wajib diimplementasikan:
 
 ### Addendum 2026-09: Affordance Tab Refleksi (Segmented Control Track)
 - **Konteks & Masalah UX:** Pada spesifikasi awal (§5), tab nonaktif didefinisikan berlatar transparan di atas card putih (`--color-surface-raised`). Hal ini menyebabkan tab nonaktif kehilangan kontur fisik (*low click affordance*) dan rawan disalahartikan pengguna sebagai teks statis atau sub-heading, terutama pada perangkat mobile/layar sentuh yang tidak memiliki kursor/hover alami.
-- **Keputusan Desain (Opsi 1):** 
-  - Wadah `role="tablist"` dibungkus dalam *track* bergaya *Segmented Control* dengan latar Linen Surface (`--color-surface-subtle`), border Paper Border (`--color-border`), padding 4px (`--space-1`), dan radius 12px (`--radius-control`).
-  - **Tab aktif** berupa *pill* berlatar Forest Tint (`--color-primary-subtle`) dengan teks Forest Action (`--color-primary`), border-radius 8px, dan soft shadow (`0 1px 2px rgba(21, 59, 53, 0.06)`).
+- **Penyempurnaan Visual (Elevated White Pill on Linen Track):** 
+  - Wadah `role="tablist"` dibungkus dalam *track* bergaya *Segmented Control* dengan latar Linen Surface (`--color-surface-subtle` / `#F7F1E6`), border Paper Border halus (`1px solid rgba(231, 222, 208, 0.8)`), padding 4px (`--space-1`), radius 12px (`--radius-control`), dan lebar maksimal proporsional `440px` (responsif 100% di mobile).
+  - **Tab aktif** berupa *pill* berlatar White Surface (`--color-surface-raised` / `#FFFFFF`) dengan teks Forest Action (`--color-primary` / `#176B5B`), border-radius 8px, dan elevated tactile shadow (`0 2px 6px rgba(21, 59, 53, 0.08), 0 1px 2px rgba(21, 59, 53, 0.04)`).
   - **Tab nonaktif** berlatar transparan di dalam track Linen Surface dengan teks Body Moss (`--color-text`), beralih ke Ink Forest (`--color-ink`) saat hover.
-- **Hasil:** Elemen interaktif langsung dapat dikenali (*affordance* tinggi) tanpa menambah clutter visual atau merusak tema *warm editorial utility*. Tetap 100% mematuhi spesifikasi aksesibilitas WAI-ARIA APG dan touch target 44px.
+- **Rasional & Hasil:** Menghilangkan tabrakan temperatur warna (mint dingin vs krem hangat), menciptakan ilusi kedalaman fisik (*tactile elevation*) di mana tab aktif timbul alami di atas track yang cekung, serta menyeimbangkan proporsi panjang teks agar tidak kopong. Tetap 100% mematuhi spesifikasi aksesibilitas WAI-ARIA APG dan touch target 44px.
+
 

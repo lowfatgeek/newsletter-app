@@ -143,11 +143,14 @@ Revisi dilakukan dengan verifikasi ulang seluruh klaim terhadap kode saat ini (r
 | Verifikasi #14: breakpoint 640/768/900/1024; KPI 3→2 kolom | **Sebagian salah.** Breakpoint nyata 480/640/768/900/1023 (1024 tidak dipakai); KPI 6→3→2 (`laporan.astro:373,377,378`) | Dikoreksi |
 | Verdict "Verdict tahap 2" | Label tidak sesuai nomor file | Diganti "Verdict audit 02" |
 
-## Addendum (2026-09-21): Penyempurnaan Affordance Tab Refleksi
-- **Temuan Lapangan / Evaluasi UX**: Tab nonaktif pada `src/components/ReflectionTabs.astro` berlatar transparan di atas card putih tanpa border pembatas fisik. Secara kognitif pengguna (terutama di layar sentuh mobile), tab nonaktif tersamarkan sebagai teks statis/sub-heading biasa (*low click affordance*).
-- **Tindakan Penyempurnaan**: Menerapkan pola *Segmented Control Track* (Opsi 1):
-  - Wadah `role="tablist"` dibungkus track Linen Surface (`--color-surface-subtle`), Paper Border (`--color-border`), padding 4px (`--space-1`), dan radius 12px (`--radius-control`).
-  - Tab aktif berupa *pill* berlatar Forest Tint (`--color-primary-subtle`), teks Forest Action (`--color-primary`), dan soft shadow.
+## Addendum (2026-09-21): Penyempurnaan Affordance & UI Tab Refleksi
+- **Temuan Lapangan / Evaluasi UX & UI**: 
+  1. *Affordance*: Tab nonaktif awal berlatar transparan di atas card putih tanpa batas fisik, rawan disalahartikan sebagai teks statis.
+  2. *Color Harmony & Elevation*: Menumpuk mint pastel di atas track krem pastel menimbulkan tabrakan suhu warna (*cool mint vs warm linen*) dan tampak datar.
+- **Tindakan Penyempurnaan (Segmented Control Track + Elevated White Pill)**:
+  - Wadah `role="tablist"` dibungkus track Linen Surface (`--color-surface-subtle` / `#F7F1E6`), border halus Paper Border, padding 4px (`--space-1`), radius 12px (`--radius-control`), dan lebar maksimal proporsional 440px (100% responsif di mobile).
+  - Tab aktif berupa *elevated pill* berlatar White Surface (`--color-surface-raised` / `#FFFFFF`), teks Forest Action (`--color-primary` / `#176B5B`), border-radius 8px, serta bayangan taktil (`box-shadow: 0 2px 6px rgba(21, 59, 53, 0.08), 0 1px 2px rgba(21, 59, 53, 0.04)`).
   - Tab nonaktif transparan di dalam track dengan warna Body Moss (`--color-text`) dan hover Ink Forest (`--color-ink`).
-- **Dampak Kepatuhan**: Meningkatkan signifier & affordance interaksi publik tanpa menambah beban kognitif visual, tetap 100% mematuhi aturan WAI-ARIA APG dan target sentuh minimum 44px.
+- **Dampak Kepatuhan**: Memberikan ilusi kedalaman fisik (*recessed track vs elevated floating pill*), mengeliminasi tabrakan temperatur warna, serta mempertahankan kepatuhan penuh WAI-ARIA APG dan target sentuh minimum 44px.
+
 
