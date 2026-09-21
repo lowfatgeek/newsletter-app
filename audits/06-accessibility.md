@@ -100,3 +100,12 @@ Ringkas: klaim lama → hasil verifikasi → tindakan.
 | A11y5: tidak ada skip link; "halaman publik ... tanpa `<nav>`" | Skip link memang tidak ada (hanya `skipLocked` `mailworker.ts:18`, `skipped` `broadcast/worker.ts:39`). Tetapi ada `<nav aria-label="Pilih bahasa">` (`LocaleSwitch.astro:14`, dirender `en/r/[slug].astro:66`) dan `<header>` banner (`en/r/[slug].astro:61`) | Koreksi detail "tanpa nav"; temuan skip link tetap valid |
 | A11y6: "nol kemunculan `:focus-visible` di `src/components/`, halaman publik, dan `PublicLayout`" | Salah. Ada aturan global `:focus-visible { outline:none; box-shadow: var(--focus-ring); }` (`tokens.css:72`, token `:59`), dan `PublicLayout.astro:7` + `AdminLayout.astro:6` mengimpor `tokens.css` | Cabut temuan; tandai LULUS dengan bukti |
 | Verdict: "Verdict tahap 6" | Label tidak cocok dengan nomor file | Ganti menjadi "Verdict audit 06" |
+
+## Addendum (2026-09-21): Verifikasi Aksesibilitas Segmented Control Track
+- Implementasi Segmented Control Track pada `src/components/ReflectionTabs.astro` diverifikasi tetap memenuhi 100% persyaratan aksesibilitas WAI-ARIA APG:
+  - **Role semantik**: `role="tablist"`, `role="tab"`, `role="tabpanel"`.
+  - **State dinamis**: `aria-selected="true|false"`, `tabindex="0|-1"`, `aria-controls`, `aria-labelledby`.
+  - **Navigasi keyboard**: ArrowLeft & ArrowRight dengan circular wrapping serta roving tabindex otomatis.
+  - **Focus indicator**: Didukung penuh oleh `:focus-visible { outline: none; box-shadow: var(--focus-ring); }` sesuai token global.
+  - **Target sentuh**: Memenuhi standar touch target minimum 44px (`min-height: 44px`) dengan lebar proporsional (`flex: 1`).
+

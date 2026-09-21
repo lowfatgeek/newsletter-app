@@ -13,14 +13,14 @@ const tab2 = t(locale, "tabUniversal");
 ---
 <section style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); margin-top: var(--space-8); box-shadow: var(--shadow-card);">
   <h2 style="color: var(--color-ink); font-size: var(--text-h3); margin: 0; line-height: 1.3; font-weight: var(--font-weight-semibold);">{heading}</h2>
-  <div role="tablist" aria-label={heading} style="display: flex; gap: var(--space-2); margin: var(--space-5) 0;">
+  <div role="tablist" aria-label={heading} class="tab-track">
     <button
       type="button"
       role="tab"
       id="tab-muslim"
       aria-selected="true"
       aria-controls="panel-muslim"
-      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; border-bottom: 2px solid var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
+      class="tab-btn"
     >{tab1}</button>
     <button
       type="button"
@@ -29,7 +29,7 @@ const tab2 = t(locale, "tabUniversal");
       aria-selected="false"
       aria-controls="panel-universal"
       tabindex="-1"
-      style="flex: 1; padding: 12px; border-radius: var(--radius-control); border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--color-text); font-weight: var(--font-weight-semibold); min-height: 44px; font-size: var(--text-body); cursor: pointer; font-family: inherit;"
+      class="tab-btn"
     >{tab2}</button>
   </div>
   <div
@@ -49,6 +49,51 @@ const tab2 = t(locale, "tabUniversal");
   >{universalText}</div>
 </section>
 
+<style>
+  .tab-track {
+    display: flex;
+    gap: var(--space-1);
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    padding: 4px;
+    margin: var(--space-5) 0;
+  }
+
+  .tab-btn {
+    flex: 1;
+    min-height: 44px;
+    padding: 8px 16px;
+    border-radius: calc(var(--radius-control) - 4px);
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    font-size: var(--text-body);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .tab-btn:hover:not([aria-selected="true"]) {
+    color: var(--color-ink);
+    background: rgba(21, 59, 53, 0.04);
+  }
+
+  .tab-btn[aria-selected="true"] {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    box-shadow: 0 1px 2px rgba(21, 59, 53, 0.06);
+  }
+
+  .tab-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+</style>
+
 <script>
   function setupTabs(root: Document) {
     const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"][id^="tab-muslim"], [role="tab"][id^="tab-universal"]')];
@@ -58,13 +103,6 @@ const tab2 = t(locale, "tabUniversal");
         const selected = b === tab;
         b.setAttribute("aria-selected", String(selected));
         b.tabIndex = selected ? 0 : -1;
-        b.style.background = selected ? "var(--color-primary-subtle)" : "transparent";
-        b.style.color = selected ? "var(--color-primary)" : "var(--color-text)";
-        // Indikator tab aktif: garis bawah 2px Forest Action (transparan agar
-        // tinggi tombol tidak berubah saat berpindah tab).
-        b.style.borderBottom = selected
-          ? "2px solid var(--color-primary)"
-          : "2px solid transparent";
         const panel = root.getElementById(b.getAttribute("aria-controls") || "");
         if (panel) panel.hidden = !selected;
       });

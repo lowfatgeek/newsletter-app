@@ -678,3 +678,13 @@ flowchart TD
 4. **Batch 4 (UI/UX, Aksesibilitas & Performa)**: Eksekusi Task 2.4, 2.5, 2.6, 2.11, 2.12, 2.13, 2.14, 2.16, dan 2.17.
 5. **Batch 5 (Tooling, Cleanup & Docs)**: Eksekusi Task 2.18, 2.19, dan seluruh Task Fase 3. Jalankan `npm run check`, `npm test`, dan `npx playwright test`.
 6. **Handoff ke Operator**: Serahkan checklist Fase 4 kepada operator sebelum pembukaan traffic domain produksi.
+
+---
+
+## 9. ADDENDUM PASCA-AUDIT (2026-09-21)
+
+### Perbaikan Visual Affordance Tab Refleksi Publik (`src/components/ReflectionTabs.astro`)
+- **Latar Belakang**: Evaluasi UX menemukan tab nonaktif berlatar transparan di atas card putih menyebabkan *low affordance* (pengguna tidak menyadari tab adalah kontrol tombol interaktif, khususnya di layar sentuh mobile tanpa kursor/hover).
+- **Keputusan Solusi**: Mengadopsi pola *Segmented Control Track* (Linen Surface `--color-surface-subtle`, border `--border-default`, padding 4px, radius 12px; tab aktif berlatar Forest Tint `--color-primary-subtle` dengan teks Forest Action `--color-primary`; tab nonaktif transparan di dalam track).
+- **Status Implementasi**: **SELESAI.** Komponen `ReflectionTabs.astro` dan dokumen panduan `.agents/DESIGN.md` telah diperbarui dengan addendum resmi.
+

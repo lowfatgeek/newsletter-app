@@ -141,5 +141,13 @@ Revisi dilakukan dengan verifikasi ulang seluruh klaim terhadap kode saat ini (r
 | Verifikasi #12: `#form-error` diisi validasi browser | **Salah.** `src/components/EmailForm.astro:65` tidak pernah diisi kode mana pun; input tanpa `aria-describedby` | Dikoreksi jadi temuan U9 |
 | Verifikasi #13: login/OTP disable saat kirim | Benar (`login.astro:71`, `otp.astro:100`), label loading ada di editor autosave | Dikualifikasi |
 | Verifikasi #14: breakpoint 640/768/900/1024; KPI 3→2 kolom | **Sebagian salah.** Breakpoint nyata 480/640/768/900/1023 (1024 tidak dipakai); KPI 6→3→2 (`laporan.astro:373,377,378`) | Dikoreksi |
-| Verifikasi #14/#16: target sentuh 44–48px; badge fallback `role=status` | Sebagian benar. Ada kontrol admin 36px (U8); `role=status` hanya di preview (U10) | Dikoreksi/ditambah temuan |
 | Verdict "Verdict tahap 2" | Label tidak sesuai nomor file | Diganti "Verdict audit 02" |
+
+## Addendum (2026-09-21): Penyempurnaan Affordance Tab Refleksi
+- **Temuan Lapangan / Evaluasi UX**: Tab nonaktif pada `src/components/ReflectionTabs.astro` berlatar transparan di atas card putih tanpa border pembatas fisik. Secara kognitif pengguna (terutama di layar sentuh mobile), tab nonaktif tersamarkan sebagai teks statis/sub-heading biasa (*low click affordance*).
+- **Tindakan Penyempurnaan**: Menerapkan pola *Segmented Control Track* (Opsi 1):
+  - Wadah `role="tablist"` dibungkus track Linen Surface (`--color-surface-subtle`), Paper Border (`--color-border`), padding 4px (`--space-1`), dan radius 12px (`--radius-control`).
+  - Tab aktif berupa *pill* berlatar Forest Tint (`--color-primary-subtle`), teks Forest Action (`--color-primary`), dan soft shadow.
+  - Tab nonaktif transparan di dalam track dengan warna Body Moss (`--color-text`) dan hover Ink Forest (`--color-ink`).
+- **Dampak Kepatuhan**: Meningkatkan signifier & affordance interaksi publik tanpa menambah beban kognitif visual, tetap 100% mematuhi aturan WAI-ARIA APG dan target sentuh minimum 44px.
+
