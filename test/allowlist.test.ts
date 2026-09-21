@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_DOMAINS, isDomainAllowed } from "../src/lib/allowlist";
+import { DEFAULT_DOMAINS, isDomainAllowed, listActiveDomains } from "../src/lib/allowlist";
 import { db } from "../src/lib/db";
 import { emailDomains } from "../src/lib/schema";
 import { resetDb } from "./helpers";
@@ -31,5 +31,35 @@ describe("isDomainAllowed", () => {
       "me.com",
       "proton.me",
     ]);
+  });
+});
+
+describe("listActiveDomains", () => {
+  beforeEach(resetDb);
+  it("returns active domains sorted with popular consumer domains first", async () => {
+    await db.insert(emailDomains).values([
+      { domain: "custom.com", active: true },
+      { domain: "yahoo.com", active: true },
+      { domain: "inactive.com", active: false },
+      { domain: "gmail.com", active: true },
+      { domain: "hotmail.com", active: true },
+    ]);
+    const domains = await listActiveDomains();
+    expect(domains).toContain("gmail.com");
+    expect(domains).toContain("yahoo.com");
+    expect(domains).toContain("hotmail.com");
+    expect(domains).toContain("custom.com");
+    expect(domains).not.toContain("inactive.com");
+    // gmail.com, yahoo.com, hotmail.com should appear before custom.com
+    expect(domains.indexOf("gmail.com")).toBeLessThan(domains.indexOf("custom.com"));
+    expect(domains.indexOf("yahoo.com")).toBeLessThan(domains.indexOf("custom.com"));
+    expect(domains.indexOf("hotmail.com")).toBeLessThan(domains.indexOf("custom.com"));
+  });
+
+  it("falls back to default domains when database table is empty", async () => {
+    const domains = await listActiveDomains();
+    expect(domains.length).toBeGreaterThan(0);
+    expect(domains).toContain("gmail.com");
+    expect(domains[0]).toBe("gmail.com");
   });
 });

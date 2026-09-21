@@ -1,4 +1,5 @@
 ---
+import { listActiveDomains } from "../lib/allowlist";
 import { type Locale, t } from "../lib/i18n";
 import { issueTimerToken } from "../lib/timer";
 
@@ -6,13 +7,17 @@ interface Props {
   slug: string;
   locale: Locale;
   campaignId: string;
+  placeholder?: string;
 }
-const { slug, locale, campaignId } = Astro.props;
+const { slug, locale, campaignId, placeholder: customPlaceholder } = Astro.props;
 
 // Server-rendered token: fallback tanpa JS (PRD 7.1) — tetap valid meski script gagal jalan.
 // JS hanya menyegarkan token via POST /api/timer-token di awal timer.
 const serverToken = issueTimerToken(campaignId);
 const timerMs = import.meta.env.TEST_TIMER_MS ?? "30000";
+
+const activeDomains = await listActiveDomains();
+const placeholder = customPlaceholder ?? activeDomains.join(", ");
 
 const copy = {
   initial: t(locale, "timerInitial"),
@@ -63,6 +68,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     required
     autocomplete="email"
     inputmode="email"
+    placeholder={placeholder}
     aria-describedby="form-error"
     style="width: 100%; min-height: 48px; border: var(--border-default); border-radius: var(--radius-control); padding: 0 var(--space-4); font-size: 16px; background: var(--color-surface-raised); color: var(--color-ink); font-family: inherit;"
   />
@@ -214,3 +220,10 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     }, 8000);
   });
 </script>
+
+<style>
+  #email::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.65;
+  }
+</style>
