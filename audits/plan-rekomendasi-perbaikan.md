@@ -684,8 +684,9 @@ flowchart TD
 ## 9. ADDENDUM PASCA-AUDIT (2026-09-21)
 
 ### Perbaikan Visual Affordance & UI Tab Refleksi Publik (`src/components/ReflectionTabs.astro`)
-- **Latar Belakang**: Evaluasi UX & UI menemukan perlunya peningkatan *click affordance* dan harmonisasi warna agar tab nonaktif tidak tersamarkan dan tab aktif memiliki kedalaman fisik (*depth*) tanpa tabrakan temperatur warna pastel.
-- **Keputusan Solusi**: Mengadopsi pola *Segmented Control Track* berlatar Linen Surface (`--color-surface-subtle`, max-width 440px) dengan tab aktif berupa *elevated pill* White Surface (`--color-surface-raised` / `#FFFFFF`), teks Forest Action (`--color-primary`), dan bayangan taktil lembut.
+- **Latar Belakang**: Evaluasi UX & UI menemukan bahwa pendekatan segmented control tebal menghasilkan efek visual kaku/mekanis yang tidak sesuai dengan ketenangan membaca doa/refleksi.
+- **Keputusan Solusi**: Menerapkan pola *Editorial Underline Tabs* yang elegan di atas White Surface, bergaris pembagi bawah `1px solid var(--color-border)`, tab aktif berpenegas garis aksen bawah `2px solid var(--color-primary)` dengan teks Forest Action, dan tab nonaktif berteks Quiet Moss yang bertransisi ke Ink Forest saat hover.
 - **Status Implementasi**: **SELESAI.** Komponen `ReflectionTabs.astro` dan dokumen panduan `.agents/DESIGN.md` telah diperbarui dengan addendum resmi.
+
 
 

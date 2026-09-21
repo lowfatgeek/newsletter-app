@@ -143,14 +143,16 @@ Revisi dilakukan dengan verifikasi ulang seluruh klaim terhadap kode saat ini (r
 | Verifikasi #14: breakpoint 640/768/900/1024; KPI 3→2 kolom | **Sebagian salah.** Breakpoint nyata 480/640/768/900/1023 (1024 tidak dipakai); KPI 6→3→2 (`laporan.astro:373,377,378`) | Dikoreksi |
 | Verdict "Verdict tahap 2" | Label tidak sesuai nomor file | Diganti "Verdict audit 02" |
 
-## Addendum (2026-09-21): Penyempurnaan Affordance & UI Tab Refleksi
+## Addendum (2026-09-21): Penyempurnaan Affordance & UI Tab Refleksi (Editorial Underline Tabs)
 - **Temuan Lapangan / Evaluasi UX & UI**: 
-  1. *Affordance*: Tab nonaktif awal berlatar transparan di atas card putih tanpa batas fisik, rawan disalahartikan sebagai teks statis.
-  2. *Color Harmony & Elevation*: Menumpuk mint pastel di atas track krem pastel menimbulkan tabrakan suhu warna (*cool mint vs warm linen*) dan tampak datar.
-- **Tindakan Penyempurnaan (Segmented Control Track + Elevated White Pill)**:
-  - Wadah `role="tablist"` dibungkus track Linen Surface (`--color-surface-subtle` / `#F7F1E6`), border halus Paper Border, padding 4px (`--space-1`), radius 12px (`--radius-control`), dan lebar maksimal proporsional 440px (100% responsif di mobile).
-  - Tab aktif berupa *elevated pill* berlatar White Surface (`--color-surface-raised` / `#FFFFFF`), teks Forest Action (`--color-primary` / `#176B5B`), border-radius 8px, serta bayangan taktil (`box-shadow: 0 2px 6px rgba(21, 59, 53, 0.08), 0 1px 2px rgba(21, 59, 53, 0.04)`).
-  - Tab nonaktif transparan di dalam track dengan warna Body Moss (`--color-text`) dan hover Ink Forest (`--color-ink`).
-- **Dampak Kepatuhan**: Memberikan ilusi kedalaman fisik (*recessed track vs elevated floating pill*), mengeliminasi tabrakan temperatur warna, serta mempertahankan kepatuhan penuh WAI-ARIA APG dan target sentuh minimum 44px.
+  1. *Affordance*: Tab nonaktif awal berlatar transparan tanpa batas fisik rawan disalahartikan sebagai teks statis.
+  2. *Visual Clutter*: Eksperimen segmented control tebal menghasilkan efek kotak kaku ("seperti stiker tempel") yang terasa mekanis dan merusak ketenangan membaca doa.
+- **Tindakan Penyempurnaan Final (Editorial Underline Tabs)**:
+  - Mengeliminasi kotak pembungkus tebal.
+  - Tablist diposisikan langsung di atas card dengan hairline border pembatas horizontal `1px solid var(--color-border)` dan spasi elegan `gap: var(--space-6)`.
+  - Tab aktif berpenegas garis aksen bawah `2px solid var(--color-primary)` dengan teks Forest Action (`--color-primary`) dan margin negatif `-1px` di atas garis pembagi.
+  - Tab nonaktif bersih dengan teks Quiet Moss (`--color-text-muted`), bertransisi ke Ink Forest saat hover.
+- **Dampak Kepatuhan**: Menciptakan kesan mewah dan tenang (*quiet luxury / warm editorial*), ruang baca doa menjadi lapang dan bebas distraksi, dengan kepatuhan penuh WAI-ARIA APG dan target sentuh minimum 44px.
+
 
 
