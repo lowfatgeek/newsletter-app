@@ -66,20 +66,114 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
   {paused ? (
     <CampaignPaused locale="id" />
   ) : (
-    <main style="max-width: var(--funnel-content); margin: 0 auto; padding: var(--space-5);">
-      <RewardHero
-        overline={t("id", "overline")}
-        title={localeRow!.title}
-        description={localeRow!.description}
-        imageKey={data!.campaign.featuredImageKey}
-      />
-      <RewardItemList items={items} locale="id" />
-      <ReflectionTabs
-        muslimText={await data!.doaText("muslim", "id")}
-        universalText={await data!.doaText("universal", "id")}
-        locale="id"
-      />
-      <EmailForm slug={slug!} locale="id" campaignId={data!.campaign.id} />
+    <main class="workbench-container">
+      <div class="split-desk-grid">
+        <section class="showcase-column">
+          <RewardHero
+            overline={t("id", "overline")}
+            title={localeRow!.title}
+            description={localeRow!.description}
+            imageKey={data!.campaign.featuredImageKey}
+          />
+          <RewardItemList items={items} locale="id" />
+          <div class="showcase-trust">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            <span>Akses unduhan instan &amp; aman dikirim via email. Link berlaku 1 jam setelah dibuka.</span>
+          </div>
+        </section>
+        <aside class="ritual-column">
+          <div class="ritual-card">
+            <ReflectionTabs
+              muslimText={await data!.doaText("muslim", "id")}
+              universalText={await data!.doaText("universal", "id")}
+              locale="id"
+            />
+            <hr class="card-hairline-divider" aria-hidden="true" />
+            <EmailForm slug={slug!} locale="id" campaignId={data!.campaign.id} />
+          </div>
+        </aside>
+      </div>
     </main>
   )}
 </PublicLayout>
+
+<style>
+  .workbench-container {
+    max-width: var(--workbench-max);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6) var(--space-16);
+  }
+
+  .split-desk-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .split-desk-grid {
+      grid-template-columns: 1.15fr 1fr;
+      gap: var(--space-10);
+    }
+  }
+
+  .showcase-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .showcase-trust {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+  }
+
+  .showcase-trust svg {
+    flex-shrink: 0;
+    color: var(--color-primary);
+  }
+
+  .ritual-column {
+    position: relative;
+  }
+
+  @media (min-width: 1024px) {
+    .ritual-column {
+      position: sticky;
+      top: calc(72px + var(--space-6));
+    }
+  }
+
+  .ritual-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-card);
+    position: relative;
+  }
+
+  @media (min-width: 640px) {
+    .ritual-card {
+      padding: var(--space-8);
+    }
+  }
+
+  .card-hairline-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: var(--space-6) 0;
+    border: none;
+  }
+</style>

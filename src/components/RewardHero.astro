@@ -7,18 +7,81 @@ interface Props {
 }
 const { overline, title, description, imageKey = null } = Astro.props;
 ---
-<header style="padding-top: var(--space-12);">
-  <p style="color: var(--color-text-muted); font-size: var(--text-body-sm); letter-spacing: 0.075em; font-weight: var(--font-weight-semibold); text-transform: uppercase; margin: 0 0 var(--space-4);">{overline}</p>
-  <h1 style="color: var(--color-ink); font-size: var(--text-h1); line-height: 1.12; letter-spacing: -0.032em; margin: 0 0 var(--space-4); font-weight: var(--font-weight-bold);">{title}</h1>
-  <p style="font-size: var(--text-body-lg); line-height: 1.58; margin: 0;">{description}</p>
+<header class="reward-hero">
+  <p class="reward-overline">{overline}</p>
+  <h1 class="reward-title">{title}</h1>
+  <p class="reward-description">{description}</p>
   {imageKey && (
-    <img
-      src={`/api/image/${imageKey}`}
-      alt={title}
-      width="1200"
-      height="630"
-      style="border-radius: var(--radius-image); width: 100%; height: auto; margin-top: var(--space-5); display: block;"
-      loading="eager"
-    />
+    <figure class="featured-image-wrapper">
+      <img
+        src={`/api/image/${imageKey}`}
+        alt={title}
+        width="1200"
+        height="630"
+        class="featured-image"
+        loading="eager"
+      />
+    </figure>
   )}
 </header>
+
+<style>
+  .reward-hero {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .reward-overline {
+    color: var(--color-text-muted);
+    font-size: var(--text-body-sm);
+    letter-spacing: 0.075em;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    margin: 0 0 var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .reward-overline::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-gold);
+    flex-shrink: 0;
+  }
+
+  .reward-title {
+    color: var(--color-ink);
+    font-size: var(--text-h1);
+    line-height: 1.15;
+    letter-spacing: -0.032em;
+    margin: 0 0 var(--space-4);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .reward-description {
+    font-size: var(--text-body-lg);
+    line-height: 1.6;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .featured-image-wrapper {
+    margin: var(--space-6) 0 0;
+    border-radius: var(--radius-image);
+    overflow: hidden;
+    border: var(--border-default);
+    box-shadow: var(--shadow-card);
+    background: var(--color-surface-subtle);
+  }
+
+  .featured-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+  }
+</style>

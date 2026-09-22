@@ -1,0 +1,1505 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview: Redesign Halaman Reward — "The Split Gift Desk"</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM TOKENS — KELASWFA KADO (.agents/DESIGN.md & src/styles/tokens.css)
+       ========================================================================== */
+    :root {
+      --color-canvas: #fffcf5;           /* Ivory Paper */
+      --color-surface-subtle: #f7f1e6;   /* Linen Surface */
+      --color-surface-raised: #ffffff;   /* White Surface */
+      --color-ink: #153b35;              /* Ink Forest */
+      --color-text: #36514b;             /* Body Moss */
+      --color-text-muted: #566662;       /* Quiet Moss (WCAG AA compliant) */
+      --color-border: #e7ded0;           /* Paper Border */
+      --color-primary: #176b5b;          /* Forest Action */
+      --color-primary-hover: #105447;    /* Forest Hover */
+      --color-primary-subtle: #e5f2ee;   /* Forest Tint */
+      --color-gold: #d99020;             /* Gift Gold */
+      --color-gold-subtle: #fff2d6;      /* Gold Tint */
+      --color-info: #24709a;             /* Open Sky */
+      --color-info-subtle: #e6f3fa;      /* Sky Tint */
+      --color-danger: #b53c4a;           /* Rose Error */
+      --color-danger-subtle: #fcecee;    /* Rose Tint */
+      --color-success: #237a55;          /* Success Green */
+      --color-success-subtle: #e8f6ee;   /* Success Tint */
+      --color-warning: #9a6514;          /* Warning Amber */
+      --color-warning-subtle: #fff4dc;   /* Warning Tint */
+
+      --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-weight-regular: 400;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+
+      --text-display: clamp(2.5rem, 5vw, 3.5rem);
+      --text-h1: clamp(2rem, 3.8vw, 2.5rem);
+      --text-h2: clamp(1.5rem, 2.8vw, 1.875rem);
+      --text-h3: 1.25rem;
+      --text-body-lg: 1.125rem;
+      --text-body: 1rem;
+      --text-body-sm: 0.875rem;
+      --text-caption: 0.75rem;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      --space-16: 64px;
+
+      --radius-control: 12px;
+      --radius-image: 16px;
+      --radius-card: 20px;
+      --radius-pill: 999px;
+
+      --border-default: 1px solid var(--color-border);
+      --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 8px 24px rgba(21, 59, 53, 0.05);
+      --shadow-float: 0 16px 40px rgba(21, 59, 53, 0.12);
+      --focus-ring: 0 0 0 3px rgba(23, 107, 91, 0.24);
+
+      --funnel-content: 680px;
+      --workbench-max: 1140px;
+    }
+
+    /* Base Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--color-text);
+      background-color: var(--color-canvas);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+    [hidden] {
+      display: none !important;
+    }
+
+    /* ==========================================================================
+       TOP PREVIEW CONTROLLER BAR (Alat Bantu Evaluasi Desain)
+       ========================================================================== */
+    .preview-banner {
+      background: #102d28;
+      color: #e5f2ee;
+      padding: var(--space-3) var(--space-5);
+      font-size: var(--text-body-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .preview-banner-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .preview-pill-badge {
+      background: var(--color-gold);
+      color: #102d28;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .preview-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .preview-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+    .preview-btn:hover {
+      background: rgba(255, 255, 255, 0.24);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .preview-btn.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary-hover);
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       APP HEADER
+       ========================================================================== */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      max-width: var(--workbench-max);
+      margin: 0 auto;
+      padding: 0 var(--space-6);
+      border-bottom: var(--border-default);
+    }
+    @media (min-width: 1024px) {
+      .app-header {
+        height: 72px;
+      }
+    }
+    .brand-logo {
+      color: var(--color-ink);
+      font-weight: var(--font-weight-bold);
+      font-size: var(--text-body-lg);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      letter-spacing: -0.01em;
+    }
+    .brand-logo .brand-tag {
+      font-size: var(--text-caption);
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+    }
+    .locale-switcher {
+      display: flex;
+      gap: 4px;
+      background: var(--color-surface-subtle);
+      padding: 3px;
+      border-radius: 8px;
+      border: var(--border-default);
+    }
+    .locale-btn {
+      background: transparent;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 160ms ease;
+    }
+    .locale-btn.active {
+      background: var(--color-surface-raised);
+      color: var(--color-ink);
+      box-shadow: 0 1px 2px rgba(21, 59, 53, 0.08);
+    }
+
+    /* ==========================================================================
+       MACROSTRUCTURE: "THE SPLIT GIFT DESK"
+       (Split Studio / Workbench Asymmetric Layout)
+       ========================================================================== */
+    .workbench-container {
+      max-width: var(--workbench-max);
+      margin: 0 auto;
+      padding: var(--space-8) var(--space-6) var(--space-16);
+    }
+
+    /* Split Grid */
+    .split-desk-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-8);
+      align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+      .split-desk-grid {
+        grid-template-columns: 1.15fr 1fr;
+        gap: var(--space-10);
+      }
+    }
+
+    /* ==========================================================================
+       KOLOM KIRI: THE SHOWCASE (BUKTI VISUAL HADIAH)
+       ========================================================================== */
+    .showcase-column {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+
+    .showcase-header {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .showcase-overline {
+      color: var(--color-text-muted);
+      font-size: var(--text-body-sm);
+      letter-spacing: 0.075em;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      margin: 0 0 var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .showcase-overline::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-pill);
+      background-color: var(--color-gold);
+    }
+
+    .showcase-title {
+      color: var(--color-ink);
+      font-size: var(--text-h1);
+      line-height: 1.15;
+      letter-spacing: -0.032em;
+      margin: 0 0 var(--space-4);
+      font-weight: var(--font-weight-bold);
+    }
+
+    .showcase-desc {
+      font-size: var(--text-body-lg);
+      line-height: 1.6;
+      color: var(--color-text);
+      margin: 0;
+    }
+
+    /* Hero Featured Asset Graphic */
+    .featured-asset-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-image);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .asset-svg-preview {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: linear-gradient(180deg, #FBF8F1 0%, #F5EDE0 100%);
+    }
+
+    /* Manifest / Curated Inventory List (No Card Stacking Fatigue) */
+    .manifest-panel {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: var(--space-6);
+    }
+
+    .manifest-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: var(--space-2);
+    }
+
+    .manifest-heading {
+      font-size: 13px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .manifest-badge {
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+    }
+
+    .manifest-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .manifest-item {
+      display: flex;
+      gap: var(--space-4);
+      align-items: flex-start;
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .manifest-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .manifest-icon-box {
+      flex: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--color-gold-subtle);
+      color: var(--color-gold);
+      display: grid;
+      place-items: center;
+      margin-top: 2px;
+    }
+
+    .manifest-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .manifest-item-title {
+      color: var(--color-ink);
+      font-weight: var(--font-weight-semibold);
+      font-size: 1rem;
+      margin: 0 0 4px;
+    }
+
+    .manifest-item-benefit {
+      margin: 0 0 6px;
+      font-size: var(--text-body-sm);
+      line-height: 1.5;
+      color: var(--color-text);
+    }
+
+    .manifest-item-meta {
+      margin: 0;
+      color: var(--color-text-muted);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .manifest-item-meta .meta-tag {
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    /* Trust banner / Value guarantee */
+    .showcase-trust {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-surface-subtle);
+      border: var(--border-default);
+      border-radius: var(--radius-control);
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+    }
+
+    .showcase-trust svg {
+      flex-shrink: 0;
+      color: var(--color-primary);
+    }
+
+    /* ==========================================================================
+       KOLOM KANAN: THE UNLOCK RITUAL (STICKY FOCUS)
+       ========================================================================== */
+    .ritual-column {
+      position: relative;
+    }
+
+    @media (min-width: 1024px) {
+      .ritual-column {
+        position: sticky;
+        top: calc(72px + var(--space-6));
+      }
+    }
+
+    /* Unified Ritual Card */
+    .ritual-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      padding: var(--space-6);
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+
+    @media (min-width: 640px) {
+      .ritual-card {
+        padding: var(--space-8);
+      }
+    }
+
+    /* Ritual Header & Doa Section */
+    .ritual-header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      background: var(--color-primary-subtle);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      margin-bottom: var(--space-3);
+    }
+
+    .ritual-heading {
+      color: var(--color-ink);
+      font-size: var(--text-h3);
+      margin: 0;
+      line-height: 1.3;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.015em;
+    }
+
+    /* Editorial Underline Tabs (DESIGN.md Addendum 2026-09) */
+    .editorial-tablist {
+      display: flex;
+      gap: var(--space-6);
+      border-bottom: 1px solid var(--color-border);
+      margin: var(--space-4) 0 var(--space-5);
+    }
+
+    .editorial-tab {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 44px;
+      padding: 10px 4px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      color: var(--color-text-muted);
+      font-size: var(--text-body);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                  border-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .editorial-tab:hover:not([aria-selected="true"]) {
+      color: var(--color-ink);
+      border-bottom-color: rgba(21, 59, 53, 0.25);
+    }
+
+    .editorial-tab[aria-selected="true"] {
+      color: var(--color-primary);
+      border-bottom: 2px solid var(--color-primary);
+    }
+
+    .tab-icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .tab-icon-wrap svg {
+      width: 17px;
+      height: 17px;
+      display: block;
+      transition: color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                  transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .editorial-tab[aria-selected="true"] .tab-icon-wrap svg {
+      color: var(--color-primary);
+    }
+
+    .editorial-tab[aria-selected="false"] .tab-icon-wrap svg {
+      color: var(--color-text-muted);
+      opacity: 0.8;
+    }
+
+    .editorial-tab:hover:not([aria-selected="true"]) .tab-icon-wrap svg {
+      color: var(--color-ink);
+      opacity: 1;
+    }
+
+    .editorial-tab:focus-visible {
+      outline: none;
+      border-radius: 4px;
+      box-shadow: var(--focus-ring);
+    }
+
+    .prayer-panel {
+      font-size: var(--text-body-lg);
+      line-height: 1.7;
+      color: var(--color-text);
+      max-width: 58ch;
+      min-height: 110px;
+    }
+
+    /* Subtle Card Divider */
+    .card-hairline-divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: var(--space-6) 0;
+      border: none;
+    }
+
+    /* Timer Status Box */
+    .timer-panel {
+      color: var(--color-ink);
+      background: var(--color-gold-subtle);
+      border: 1px solid rgba(217, 144, 32, 0.2);
+      border-radius: var(--radius-control);
+      padding: var(--space-3) var(--space-4);
+      font-variant-numeric: tabular-nums;
+      margin: 0;
+      font-size: var(--text-body-sm);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      transition: background 220ms ease, border-color 220ms ease;
+    }
+
+    .timer-panel.unlocked {
+      background: var(--color-success-subtle);
+      border-color: rgba(35, 122, 85, 0.25);
+      color: #114c35;
+    }
+
+    .timer-icon {
+      flex-shrink: 0;
+      color: var(--color-gold);
+    }
+
+    .timer-panel.unlocked .timer-icon {
+      color: var(--color-success);
+    }
+
+    /* Progress Bar */
+    .timer-track {
+      height: 4px;
+      background: var(--color-border);
+      border-radius: var(--radius-pill);
+      margin: var(--space-3) 0 var(--space-5);
+      overflow: hidden;
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--color-primary);
+      border-radius: var(--radius-pill);
+      transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 220ms ease;
+    }
+
+    .timer-bar.unlocked {
+      background: var(--color-success);
+    }
+
+    /* Email Claim Form */
+    .claim-form {
+      position: relative;
+    }
+
+    .form-field-group {
+      margin-bottom: var(--space-3);
+    }
+
+    .field-label {
+      display: block;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-ink);
+      font-size: var(--text-body-sm);
+      margin-bottom: var(--space-2);
+    }
+
+    .email-input {
+      width: 100%;
+      min-height: 48px;
+      border: var(--border-default);
+      border-radius: var(--radius-control);
+      padding: 0 var(--space-4);
+      font-size: 16px;
+      background: var(--color-surface-raised);
+      color: var(--color-ink);
+      font-family: inherit;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .email-input::placeholder {
+      color: var(--color-text-muted);
+      opacity: 0.65;
+    }
+
+    .email-input:focus {
+      border-color: var(--color-primary);
+      box-shadow: var(--focus-ring);
+      outline: none;
+    }
+
+    .form-error-alert {
+      background: var(--color-danger-subtle);
+      color: var(--color-danger);
+      border: 1px solid rgba(181, 60, 74, 0.2);
+      border-radius: var(--radius-control);
+      padding: var(--space-3);
+      margin-top: var(--space-3);
+      font-size: var(--text-body-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .consent-text {
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+      margin: var(--space-3) 0 0;
+      line-height: 1.58;
+    }
+
+    .consent-text a {
+      text-decoration: underline;
+      color: var(--color-info);
+      text-underline-offset: 2px;
+    }
+
+    .resubscribe-label {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      line-height: 1.5;
+    }
+
+    .resubscribe-checkbox {
+      margin-top: 3px;
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-primary);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* Submit CTA */
+    .submit-cta-btn {
+      width: 100%;
+      min-height: 48px;
+      margin-top: var(--space-5);
+      border: 1px solid transparent;
+      border-radius: var(--radius-control);
+      background: var(--color-surface-subtle);
+      color: var(--color-text-muted);
+      font-weight: var(--font-weight-semibold);
+      font-size: 16px;
+      cursor: not-allowed;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      transition: background-color 200ms ease, color 200ms ease, transform 100ms ease, box-shadow 150ms ease;
+    }
+
+    .submit-cta-btn.active {
+      background: var(--color-primary);
+      color: var(--color-surface-raised);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(23, 107, 91, 0.25);
+    }
+
+    .submit-cta-btn.active:hover {
+      background: var(--color-primary-hover);
+      box-shadow: 0 4px 12px rgba(23, 107, 91, 0.35);
+    }
+
+    .submit-cta-btn.active:active {
+      transform: translateY(1px);
+    }
+
+    .submit-cta-btn:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    /* Success state simulation popup */
+    .success-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(21, 59, 53, 0.6);
+      backdrop-filter: blur(2px);
+      display: grid;
+      place-items: center;
+      padding: var(--space-4);
+      z-index: 2000;
+    }
+
+    .success-modal {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-float);
+      padding: var(--space-8);
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .success-icon-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-pill);
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+      display: grid;
+      place-items: center;
+      margin: 0 auto var(--space-4);
+    }
+
+    /* Subtle footer */
+    .page-footer {
+      max-width: var(--workbench-max);
+      margin: 0 auto;
+      padding: var(--space-8) var(--space-6);
+      border-top: var(--border-default);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      font-size: var(--text-caption);
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       TOP PREVIEW CONTROLLER BAR
+       Menyediakan kontrol interaktif langsung untuk evaluator/pengguna
+       ========================================================================== -->
+  <aside class="preview-banner" aria-label="Kontrol Evaluasi Mockup Desain">
+    <div class="preview-banner-left">
+      <span class="preview-pill-badge">Concept 2 Preview</span>
+      <span><strong>The Split Gift Desk</strong> (Workbench Asymmetric Layout)</span>
+    </div>
+    <div class="preview-controls">
+      <button type="button" class="preview-btn" id="btn-fast-forward" title="Lompati timer 30 detik langsung ke detik terakhir">⚡ Lompat ke Detik Terakhir</button>
+      <button type="button" class="preview-btn" id="btn-unlock-now" title="Buka kunci form seketika">🔓 Buka Kunci (Unlocked)</button>
+      <button type="button" class="preview-btn" id="btn-reset-timer" title="Mulai ulang timer 30 detik dari awal">↺ Reset Timer</button>
+      <span style="opacity: 0.3; margin: 0 4px;">|</span>
+      <span style="font-size: 11px; opacity: 0.8; margin-right: 2px;">Ikon Harapan:</span>
+      <button type="button" class="preview-btn active" id="btn-icon-sparkles" title="Doa: Bulan Sabit | Harapan: Bintang Harapan (Sparkles)">✦ Bintang</button>
+      <button type="button" class="preview-btn" id="btn-icon-sun" title="Doa: Bulan Sabit | Harapan: Matahari Hangat (Sun)">☀️ Matahari</button>
+      <button type="button" class="preview-btn" id="btn-icon-heart" title="Doa: Bulan Sabit | Harapan: Hati Tulus (Heart)">❤️ Kasih</button>
+      <span style="opacity: 0.3; margin: 0 4px;">|</span>
+      <button type="button" class="preview-btn active" id="btn-toggle-id">🇮🇩 ID</button>
+      <button type="button" class="preview-btn" id="btn-toggle-en">🇬🇧 EN</button>
+    </div>
+  </aside>
+
+  <!-- ==========================================================================
+       APP HEADER (64px mobile / 72px desktop)
+       ========================================================================== -->
+  <header class="app-header">
+    <a href="#home" class="brand-logo">
+      <span>KelasWFA</span>
+      <span class="brand-tag">Kado</span>
+    </a>
+    <nav class="locale-switcher" aria-label="Language selection">
+      <button type="button" class="locale-btn active" id="header-locale-id">id</button>
+      <button type="button" class="locale-btn" id="header-locale-en">en</button>
+    </nav>
+  </header>
+
+  <!-- ==========================================================================
+       MAIN CONTAINER: "THE SPLIT GIFT DESK"
+       Macrostructure: Split Studio / Workbench Asymmetric
+       ========================================================================== -->
+  <main class="workbench-container" id="main-content">
+    <div class="split-desk-grid">
+
+      <!-- ======================================================================
+           KOLOM KIRI: THE SHOWCASE (BUKTI VISUAL HADIAH)
+           ====================================================================== -->
+      <section class="showcase-column" aria-labelledby="reward-title">
+        
+        <!-- Showcase Heading Group -->
+        <div class="showcase-header">
+          <p class="showcase-overline" id="lbl-overline">BAYAR DENGAN DOA</p>
+          <h1 class="showcase-title" id="lbl-title">Starter Kit KelasWFA</h1>
+          <p class="showcase-desc" id="lbl-desc">
+            Kumpulan template dan checklist untuk memulai perjalanan menuju kebebasan finansial lewat kerja dan skill.
+          </p>
+        </div>
+
+        <!-- Featured Asset Image / Visual Proof -->
+        <figure class="featured-asset-card" style="margin: 0;">
+          <svg class="asset-svg-preview" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Preview Template dan Checklist Starter Kit KelasWFA">
+            <!-- Background & Warm Depth Elements -->
+            <rect width="640" height="360" fill="#F8F3EA"/>
+            <circle cx="560" cy="80" r="140" fill="#E5F2EE" fill-opacity="0.6"/>
+            <circle cx="60" cy="300" r="100" fill="#FFF2D6" fill-opacity="0.7"/>
+
+            <!-- Decorative Digital Gift Desk Mockup Canvas -->
+            <!-- Document 2: Budget Spreadsheet (Belakang) -->
+            <g transform="translate(180, 50) rotate(4)">
+              <rect x="0" y="0" width="360" height="250" rx="12" fill="#FFFFFF" stroke="#E7DED0" stroke-width="1.5"/>
+              <!-- Sheet Header -->
+              <rect x="0" y="0" width="360" height="42" rx="12" fill="#F7F1E6"/>
+              <rect x="16" y="16" width="90" height="12" rx="3" fill="#176B5B"/>
+              <rect x="290" y="15" width="54" height="14" rx="4" fill="#E5F2EE"/>
+              <!-- Table Rows -->
+              <line x1="16" y1="75" x2="344" y2="75" stroke="#E7DED0" stroke-width="1"/>
+              <rect x="16" y="55" width="60" height="8" rx="2" fill="#6C7E79"/>
+              <rect x="120" y="55" width="70" height="8" rx="2" fill="#6C7E79"/>
+              <rect x="240" y="55" width="60" height="8" rx="2" fill="#6C7E79"/>
+
+              <line x1="16" y1="115" x2="344" y2="115" stroke="#E7DED0" stroke-width="1"/>
+              <rect x="16" y="92" width="80" height="9" rx="2" fill="#153B35"/>
+              <rect x="240" y="92" width="70" height="9" rx="2" fill="#237A55"/>
+
+              <line x1="16" y1="155" x2="344" y2="155" stroke="#E7DED0" stroke-width="1"/>
+              <rect x="16" y="132" width="95" height="9" rx="2" fill="#153B35"/>
+              <rect x="240" y="132" width="60" height="9" rx="2" fill="#D99020"/>
+
+              <line x1="16" y1="195" x2="344" y2="195" stroke="#E7DED0" stroke-width="1"/>
+              <rect x="16" y="172" width="70" height="9" rx="2" fill="#153B35"/>
+              <rect x="240" y="172" width="85" height="9" rx="2" fill="#237A55"/>
+            </g>
+
+            <!-- Document 1: 30-Day Checklist (Depan, Utama) -->
+            <g transform="translate(60, 40) rotate(-2)">
+              <rect x="0" y="0" width="360" height="260" rx="12" fill="#FFFFFF" stroke="#E7DED0" stroke-width="1.5" filter="drop-shadow(0 12px 28px rgba(21, 59, 53, 0.09))"/>
+              
+              <!-- Card Header -->
+              <rect x="24" y="24" width="38" height="38" rx="10" fill="#FFF2D6"/>
+              <!-- Gift Icon in SVG -->
+              <path d="M35 39H51M43 35V51M39 39C37.5 39 36 37.8 36 36.3C36 34.8 37.2 33.6 38.7 33.6C41.2 33.6 43 37 43 39ZM43 39C43 37 44.8 33.6 47.3 33.6C48.8 33.6 50 34.8 50 36.3C50 37.8 48.5 39 47 39" stroke="#D99020" stroke-width="2" stroke-linecap="round"/>
+              <rect x="74" y="28" width="140" height="14" rx="4" fill="#153B35"/>
+              <rect x="74" y="48" width="80" height="8" rx="2" fill="#6C7E79"/>
+              
+              <rect x="270" y="26" width="66" height="22" rx="11" fill="#E5F2EE"/>
+              <text x="282" y="41" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="700" fill="#176B5B">VERIFIED</text>
+
+              <line x1="24" y1="84" x2="336" y2="84" stroke="#E7DED0" stroke-width="1"/>
+
+              <!-- Checklist Items -->
+              <!-- Checkbox Item 1 -->
+              <circle cx="36" cy="112" r="9" fill="#176B5B"/>
+              <path d="M33 112L35.5 114.5L39.5 109.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="56" y="108" width="180" height="10" rx="3" fill="#153B35"/>
+              <rect x="280" y="106" width="46" height="14" rx="3" fill="#F7F1E6"/>
+
+              <!-- Checkbox Item 2 -->
+              <circle cx="36" cy="148" r="9" fill="#176B5B"/>
+              <path d="M33 148L35.5 150.5L39.5 145.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="56" y="144" width="150" height="10" rx="3" fill="#153B35"/>
+              <rect x="280" y="142" width="46" height="14" rx="3" fill="#F7F1E6"/>
+
+              <!-- Checkbox Item 3 -->
+              <circle cx="36" cy="184" r="9" fill="#176B5B"/>
+              <path d="M33 184L35.5 186.5L39.5 181.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="56" y="180" width="200" height="10" rx="3" fill="#153B35"/>
+              <rect x="280" y="178" width="46" height="14" rx="3" fill="#F7F1E6"/>
+
+              <!-- Checkbox Item 4 -->
+              <circle cx="36" cy="220" r="9" stroke="#176B5B" stroke-width="1.8" fill="none"/>
+              <rect x="56" y="216" width="130" height="10" rx="3" fill="#6C7E79"/>
+              <rect x="280" y="214" width="46" height="14" rx="3" fill="#F7F1E6"/>
+            </g>
+
+            <!-- Floating Label Stamp -->
+            <g transform="translate(430, 270)">
+              <rect x="0" y="0" width="170" height="42" rx="10" fill="#153B35" filter="drop-shadow(0 4px 12px rgba(21, 59, 53, 0.2))"/>
+              <text x="18" y="26" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="700" fill="#FFFCF5">Paket Siap Pakai ✦</text>
+            </g>
+          </svg>
+        </figure>
+
+        <!-- Manifest / Curated Digital Inventory (Eliminates Card Stacking Fatigue) -->
+        <div class="manifest-panel">
+          <div class="manifest-panel-header">
+            <h2 class="manifest-heading" id="lbl-manifest-heading">Daftar Isi Paket Kado (2 Item)</h2>
+            <span class="manifest-badge" id="lbl-manifest-badge">Akses Langsung</span>
+          </div>
+          <ul class="manifest-list">
+            <!-- Item 1 -->
+            <li class="manifest-item">
+              <span class="manifest-icon-box" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+              </span>
+              <div class="manifest-details">
+                <h3 class="manifest-item-title" id="item1-title">Checklist 30 Hari</h3>
+                <p class="manifest-item-benefit" id="item1-benefit">Rencana harian yang bisa langsung dijalankan.</p>
+                <p class="manifest-item-meta">
+                  <span class="meta-tag">PDF</span>
+                  <span>·</span>
+                  <span>2 MB</span>
+                  <span>·</span>
+                  <span id="item1-ready">Siap Diunduh</span>
+                </p>
+              </div>
+            </li>
+            <!-- Item 2 -->
+            <li class="manifest-item">
+              <span class="manifest-icon-box" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+              </span>
+              <div class="manifest-details">
+                <h3 class="manifest-item-title" id="item2-title">Template Budget</h3>
+                <p class="manifest-item-benefit" id="item2-benefit">Kelola pemasukan dan penghematan dengan rapi.</p>
+                <p class="manifest-item-meta">
+                  <span class="meta-tag">XLSX</span>
+                  <span>·</span>
+                  <span>1 MB</span>
+                  <span>·</span>
+                  <span id="item2-ready">Google Sheets / Excel</span>
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Trust Note -->
+        <div class="showcase-trust">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span id="lbl-trust">Akses unduhan instan &amp; aman dikirim via email. Link berlaku 1 jam setelah dibuka.</span>
+        </div>
+
+      </section>
+
+      <!-- ======================================================================
+           KOLOM KANAN: THE UNLOCK RITUAL (STICKY FOCUS)
+           ====================================================================== -->
+      <aside class="ritual-column" aria-labelledby="ritual-heading">
+        <div class="ritual-card">
+          
+          <!-- Card Header & Badge -->
+          <span class="ritual-header-badge" id="lbl-badge-step">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Langkah 1: Luangkan Waktu Sejenak
+          </span>
+          <h2 class="ritual-heading" id="ritual-heading">Baca dulu buat unlock</h2>
+
+          <!-- Editorial Underline Tabs -->
+          <div role="tablist" aria-label="Pilihan Doa dan Harapan Baik" class="editorial-tablist">
+            <button
+              type="button"
+              role="tab"
+              id="tab-muslim"
+              aria-selected="true"
+              aria-controls="panel-muslim"
+              class="editorial-tab"
+            >
+              <span class="tab-icon-wrap" id="tab-icon-muslim" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                  <path d="M20 3v4"/>
+                  <path d="M22 5h-4"/>
+                </svg>
+              </span>
+              <span id="tab-text-muslim">Doa Muslim</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="tab-universal"
+              aria-selected="false"
+              aria-controls="panel-universal"
+              tabindex="-1"
+              class="editorial-tab"
+            >
+              <span class="tab-icon-wrap" id="tab-icon-universal" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                  <path d="M5 3v4"/>
+                  <path d="M19 17v4"/>
+                  <path d="M3 5h4"/>
+                  <path d="M17 19h4"/>
+                </svg>
+              </span>
+              <span id="tab-text-universal">Harapan Baik</span>
+            </button>
+          </div>
+
+          <!-- Doa Panels -->
+          <div
+            role="tabpanel"
+            id="panel-muslim"
+            aria-labelledby="tab-muslim"
+            class="prayer-panel"
+          >
+            Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin.
+          </div>
+
+          <div
+            role="tabpanel"
+            id="panel-universal"
+            aria-labelledby="tab-universal"
+            class="prayer-panel"
+            hidden
+          >
+            Semoga setiap langkah kecilmu hari ini membawamu lebih dekat ke tujuan besarmu. Semoga usahamu yang konsisten melunakkan jalan di depan — pelan-pelan, tapi pasti.
+          </div>
+
+          <!-- Card Hairline Divider -->
+          <hr class="card-hairline-divider" aria-hidden="true" />
+
+          <!-- Panel Timer & Form Klaim -->
+          <form id="claim-form" class="claim-form" novalidate>
+            
+            <!-- Honeypot (Security) -->
+            <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position: absolute; left: -9999px;" />
+            <input type="hidden" name="slug" value="starter-kit" />
+            <input type="hidden" name="locale" id="form-locale-input" value="id" />
+            <input type="hidden" name="timer_token" id="timer-token" value="preview-token-20260921" />
+
+            <!-- Timer Status Pill -->
+            <p id="timer-status" class="timer-panel" role="status" aria-live="polite">
+              <svg class="timer-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span id="timer-status-text">Unlock setelah 30 detik. Baca doa dulu.</span>
+            </p>
+
+            <!-- Progress Bar -->
+            <div class="timer-track" aria-hidden="true">
+              <div id="timer-bar" class="timer-bar"></div>
+            </div>
+
+            <!-- Email Input Field -->
+            <div class="form-field-group">
+              <label for="email" class="field-label" id="lbl-email">Email untuk menerima hadiah</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autocomplete="email"
+                inputmode="email"
+                placeholder="nama@gmail.com"
+                aria-describedby="form-error"
+                class="email-input"
+              />
+            </div>
+
+            <!-- Interactive Error Alert Container -->
+            <p id="form-error" class="form-error-alert" role="alert" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="form-error-text">Format email belum benar. Contoh: nama@gmail.com</span>
+            </p>
+
+            <!-- Consent Copy -->
+            <p class="consent-text" id="lbl-consent-block">
+              <span id="lbl-consent">Dengan mengklaim hadiah, kamu juga mendaftar ke newsletter KelasWFA. Lihat</span>
+              <a href="#privacy" id="lbl-privacy">kebijakan privasi</a>.
+            </p>
+
+            <!-- Resubscribe Consent Checkbox -->
+            <label class="resubscribe-label">
+              <input type="checkbox" name="resubscribe_consent" value="yes" class="resubscribe-checkbox" />
+              <span id="lbl-resubscribe">Saya bersedia kembali menerima newsletter dan update materi dari KelasWFA.</span>
+            </label>
+
+            <!-- Locked CTA Button -->
+            <button
+              id="submit-btn"
+              type="submit"
+              disabled
+              aria-disabled="true"
+              class="submit-cta-btn"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              <span id="lbl-submit-cta">KIRIM LINK DOWNLOAD</span>
+            </button>
+
+          </form>
+
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       SUBTLE PUBLIC FOOTER
+       ========================================================================== -->
+  <footer class="page-footer">
+    <div>&copy; 2026 KelasWFA Kado. Hak cipta dilindungi.</div>
+    <div>Sistem Hadiah Digital untuk Komunitas Produktif &amp; Berdaya.</div>
+  </footer>
+
+  <!-- ==========================================================================
+       INTERACTIVE SCRIPT: TIMER 30S, TABS, DICTIONARY BILINGUAL, SIMULATOR
+       ========================================================================== -->
+  <script>
+    // Copy dictionary (100% Locked Copywriting sesuai i18n.ts)
+    const DICT = {
+      id: {
+        overline: "BAYAR DENGAN DOA",
+        title: "Starter Kit KelasWFA",
+        desc: "Kumpulan template dan checklist untuk memulai perjalanan menuju kebebasan finansial lewat kerja dan skill.",
+        manifestHeading: "Daftar Isi Paket Kado (2 Item)",
+        manifestBadge: "Akses Langsung",
+        item1Title: "Checklist 30 Hari",
+        item1Benefit: "Rencana harian yang bisa langsung dijalankan.",
+        item1Ready: "Siap Diunduh",
+        item2Title: "Template Budget",
+        item2Benefit: "Kelola pemasukan dan penghematan dengan rapi.",
+        item2Ready: "Google Sheets / Excel",
+        trust: "Akses unduhan instan & aman dikirim via email. Link berlaku 1 jam setelah dibuka.",
+        badgeStep: "Langkah 1: Luangkan Waktu Sejenak",
+        reflectionHeading: "Baca dulu buat unlock",
+        tabMuslim: "Doa Muslim",
+        tabUniversal: "Harapan Baik",
+        prayerMuslim: "Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin.",
+        prayerUniversal: "Semoga setiap langkah kecilmu hari ini membawamu lebih dekat ke tujuan besarmu. Semoga usahamu yang konsisten melunakkan jalan di depan — pelan-pelan, tapi pasti.",
+        timerInitial: "Unlock setelah 30 detik. Baca doa dulu.",
+        timerTenLeft: "10 detik lagi.",
+        timerDone: "Terima kasih sudah meluangkan waktu. Sekarang, masukkan emailmu.",
+        timerTooFast: "Mohon tunggu timer selesai ya.",
+        emailLabel: "Email untuk menerima hadiah",
+        consent: "Dengan mengklaim hadiah, kamu juga mendaftar ke newsletter KelasWFA. Lihat",
+        privacyLink: "kebijakan privasi",
+        consentResubscribe: "Saya bersedia kembali menerima newsletter dan update materi dari KelasWFA.",
+        cta: "KIRIM LINK DOWNLOAD",
+        submittingCta: "Mengirim...",
+        errorEmail: "Format email belum benar. Contoh: nama@gmail.com",
+        errorGeneric: "Terjadi kesalahan. Coba lagi ya."
+      },
+      en: {
+        overline: "PAY WITH A PRAYER",
+        title: "KelasWFA Starter Kit",
+        desc: "A curated pack of templates and checklists to start your journey toward financial freedom through purposeful work and skills.",
+        manifestHeading: "Gift Pack Inventory (2 Items)",
+        manifestBadge: "Instant Access",
+        item1Title: "30-Day Checklist",
+        item1Benefit: "Actionable daily roadmap ready to execute.",
+        item1Ready: "Ready to Download",
+        item2Title: "Budget Template",
+        item2Benefit: "Organize income and smart savings cleanly.",
+        item2Ready: "Google Sheets / Excel",
+        trust: "Secure and instant download link delivered to your inbox. Link valid for 1 hour.",
+        badgeStep: "Step 1: Take A Quiet Moment",
+        reflectionHeading: "Read first to unlock",
+        tabMuslim: "Muslim Prayer",
+        tabUniversal: "Kind Wish",
+        prayerMuslim: "O Allah, bless every effort and hard work we put in today. Ease every step, smooth every matter, and make the knowledge we gain beneficial for us and for many. Ameen.",
+        prayerUniversal: "May every small step you take today bring you closer to your big goal. May your consistent effort soften the road ahead — slowly, but surely.",
+        timerInitial: "Unlocks in 30 seconds. Read the prayer first.",
+        timerTenLeft: "10 seconds left.",
+        timerDone: "Thanks for taking a moment. Now, enter your email.",
+        timerTooFast: "Please wait for the timer to finish.",
+        emailLabel: "Email to receive your gift",
+        consent: "By claiming this gift you also subscribe to the KelasWFA newsletter. See the",
+        privacyLink: "privacy policy",
+        consentResubscribe: "I agree to receive KelasWFA newsletter and updates again.",
+        cta: "SEND DOWNLOAD LINK",
+        submittingCta: "Sending...",
+        errorEmail: "That email format doesn't look right. Example: name@gmail.com",
+        errorGeneric: "Something went wrong. Please try again."
+      }
+    };
+
+    let currentLocale = "id";
+
+    // DOM Elements
+    const form = document.getElementById("claim-form");
+    const statusBox = document.getElementById("timer-status");
+    const statusText = document.getElementById("timer-status-text");
+    const bar = document.getElementById("timer-bar");
+    const btn = document.getElementById("submit-btn");
+    const btnCtaText = document.getElementById("lbl-submit-cta");
+    const emailInput = document.getElementById("email");
+    const errBox = document.getElementById("form-error");
+    const errText = document.getElementById("form-error-text");
+
+    // Timer Parameters
+    const TOTAL = 30000;
+    const TEN_LEFT = 20000;
+    let start = Date.now();
+    let unlocked = false;
+    let announcedTen = false;
+    let animationFrameId = null;
+
+    // Editorial Tab Switching Logic
+    const tabs = [document.getElementById("tab-muslim"), document.getElementById("tab-universal")];
+    const panels = {
+      "tab-muslim": document.getElementById("panel-muslim"),
+      "tab-universal": document.getElementById("panel-universal")
+    };
+
+    function selectTab(selectedTab, focus = true) {
+      tabs.forEach((tab) => {
+        const isMatch = tab === selectedTab;
+        tab.setAttribute("aria-selected", String(isMatch));
+        tab.tabIndex = isMatch ? 0 : -1;
+        const panel = panels[tab.id];
+        if (panel) panel.hidden = !isMatch;
+      });
+      if (focus) selectedTab.focus();
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => selectTab(tab, false));
+      tab.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        const next = tabs[(tabs.indexOf(tab) + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+        selectTab(next);
+      });
+    });
+
+    // Timer Tick Logic
+    function tick() {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(100, (elapsed / TOTAL) * 100);
+      bar.style.width = `${progress}%`;
+
+      const dict = DICT[currentLocale];
+
+      if (!announcedTen && elapsed >= TEN_LEFT && elapsed < TOTAL) {
+        announcedTen = true;
+        statusText.textContent = dict.timerTenLeft;
+      }
+
+      if (elapsed >= TOTAL) {
+        statusText.textContent = dict.timerDone;
+        statusBox.classList.add("unlocked");
+        bar.classList.add("unlocked");
+        unlockCta();
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(tick);
+    }
+
+    function unlockCta() {
+      if (unlocked) return;
+      unlocked = true;
+      btn.disabled = false;
+      btn.removeAttribute("aria-disabled");
+      btn.classList.add("active");
+    }
+
+    function lockCta() {
+      unlocked = false;
+      btn.disabled = true;
+      btn.setAttribute("aria-disabled", "true");
+      btn.classList.remove("active");
+      statusBox.classList.remove("unlocked");
+      bar.classList.remove("unlocked");
+    }
+
+    function startTimer(offsetMs = 0) {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      start = Date.now() - offsetMs;
+      announcedTen = offsetMs >= TEN_LEFT;
+      lockCta();
+      statusText.textContent = DICT[currentLocale].timerInitial;
+      tick();
+    }
+
+    // Start 30s timer immediately on load
+    startTimer();
+
+    // Error Handling
+    function showError(msg) {
+      errText.textContent = msg;
+      errBox.hidden = false;
+    }
+    function clearError() {
+      errBox.hidden = true;
+      errText.textContent = "";
+    }
+    emailInput.addEventListener("input", clearError);
+
+    // Form Submission Handling
+    let isSubmitting = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const dict = DICT[currentLocale];
+
+      if (!unlocked) {
+        showError(dict.timerTooFast);
+        return;
+      }
+
+      const emailVal = emailInput.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailVal || !emailRegex.test(emailVal)) {
+        showError(dict.errorEmail);
+        emailInput.focus();
+        return;
+      }
+
+      clearError();
+      isSubmitting = true;
+      const originalText = btnCtaText.textContent;
+      btn.disabled = true;
+      btn.setAttribute("aria-disabled", "true");
+      btn.style.cursor = "wait";
+      btnCtaText.textContent = dict.submittingCta;
+
+      // Simulate network request success modal
+      setTimeout(() => {
+        isSubmitting = false;
+        btn.disabled = false;
+        btn.removeAttribute("aria-disabled");
+        btn.style.cursor = "pointer";
+        btnCtaText.textContent = originalText;
+
+        // Show celebration / success alert
+        const modal = document.createElement("div");
+        modal.className = "success-modal-overlay";
+        modal.innerHTML = `
+          <div class="success-modal">
+            <div class="success-icon-badge">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <h3 style="color: var(--color-ink); font-size: 1.35rem; margin: 0 0 8px; font-weight: 700;">${currentLocale === "id" ? "Kadonya Siap Dibuka!" : "Your Gift Link is Sent!"}</h3>
+            <p style="color: var(--color-text); line-height: 1.6; margin: 0 0 20px; font-size: 0.95rem;">
+              ${currentLocale === "id" ? `Tautan unduhan telah dikirim ke <strong>${emailVal}</strong>. Buka emailmu dan klik link untuk mengunduh <em>Checklist 30 Hari</em> dan <em>Template Budget</em>.` : `A download link has been sent to <strong>${emailVal}</strong>. Check your inbox to get your starter kit.`}
+            </p>
+            <button type="button" class="submit-cta-btn active" style="margin-top: 0;" onclick="this.closest('.success-modal-overlay').remove()">
+              ${currentLocale === "id" ? "Tutup &amp; Cek Email" : "Got It"}
+            </button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      }, 1200);
+    });
+
+    // Bilingual Switcher Routine
+    function setLanguage(lang) {
+      currentLocale = lang;
+      const d = DICT[lang];
+
+      document.documentElement.lang = lang;
+      document.getElementById("form-locale-input").value = lang;
+
+      // Update Texts
+      document.getElementById("lbl-overline").textContent = d.overline;
+      document.getElementById("lbl-title").textContent = d.title;
+      document.getElementById("lbl-desc").textContent = d.desc;
+      document.getElementById("lbl-manifest-heading").textContent = d.manifestHeading;
+      document.getElementById("lbl-manifest-badge").textContent = d.manifestBadge;
+      document.getElementById("item1-title").textContent = d.item1Title;
+      document.getElementById("item1-benefit").textContent = d.item1Benefit;
+      document.getElementById("item1-ready").textContent = d.item1Ready;
+      document.getElementById("item2-title").textContent = d.item2Title;
+      document.getElementById("item2-benefit").textContent = d.item2Benefit;
+      document.getElementById("item2-ready").textContent = d.item2Ready;
+      document.getElementById("lbl-trust").textContent = d.trust;
+      document.getElementById("lbl-badge-step").innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${d.badgeStep}
+      `;
+      document.getElementById("ritual-heading").textContent = d.reflectionHeading;
+      document.getElementById("tab-text-muslim").textContent = d.tabMuslim;
+      document.getElementById("tab-text-universal").textContent = d.tabUniversal;
+      document.getElementById("panel-muslim").textContent = d.prayerMuslim;
+      document.getElementById("panel-universal").textContent = d.prayerUniversal;
+      document.getElementById("lbl-email").textContent = d.emailLabel;
+      document.getElementById("lbl-consent").textContent = d.consent;
+      document.getElementById("lbl-privacy").textContent = d.privacyLink;
+      document.getElementById("lbl-resubscribe").textContent = d.consentResubscribe;
+      btnCtaText.textContent = d.cta;
+
+      if (unlocked) {
+        statusText.textContent = d.timerDone;
+      } else if (announcedTen) {
+        statusText.textContent = d.timerTenLeft;
+      } else {
+        statusText.textContent = d.timerInitial;
+      }
+
+      // Update switcher active states
+      document.getElementById("btn-toggle-id").classList.toggle("active", lang === "id");
+      document.getElementById("btn-toggle-en").classList.toggle("active", lang === "en");
+      document.getElementById("header-locale-id").classList.toggle("active", lang === "id");
+      document.getElementById("header-locale-en").classList.toggle("active", lang === "en");
+    }
+
+    // Top Bar Testing Controls
+    document.getElementById("btn-fast-forward").addEventListener("click", () => {
+      startTimer(21000); // jump to 21s (9s remaining, announces 10s left)
+    });
+
+    document.getElementById("btn-unlock-now").addEventListener("click", () => {
+      startTimer(30000); // jump straight to completion
+    });
+
+    document.getElementById("btn-reset-timer").addEventListener("click", () => {
+      startTimer(0);
+    });
+
+    // Icon Variation Selector
+    const iconSvgs = {
+      sparkles: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
+      sun: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`,
+      heart: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`
+    };
+
+    function setUniversalIcon(type) {
+      const wrap = document.getElementById("tab-icon-universal");
+      if (wrap && iconSvgs[type]) {
+        wrap.innerHTML = iconSvgs[type];
+      }
+      document.getElementById("btn-icon-sparkles").classList.toggle("active", type === "sparkles");
+      document.getElementById("btn-icon-sun").classList.toggle("active", type === "sun");
+      document.getElementById("btn-icon-heart").classList.toggle("active", type === "heart");
+    }
+
+    document.getElementById("btn-icon-sparkles").addEventListener("click", () => setUniversalIcon("sparkles"));
+    document.getElementById("btn-icon-sun").addEventListener("click", () => setUniversalIcon("sun"));
+    document.getElementById("btn-icon-heart").addEventListener("click", () => setUniversalIcon("heart"));
+
+    document.getElementById("btn-toggle-id").addEventListener("click", () => setLanguage("id"));
+    document.getElementById("btn-toggle-en").addEventListener("click", () => setLanguage("en"));
+    document.getElementById("header-locale-id").addEventListener("click", () => setLanguage("id"));
+    document.getElementById("header-locale-en").addEventListener("click", () => setLanguage("en"));
+  </script>
+</body>
+</html>

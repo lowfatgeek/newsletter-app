@@ -52,6 +52,7 @@
   --focus-ring: 0 0 0 3px rgba(23, 107, 91, 0.24);
 
   --funnel-content: 680px;
+  --workbench-max: 1140px;
   --download-content: 760px;
   --auth-content: 440px;
   --admin-content: 1440px;
@@ -100,9 +101,9 @@ body {
   align-items: center;
   justify-content: space-between;
   height: 64px;
-  max-width: var(--funnel-content);
+  max-width: var(--workbench-max);
   margin: 0 auto;
-  padding: 0 var(--space-5);
+  padding: 0 var(--space-6);
   border-bottom: var(--border-default);
 }
 @media (min-width: 1024px) {

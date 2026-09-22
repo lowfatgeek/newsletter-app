@@ -1,5 +1,5 @@
 ---
-import { type Locale, t } from "../lib/i18n";
+import type { Locale } from "../lib/i18n";
 
 interface Item {
   name: string;
@@ -16,23 +16,139 @@ const { items, locale } = Astro.props;
 // Ikon lucide "gift" (outline, stroke 1.75, rounded) — DESIGN.md melarang emoji sebagai ikon UI.
 const giftIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>`;
 ---
-<ul style="list-style: none; padding: 0; margin: var(--space-8) 0 0; display: grid; gap: var(--space-3);">
-  {items.map((item) => (
-    <li style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card); display: flex; gap: var(--space-4); align-items: flex-start;">
-      <span
-        aria-hidden="true"
-        style="flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--color-gold-subtle); color: var(--color-gold); display: grid; place-items: center;"
-        set:html={giftIcon}
-      />
-      <div>
-        <strong style="color: var(--color-ink); font-weight: var(--font-weight-semibold);">{item.name}</strong>
-        <p style="margin: 4px 0 0; line-height: 1.58;">{item.benefit}</p>
-        {(item.format || item.size) && (
-          <p style="margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-body-sm);">
-            {item.format ? `${t(locale, "itemFormat")}: ${item.format}` : ""}{item.format && item.size ? " · " : ""}{item.size ? `${t(locale, "itemSize")}: ${item.size}` : ""}
-          </p>
-        )}
-      </div>
-    </li>
-  ))}
-</ul>
+<div class="manifest-panel">
+  <div class="manifest-panel-header">
+    <h2 class="manifest-heading">
+      {locale === "en" ? `Gift Pack Inventory (${items.length} ${items.length === 1 ? "Item" : "Items"})` : `Daftar Isi Paket Kado (${items.length} Item)`}
+    </h2>
+    <span class="manifest-badge">{locale === "en" ? "Instant Access" : "Akses Langsung"}</span>
+  </div>
+  <ul class="manifest-list">
+    {items.map((item) => (
+      <li class="manifest-item">
+        <span
+          aria-hidden="true"
+          class="manifest-icon-box"
+          set:html={giftIcon}
+        />
+        <div class="manifest-details">
+          <strong class="manifest-item-title">{item.name}</strong>
+          <p class="manifest-item-benefit">{item.benefit}</p>
+          {(item.format || item.size) && (
+            <p class="manifest-item-meta">
+              {item.format && <span class="meta-tag">{item.format}</span>}
+              {item.format && item.size && <span>·</span>}
+              {item.size && <span>{item.size}</span>}
+            </p>
+          )}
+        </div>
+      </li>
+    ))}
+  </ul>
+</div>
+
+<style>
+  .manifest-panel {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-6);
+    margin-top: var(--space-6);
+  }
+
+  .manifest-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-2);
+  }
+
+  .manifest-heading {
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .manifest-badge {
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+  }
+
+  .manifest-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .manifest-item {
+    display: flex;
+    gap: var(--space-4);
+    align-items: flex-start;
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .manifest-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .manifest-icon-box {
+    flex: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--color-gold-subtle);
+    color: var(--color-gold);
+    display: grid;
+    place-items: center;
+    margin-top: 2px;
+  }
+
+  .manifest-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .manifest-item-title {
+    display: block;
+    color: var(--color-ink);
+    font-weight: var(--font-weight-semibold);
+    font-size: 1rem;
+    margin: 0 0 4px;
+  }
+
+  .manifest-item-benefit {
+    margin: 0 0 6px;
+    font-size: var(--text-body-sm);
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  .manifest-item-meta {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .manifest-item-meta .meta-tag {
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+</style>

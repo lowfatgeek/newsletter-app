@@ -42,7 +42,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   action={action}
   data-copy={JSON.stringify(copy)}
   data-timer-ms={timerMs}
-  style="margin-top: var(--space-8); background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); box-shadow: var(--shadow-card); position: relative;"
+  class="claim-form"
 >
   <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position: absolute; left: -9999px;" />
   <input type="hidden" name="slug" value={slug} />
@@ -51,16 +51,21 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
 
   <p
     id="timer-status"
+    class="timer-panel"
     role="status"
     aria-live="polite"
-    style="color: var(--color-ink); background: var(--color-gold-subtle); border-radius: var(--radius-control); padding: var(--space-3) var(--space-4); font-variant-numeric: tabular-nums; margin: 0;"
-  >{copy.initial}</p>
+  >
+    <svg class="timer-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <span id="timer-status-text">{copy.initial}</span>
+  </p>
 
-  <div style="height: 4px; background: var(--color-border); border-radius: var(--radius-pill); margin: var(--space-4) 0;" aria-hidden="true">
-    <div id="timer-bar" style="height: 100%; width: 0%; background: var(--color-primary); border-radius: var(--radius-pill); transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);"></div>
+  <div class="timer-track" aria-hidden="true">
+    <div id="timer-bar" class="timer-bar"></div>
   </div>
 
-  <label for="email" style="display: block; font-weight: var(--font-weight-semibold); color: var(--color-ink); margin-bottom: var(--space-2);">{copy.label}</label>
+  <label for="email" class="field-label">{copy.label}</label>
   <input
     id="email"
     name="email"
@@ -70,44 +75,40 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     inputmode="email"
     placeholder={placeholder}
     aria-describedby="form-error"
-    style="width: 100%; min-height: 48px; border: var(--border-default); border-radius: var(--radius-control); padding: 0 var(--space-4); font-size: 16px; background: var(--color-surface-raised); color: var(--color-ink); font-family: inherit;"
+    class="email-input"
   />
 
-  <!-- Task 2.16 / 02-U9: dulu elemen ini tidak pernah ditulis; sekarang jadi
-       tujuan pesan validasi interaktif (email tidak valid / timer belum selesai). -->
-  <p id="form-error" role="alert" hidden style="background: var(--color-danger-subtle); color: var(--color-danger); border-radius: var(--radius-control); padding: var(--space-3); margin-top: var(--space-3); font-size: var(--text-body-sm);"></p>
+  <p id="form-error" class="form-error-alert" role="alert" hidden></p>
 
-  <p style="font-size: var(--text-body-sm); color: var(--color-text-muted); margin-top: var(--space-3); line-height: 1.58;">
-    {copy.consent}{" "}<a href={privacyHref} style="text-decoration: underline; color: var(--color-info);">{copy.privacy}</a>.
+  <p class="consent-text">
+    {copy.consent}{" "}<a href={privacyHref}>{copy.privacy}</a>.
   </p>
 
-  <!--
-    Re-subscribe eksplisit (PRD 7.1): kontak berstatus unsubscribed hanya
-    diaktifkan kembali bila checkbox ini dicentang (task 01-F1).
-  -->
-  <label style="display: flex; align-items: flex-start; gap: var(--space-2); margin-top: var(--space-3); font-size: var(--text-body-sm); color: var(--color-text-muted); cursor: pointer; line-height: 1.58;">
-    <input type="checkbox" name="resubscribe_consent" value="yes" style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--color-primary); flex-shrink: 0;" />
+  <label class="resubscribe-label">
+    <input type="checkbox" name="resubscribe_consent" value="yes" class="resubscribe-checkbox" />
     <span>{copy.consentResubscribe}</span>
   </label>
 
-  <!--
-    Tombol dirender AKTIF di server: tanpa JS, user tetap bisa submit setelah
-    menunggu (server menolak lewat verifyTimerToken jika terlalu cepat).
-    Script menonaktifkan tombol saat timer berjalan, lalu mengaktifkannya lagi.
-  -->
   <button
     id="submit-btn"
     type="submit"
-    style="width: 100%; min-height: 48px; margin-top: var(--space-4); border: none; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-surface-raised); font-weight: var(--font-weight-semibold); font-size: 16px; cursor: pointer; font-family: inherit;"
-  >{copy.cta}</button>
+    class="submit-cta-btn"
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+    <span id="submit-btn-text">{copy.cta}</span>
+  </button>
 </form>
 
 <script>
   const form = document.getElementById("claim-form") as HTMLFormElement;
-  const status = document.getElementById("timer-status") as HTMLParagraphElement;
+  const statusBox = document.getElementById("timer-status") as HTMLParagraphElement;
+  const statusText = (document.getElementById("timer-status-text") || statusBox) as HTMLElement;
   const bar = document.getElementById("timer-bar") as HTMLDivElement;
   const tokenInput = document.getElementById("timer-token") as HTMLInputElement;
   const btn = document.getElementById("submit-btn") as HTMLButtonElement;
+  const btnText = (document.getElementById("submit-btn-text") || btn) as HTMLElement;
   const copy = JSON.parse(form.dataset.copy as string) as {
     initial: string;
     done: string;
@@ -124,6 +125,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   // Satu CTA per state: nonaktif (abu) selama timer, aktif (primary) setelah selesai.
   btn.disabled = true;
   btn.setAttribute("aria-disabled", "true");
+  btn.classList.remove("active");
   btn.style.background = "var(--color-surface-subtle)";
   btn.style.color = "var(--color-text-muted)";
   btn.style.cursor = "not-allowed";
@@ -148,9 +150,12 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     unlocked = true;
     btn.disabled = false;
     btn.removeAttribute("aria-disabled");
+    btn.classList.add("active");
     btn.style.background = "var(--color-primary)";
     btn.style.color = "var(--color-surface-raised)";
     btn.style.cursor = "pointer";
+    statusBox.classList.add("unlocked");
+    bar.classList.add("unlocked");
   };
 
   const tick = () => {
@@ -159,10 +164,10 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     // aria-live polite: umumkan hanya 10 detik terakhir dan selesai (bukan tiap detik).
     if (!announcedTen && elapsed >= TEN_LEFT && elapsed < TOTAL) {
       announcedTen = true;
-      status.textContent = copy.ten;
+      statusText.textContent = copy.ten;
     }
     if (elapsed >= TOTAL) {
-      status.textContent = copy.done;
+      statusText.textContent = copy.done;
       unlock();
       return;
     }
@@ -171,7 +176,6 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   requestAnimationFrame(tick);
 
   // Task 2.16 / 02-U9: pesan kesalahan interaktif ditulis ke #form-error
-  // (dulu elemen itu tidak pernah diisi), bukan hanya balon validasi browser.
   const errEl = document.getElementById("form-error") as HTMLElement;
   const showError = (msg: string) => {
     errEl.textContent = msg;
@@ -184,8 +188,7 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
   const emailEl = document.getElementById("email") as HTMLInputElement;
   emailEl.addEventListener("input", clearError);
 
-  // Guard double-submit (task 02-U2): kunci tombol begitu submit diterima,
-  // pulihkan setelah 8s bila browser membatalkan navigasi (mis. error jaringan).
+  // Guard double-submit (task 02-U2)
   let isSubmitting = false;
   form.addEventListener("submit", (e) => {
     if (!tokenInput.value || isSubmitting) {
@@ -204,26 +207,191 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     }
     clearError();
     isSubmitting = true;
-    const originalText = btn.textContent;
+    const originalText = btnText.textContent;
     btn.disabled = true;
     btn.setAttribute("aria-disabled", "true");
     btn.style.cursor = "wait";
     btn.style.opacity = "0.7";
-    btn.textContent = copy.submitting;
+    btnText.textContent = copy.submitting;
     setTimeout(() => {
       isSubmitting = false;
       btn.disabled = false;
       btn.removeAttribute("aria-disabled");
       btn.style.cursor = "pointer";
       btn.style.opacity = "1";
-      btn.textContent = originalText;
+      btnText.textContent = originalText;
     }, 8000);
   });
 </script>
 
 <style>
-  #email::placeholder {
+  .claim-form {
+    position: relative;
+  }
+
+  .timer-panel {
+    color: var(--color-ink);
+    background: var(--color-gold-subtle);
+    border: 1px solid rgba(217, 144, 32, 0.2);
+    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-4);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+    font-size: var(--text-body-sm);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: background 220ms ease, border-color 220ms ease;
+  }
+
+  .timer-panel.unlocked {
+    background: var(--color-success-subtle);
+    border-color: rgba(35, 122, 85, 0.25);
+    color: #114c35;
+  }
+
+  .timer-icon {
+    flex-shrink: 0;
+    color: var(--color-gold);
+  }
+
+  .timer-panel.unlocked .timer-icon {
+    color: var(--color-success);
+  }
+
+  .timer-track {
+    height: 4px;
+    background: var(--color-border);
+    border-radius: var(--radius-pill);
+    margin: var(--space-3) 0 var(--space-5);
+    overflow: hidden;
+  }
+
+  .timer-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--color-primary);
+    border-radius: var(--radius-pill);
+    transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 220ms ease;
+  }
+
+  .timer-bar.unlocked {
+    background: var(--color-success);
+  }
+
+  .field-label {
+    display: block;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-ink);
+    font-size: var(--text-body-sm);
+    margin-bottom: var(--space-2);
+  }
+
+  .email-input {
+    width: 100%;
+    min-height: 48px;
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    padding: 0 var(--space-4);
+    font-size: 16px;
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
+    font-family: inherit;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .email-input::placeholder {
     color: var(--color-text-muted);
     opacity: 0.65;
+  }
+
+  .email-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  .form-error-alert {
+    background: var(--color-danger-subtle);
+    color: var(--color-danger);
+    border: 1px solid rgba(181, 60, 74, 0.2);
+    border-radius: var(--radius-control);
+    padding: var(--space-3);
+    margin-top: var(--space-3);
+    font-size: var(--text-body-sm);
+  }
+
+  .consent-text {
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+    margin: var(--space-3) 0 0;
+    line-height: 1.58;
+  }
+
+  .consent-text a {
+    text-decoration: underline;
+    color: var(--color-info);
+    text-underline-offset: 2px;
+  }
+
+  .resubscribe-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    line-height: 1.5;
+  }
+
+  .resubscribe-checkbox {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .submit-cta-btn {
+    width: 100%;
+    min-height: 48px;
+    margin-top: var(--space-5);
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background: var(--color-surface-subtle);
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    font-size: 16px;
+    cursor: not-allowed;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    transition: background-color 200ms ease, color 200ms ease, transform 100ms ease, box-shadow 150ms ease;
+  }
+
+  .submit-cta-btn.active {
+    background: var(--color-primary);
+    color: var(--color-surface-raised);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(23, 107, 91, 0.25);
+  }
+
+  .submit-cta-btn.active:hover {
+    background: var(--color-primary-hover);
+    box-shadow: 0 4px 12px rgba(23, 107, 91, 0.35);
+  }
+
+  .submit-cta-btn.active:active {
+    transform: translateY(1px);
+  }
+
+  .submit-cta-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
 </style>

@@ -111,7 +111,7 @@ const universalText = await doaContent(data, "universal");
             imageKey={campaign.featuredImageKey}
           />
           <RewardItemList items={items} locale={localeRow.locale === "en" ? "en" : "id"} />
-          <ReflectionTabs muslimText={muslimText} universalText={universalText} locale="id" />
+          <ReflectionTabs muslimText={muslimText} universalText={universalText} locale="id" embedded={false} />
         </>
       ) : (
         <p style="margin-top: var(--space-12); color: var(--color-text-muted);">
