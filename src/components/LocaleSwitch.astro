@@ -5,18 +5,69 @@ interface Props {
   enHref: string;
 }
 const { current, idHref, enHref } = Astro.props;
-
-const chipStyle =
-  "display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; border-radius: var(--radius-pill); background: var(--color-primary-subtle); color: var(--color-primary); font-weight: var(--font-weight-semibold); font-size: var(--text-body-sm); text-decoration: none;";
-const textStyle =
-  "display: inline-flex; align-items: center; min-height: 44px; padding: 8px 4px; color: var(--color-text-muted); font-size: var(--text-body-sm); text-decoration: none;";
 ---
-<nav aria-label="Pilih bahasa" style="display: flex; align-items: center; gap: var(--space-2);">
-  {current === "id" ? (
-    <span aria-current="true" style={textStyle}>ID</span>
-    <a href={enHref} style={chipStyle} lang="en">EN</a>
-  ) : (
-    <a href={idHref} style={chipStyle} lang="id">ID</a>
-    <span aria-current="true" style={textStyle}>EN</span>
-  )}
+<nav aria-label="Pilih bahasa" class="locale-nav">
+  <div class="locale-pill-group">
+    {current === "id" ? (
+      <span aria-current="true" class="locale-item active" lang="id">ID</span>
+      <a href={enHref} class="locale-item link" lang="en">EN</a>
+    ) : (
+      <a href={idHref} class="locale-item link" lang="id">ID</a>
+      <span aria-current="true" class="locale-item active" lang="en">EN</span>
+    )}
+  </div>
 </nav>
+
+<style>
+  .locale-nav {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .locale-pill-group {
+    display: inline-flex;
+    align-items: center;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .locale-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    min-width: 40px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    line-height: 1;
+    transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .locale-item.active {
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
+    box-shadow: 0 1px 2px rgba(21, 59, 53, 0.08);
+    font-weight: var(--font-weight-bold);
+    cursor: default;
+  }
+
+  .locale-item.link {
+    color: var(--color-text-muted);
+  }
+
+  .locale-item.link:hover {
+    color: var(--color-ink);
+    background: rgba(21, 59, 53, 0.04);
+  }
+
+  .locale-item:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+</style>

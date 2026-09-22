@@ -112,27 +112,27 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
   .workbench-container {
     max-width: var(--workbench-max);
     margin: 0 auto;
-    padding: var(--space-8) var(--space-6) var(--space-16);
+    padding: var(--space-6) var(--space-6) var(--space-12);
   }
 
   .split-desk-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--space-8);
+    gap: var(--space-6);
     align-items: start;
   }
 
   @media (min-width: 1024px) {
     .split-desk-grid {
       grid-template-columns: 1.15fr 1fr;
-      gap: var(--space-10);
+      gap: var(--space-8);
     }
   }
 
   .showcase-column {
     display: flex;
     flex-direction: column;
-    gap: var(--space-6);
+    gap: var(--space-5);
   }
 
   .showcase-trust {
@@ -159,7 +159,7 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
   @media (min-width: 1024px) {
     .ritual-column {
       position: sticky;
-      top: calc(72px + var(--space-6));
+      top: calc(72px + var(--space-5));
     }
   }
 
@@ -172,16 +172,10 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
     position: relative;
   }
 
-  @media (min-width: 640px) {
-    .ritual-card {
-      padding: var(--space-8);
-    }
-  }
-
   .card-hairline-divider {
     height: 1px;
     background: var(--color-border);
-    margin: var(--space-6) 0;
+    margin: var(--space-4) 0;
     border: none;
   }
 </style>

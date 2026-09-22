@@ -33,11 +33,11 @@ const { overline, title, description, imageKey = null } = Astro.props;
 
   .reward-overline {
     color: var(--color-text-muted);
-    font-size: var(--text-body-sm);
-    letter-spacing: 0.075em;
+    font-size: 12px;
+    letter-spacing: 0.06em;
     font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    margin: 0 0 var(--space-3);
+    margin: 0 0 var(--space-2);
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -46,8 +46,8 @@ const { overline, title, description, imageKey = null } = Astro.props;
   .reward-overline::before {
     content: "";
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: var(--radius-pill);
     background-color: var(--color-gold);
     flex-shrink: 0;
@@ -56,32 +56,35 @@ const { overline, title, description, imageKey = null } = Astro.props;
   .reward-title {
     color: var(--color-ink);
     font-size: var(--text-h1);
-    line-height: 1.15;
-    letter-spacing: -0.032em;
-    margin: 0 0 var(--space-4);
+    line-height: 1.18;
+    letter-spacing: -0.03em;
+    margin: 0 0 var(--space-3);
     font-weight: var(--font-weight-bold);
   }
 
   .reward-description {
-    font-size: var(--text-body-lg);
+    font-size: 1rem;
     line-height: 1.6;
     color: var(--color-text);
     margin: 0;
   }
 
   .featured-image-wrapper {
-    margin: var(--space-6) 0 0;
+    margin: var(--space-5) 0 0;
     border-radius: var(--radius-image);
     overflow: hidden;
     border: var(--border-default);
     box-shadow: var(--shadow-card);
     background: var(--color-surface-subtle);
+    max-height: 380px;
   }
 
   .featured-image {
     width: 100%;
-    height: auto;
+    height: 100%;
+    max-height: 380px;
     display: block;
     object-fit: cover;
+    object-position: center;
   }
 </style>
