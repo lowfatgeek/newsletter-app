@@ -485,17 +485,24 @@
     }
     .action-subtext {
       margin: 0;
-      font-size: 13.5px;
+      font-size: 13px;
       color: var(--color-text-muted);
-      line-height: 1.45;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
+      line-height: 1.5;
+      text-align: center;
+      max-width: 360px;
+      text-wrap: balance;
     }
     .action-subtext svg {
+      display: inline-block;
+      vertical-align: -2px;
+      margin-right: 4px;
       color: var(--color-gold);
       flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .showcase-action-box {
+        padding: var(--space-5) var(--space-4);
+      }
     }
 
     /* ==========================================================================
