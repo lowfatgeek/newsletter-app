@@ -132,19 +132,8 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
 
   let announcedTen = false;
   let unlocked = false;
-  const start = Date.now();
-
-  // Segarkan token (best-effort). Kalau gagal, token server-rendered tetap dipakai.
-  fetch("/api/timer-token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ slug: (form.querySelector('input[name="slug"]') as HTMLInputElement).value }),
-  })
-    .then((res) => (res.ok ? res.json() : null))
-    .then((data: { token?: string } | null) => {
-      if (data && typeof data.token === "string" && data.token) tokenInput.value = data.token;
-    })
-    .catch(() => {});
+  let timerStarted = false;
+  let start = 0;
 
   const unlock = () => {
     unlocked = true;
@@ -173,7 +162,34 @@ const privacyHref = locale === "en" ? "/en/privacy" : "/privacy";
     }
     requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+
+  const startTimer = () => {
+    if (timerStarted || unlocked) return;
+    timerStarted = true;
+    start = Date.now();
+
+    // Segarkan token (best-effort). Kalau gagal, token server-rendered tetap dipakai.
+    fetch("/api/timer-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: (form.querySelector('input[name="slug"]') as HTMLInputElement).value }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { token?: string } | null) => {
+        if (data && typeof data.token === "string" && data.token) tokenInput.value = data.token;
+      })
+      .catch(() => {});
+
+    requestAnimationFrame(tick);
+  };
+
+  // Mulai timer hanya saat modal dibuka jika berada di dalam modal/dialog
+  const isInModal = Boolean(form.closest("[role='dialog'], #ritual-modal, .ritual-modal-card"));
+  if (isInModal) {
+    window.addEventListener("reward-modal:open", startTimer, { once: true });
+  } else {
+    startTimer();
+  }
 
   // Task 2.16 / 02-U9: pesan kesalahan interaktif ditulis ke #form-error
   const errEl = document.getElementById("form-error") as HTMLElement;

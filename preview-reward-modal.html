@@ -1,0 +1,1540 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview: Redesign Halaman Reward — "The Progressive Modal Desk"</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM TOKENS — KELASWFA KADO (.agents/DESIGN.md & tokens.css)
+       ========================================================================== */
+    :root {
+      --color-canvas: #fffcf5;           /* Ivory Paper */
+      --color-surface-subtle: #f7f1e6;   /* Linen Surface */
+      --color-surface-raised: #ffffff;   /* White Surface */
+      --color-ink: #153b35;              /* Ink Forest */
+      --color-text: #36514b;             /* Body Moss */
+      --color-text-muted: #566662;       /* Quiet Moss (WCAG AA compliant 6:1) */
+      --color-border: #e7ded0;           /* Paper Border */
+      --color-primary: #176b5b;          /* Forest Action */
+      --color-primary-hover: #105447;    /* Forest Hover */
+      --color-primary-subtle: #e5f2ee;   /* Forest Tint */
+      --color-gold: #d99020;             /* Gift Gold */
+      --color-gold-subtle: #fff2d6;      /* Gold Tint */
+      --color-info: #24709a;             /* Open Sky */
+      --color-info-subtle: #e6f3fa;      /* Sky Tint */
+      --color-danger: #b53c4a;           /* Rose Error */
+      --color-danger-subtle: #fcecee;    /* Rose Tint */
+      --color-success: #237a55;          /* Success Green */
+      --color-success-subtle: #e8f6ee;   /* Success Tint */
+      --color-warning: #9a6514;          /* Warning Amber */
+      --color-warning-subtle: #fff4dc;   /* Warning Tint */
+
+      --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-weight-regular: 400;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+
+      --text-display: clamp(2rem, 4vw, 2.5rem);
+      --text-h1: clamp(1.75rem, 3.2vw, 2.25rem);
+      --text-h2: clamp(1.35rem, 2.4vw, 1.625rem);
+      --text-h3: 1.25rem;
+      --text-body-lg: 1.125rem;
+      --text-body: 1rem;
+      --text-body-sm: 0.875rem;
+      --text-caption: 0.75rem;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+
+      --radius-control: 12px;
+      --radius-image: 16px;
+      --radius-card: 20px;
+      --radius-modal: 24px;
+      --radius-pill: 999px;
+
+      --border-default: 1px solid var(--color-border);
+      --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 8px 24px rgba(21, 59, 53, 0.05);
+      --shadow-float: 0 20px 48px rgba(21, 59, 53, 0.16);
+      --shadow-modal: 0 24px 64px -12px rgba(21, 59, 53, 0.22);
+      --focus-ring: 0 0 0 3px rgba(23, 107, 91, 0.24);
+
+      --showcase-max: 740px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--color-text);
+      background-color: var(--color-canvas);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    body.modal-open {
+      overflow: hidden;
+    }
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+    [hidden] {
+      display: none !important;
+    }
+
+    /* ==========================================================================
+       TOP PREVIEW CONTROLLER BAR (Alat Bantu Uji Coba Tim)
+       ========================================================================== */
+    .preview-banner {
+      background: #112e29;
+      color: #e5f2ee;
+      padding: var(--space-3) var(--space-5);
+      font-size: var(--text-body-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .preview-banner-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .preview-pill-badge {
+      background: var(--color-gold);
+      color: #112e29;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .preview-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .preview-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 150ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preview-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .preview-btn.active {
+      background: var(--color-primary);
+      border-color: #248c78;
+      color: #ffffff;
+    }
+
+    /* Container Viewport Simulator */
+    .viewport-frame {
+      width: 100%;
+      margin: 0 auto;
+      transition: max-width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .viewport-frame.view-mobile {
+      max-width: 390px;
+      border-left: 1px solid var(--color-border);
+      border-right: 1px solid var(--color-border);
+      box-shadow: 0 0 32px rgba(21, 59, 53, 0.1);
+      background: var(--color-canvas);
+      min-height: 100vh;
+    }
+    .viewport-frame.view-tablet {
+      max-width: 768px;
+      border-left: 1px solid var(--color-border);
+      border-right: 1px solid var(--color-border);
+      box-shadow: 0 0 32px rgba(21, 59, 53, 0.08);
+      background: var(--color-canvas);
+      min-height: 100vh;
+    }
+
+    /* ==========================================================================
+       APP HEADER
+       ========================================================================== */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      max-width: var(--showcase-max);
+      margin: 0 auto;
+      padding: 0 var(--space-6);
+      border-bottom: var(--border-default);
+    }
+    @media (min-width: 1024px) {
+      .app-header {
+        height: 72px;
+      }
+    }
+    .brand-logo {
+      color: var(--color-ink);
+      font-weight: var(--font-weight-bold);
+      font-size: var(--text-body-lg);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      letter-spacing: -0.01em;
+    }
+    .brand-logo .brand-tag {
+      font-size: var(--text-caption);
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+    }
+    .locale-switcher {
+      display: flex;
+      gap: 4px;
+      background: var(--color-surface-subtle);
+      padding: 3px;
+      border-radius: 8px;
+      border: var(--border-default);
+    }
+    .locale-btn {
+      padding: 3px 8px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border-radius: 5px;
+      font-family: inherit;
+    }
+    .locale-btn.active {
+      background: var(--color-surface-raised);
+      color: var(--color-ink);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    /* ==========================================================================
+       MAIN SHOWCASE (TAMPILAN UTAMA — 1 KOLOM TERFOKUS)
+       ========================================================================== */
+    .showcase-container {
+      max-width: var(--showcase-max);
+      margin: 0 auto;
+      padding: var(--space-8) var(--space-6) var(--space-12);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+
+    /* Overline & Heading */
+    .reward-overline {
+      color: var(--color-text-muted);
+      font-size: 12px;
+      letter-spacing: 0.075em;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      margin: 0 0 var(--space-2);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .reward-overline::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: var(--radius-pill);
+      background-color: var(--color-gold);
+      flex-shrink: 0;
+    }
+    .reward-title {
+      color: var(--color-ink);
+      font-size: var(--text-h1);
+      line-height: 1.18;
+      letter-spacing: -0.03em;
+      margin: 0 0 var(--space-3);
+      font-weight: var(--font-weight-bold);
+    }
+    .reward-description {
+      font-size: var(--text-body);
+      line-height: 1.62;
+      color: var(--color-text);
+      margin: 0;
+    }
+
+    /* Featured Image Frame */
+    .featured-image-wrapper {
+      margin: var(--space-2) 0 0;
+      border-radius: var(--radius-image);
+      overflow: hidden;
+      border: var(--border-default);
+      box-shadow: var(--shadow-card);
+      background: var(--color-surface-subtle);
+      position: relative;
+    }
+    .featured-image-wrapper img {
+      width: 100%;
+      height: auto;
+      max-height: 420px;
+      display: block;
+      object-fit: cover;
+      object-position: center;
+    }
+    .featured-image-badge {
+      position: absolute;
+      bottom: var(--space-3);
+      left: var(--space-3);
+      background: rgba(21, 59, 53, 0.88);
+      backdrop-filter: blur(4px);
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Manifest / Inventory Card */
+    .manifest-panel {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: var(--space-6);
+    }
+    .manifest-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: var(--space-2);
+    }
+    .manifest-heading {
+      font-size: 13px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .manifest-badge {
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+    }
+    .manifest-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .manifest-item {
+      display: flex;
+      gap: var(--space-4);
+      align-items: flex-start;
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .manifest-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .manifest-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-control);
+      background: var(--color-gold-subtle);
+      color: var(--color-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(217, 144, 32, 0.2);
+    }
+    .manifest-details {
+      flex: 1;
+      min-width: 0;
+    }
+    .manifest-item-title {
+      display: block;
+      color: var(--color-ink);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.35;
+      margin-bottom: 2px;
+    }
+    .manifest-item-benefit {
+      color: var(--color-text);
+      font-size: 13.5px;
+      line-height: 1.45;
+      margin: 0 0 6px;
+    }
+    .manifest-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+    .meta-tag {
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--color-text);
+    }
+
+    /* Trust Note */
+    .showcase-trust {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-surface-subtle);
+      border: var(--border-default);
+      border-radius: var(--radius-control);
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+    }
+    .showcase-trust svg {
+      flex-shrink: 0;
+      color: var(--color-primary);
+    }
+
+    /* ==========================================================================
+       ACTION BLOCK: TOMBOL "DOWNLOAD KADO" & SUBTEKS HALUS
+       ========================================================================== */
+    .showcase-action-box {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: var(--space-6);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+    }
+    .btn-download-primary {
+      width: 100%;
+      max-width: 440px;
+      background: var(--color-primary);
+      color: var(--color-surface-raised);
+      border: none;
+      border-radius: var(--radius-control);
+      padding: 16px var(--space-6);
+      font-family: inherit;
+      font-size: 17px;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      box-shadow: 0 4px 14px rgba(23, 107, 91, 0.28);
+      transition: all 180ms ease;
+    }
+    .btn-download-primary:hover {
+      background: var(--color-primary-hover);
+      box-shadow: 0 6px 18px rgba(23, 107, 91, 0.35);
+      transform: translateY(-1px);
+    }
+    .btn-download-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(23, 107, 91, 0.2);
+    }
+    .action-subtext {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--color-text-muted);
+      line-height: 1.45;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .action-subtext svg {
+      color: var(--color-gold);
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       MODAL / BOTTOM SHEET (LAYER KEDUA: BACA DULU BUAT UNLOCK)
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(17, 46, 41, 0.6);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), visibility 240ms;
+    }
+    .modal-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Modal Dialog Card */
+    .ritual-modal-card {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-modal);
+      box-shadow: var(--shadow-modal);
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      position: relative;
+      transform: scale(0.95) translateY(12px);
+      transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 260ms;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-backdrop.is-open .ritual-modal-card {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Responsif Mobile: Bottom Sheet Mode */
+    @media (max-width: 640px) {
+      .modal-backdrop {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .ritual-modal-card {
+        max-width: 100%;
+        max-height: 88vh;
+        border-radius: 24px 24px 0 0;
+        border-bottom: none;
+        transform: translateY(100%);
+      }
+      .modal-backdrop.is-open .ritual-modal-card {
+        transform: translateY(0);
+      }
+    }
+
+    /* Mobile Sheet Drag Pill Handle */
+    .modal-drag-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--color-border);
+      border-radius: var(--radius-pill);
+      margin: 10px auto 0;
+      display: none;
+    }
+    @media (max-width: 640px) {
+      .modal-drag-handle {
+        display: block;
+      }
+    }
+
+    /* Modal Header */
+    .modal-header-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: var(--space-6) var(--space-6) var(--space-3);
+    }
+    .modal-header-titles {
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-close-btn {
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 150ms ease;
+      flex-shrink: 0;
+    }
+    .modal-close-btn:hover {
+      background: var(--color-border);
+      color: var(--color-ink);
+    }
+
+    .ritual-header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      background: var(--color-primary-subtle);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      margin-bottom: var(--space-2);
+      width: fit-content;
+    }
+    .ritual-main-heading {
+      color: var(--color-ink);
+      font-size: 1.35rem;
+      margin: 0;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: -0.02em;
+    }
+
+    .modal-body {
+      padding: 0 var(--space-6) var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    /* Tabs Doa Muslim vs Harapan Baik */
+    .editorial-tablist {
+      display: flex;
+      gap: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      margin-top: var(--space-2);
+      padding-bottom: 2px;
+    }
+    .editorial-tab {
+      background: none;
+      border: none;
+      padding: var(--space-2) 0;
+      color: var(--color-text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      transition: color 150ms ease;
+    }
+    .editorial-tab:hover {
+      color: var(--color-ink);
+    }
+    .editorial-tab.active {
+      color: var(--color-primary);
+      font-weight: var(--font-weight-bold);
+    }
+    .editorial-tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--color-primary);
+      border-radius: var(--radius-pill);
+    }
+
+    /* Prayer Content Box */
+    .prayer-panel {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-control);
+      padding: var(--space-4) var(--space-5);
+      margin: 0;
+      min-height: 104px;
+    }
+
+    .card-hairline-divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: var(--space-1) 0;
+      border: none;
+    }
+
+    /* Timer Panel */
+    .timer-panel {
+      color: var(--color-ink);
+      background: var(--color-gold-subtle);
+      border: 1px solid rgba(217, 144, 32, 0.28);
+      border-radius: var(--radius-control);
+      padding: 10px 14px;
+      font-variant-numeric: tabular-nums;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      transition: background 220ms ease, border-color 220ms ease;
+    }
+    .timer-panel.unlocked {
+      background: var(--color-success-subtle);
+      border-color: rgba(35, 122, 85, 0.25);
+      color: var(--color-ink);
+    }
+    .timer-icon {
+      flex-shrink: 0;
+      color: var(--color-gold);
+    }
+    .timer-panel.unlocked .timer-icon {
+      color: var(--color-success);
+    }
+    .timer-track {
+      height: 3px;
+      background: var(--color-border);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      margin-top: -6px;
+    }
+    .timer-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--color-gold);
+      transition: width 0.1s linear, background-color 200ms ease;
+    }
+    .timer-bar.unlocked {
+      background: var(--color-success);
+    }
+
+    /* Email Form */
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+    .email-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-family: inherit;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-control);
+      background: var(--color-surface-raised);
+      color: var(--color-ink);
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .email-input:focus {
+      border-color: var(--color-primary);
+    }
+    .form-error-alert {
+      margin: 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--color-danger-subtle);
+      border: 1px solid var(--color-danger);
+      color: var(--color-danger);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .consent-text {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+    .consent-text a {
+      color: var(--color-info);
+      text-decoration: underline;
+    }
+    .resubscribe-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .resubscribe-checkbox {
+      margin-top: 2px;
+      accent-color: var(--color-primary);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* Submit CTA Button (KIRIM LINK DOWNLOAD) */
+    .submit-cta-btn {
+      width: 100%;
+      padding: 14px var(--space-4);
+      border: none;
+      border-radius: var(--radius-control);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      transition: background 200ms ease, color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+      cursor: not-allowed;
+      background: var(--color-surface-subtle);
+      color: var(--color-text-muted);
+    }
+    .submit-cta-btn.active {
+      background: var(--color-primary);
+      color: var(--color-surface-raised);
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(23, 107, 91, 0.25);
+    }
+    .submit-cta-btn.active:hover {
+      background: var(--color-primary-hover);
+      box-shadow: 0 6px 16px rgba(23, 107, 91, 0.32);
+      transform: translateY(-1px);
+    }
+    .submit-cta-btn.active:active {
+      transform: translateY(0);
+    }
+
+    /* Modal Success State */
+    .modal-success-state {
+      text-align: center;
+      padding: var(--space-8) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .success-icon-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-pill);
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-1);
+    }
+    .success-title {
+      font-size: 1.25rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--color-ink);
+      margin: 0;
+    }
+    .success-desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text);
+      max-width: 360px;
+      margin: 0;
+    }
+    .btn-done-close {
+      margin-top: var(--space-3);
+      padding: 10px 24px;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-control);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--color-ink);
+      cursor: pointer;
+    }
+    .btn-done-close:hover {
+      background: var(--color-border);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       CONTROLLER BAR (Hanya untuk keperluan preview & pengetesan interaktif)
+       ========================================================================== -->
+  <div class="preview-banner">
+    <div class="preview-banner-left">
+      <span class="preview-pill-badge">Skin Baru 2026</span>
+      <strong>Konsep Progressive Modal ("Download Kado" &rarr; Popup Ritual)</strong>
+    </div>
+    <div class="preview-controls">
+      <!-- Mode Viewport -->
+      <span style="font-size: 11px; opacity: 0.8;">Viewport:</span>
+      <button type="button" class="preview-btn active" id="btn-view-desktop" onclick="setViewport('desktop')">🖥️ Desktop</button>
+      <button type="button" class="preview-btn" id="btn-view-tablet" onclick="setViewport('tablet')">📱 Tablet</button>
+      <button type="button" class="preview-btn" id="btn-view-mobile" onclick="setViewport('mobile')">📲 Mobile (Bottom Sheet)</button>
+
+      <span style="border-left: 1px solid rgba(255,255,255,0.2); height: 16px; margin: 0 4px;"></span>
+
+      <!-- Mode Kecepatan Timer -->
+      <span style="font-size: 11px; opacity: 0.8;">Timer:</span>
+      <button type="button" class="preview-btn active" id="btn-timer-real" onclick="setTimerSpeed(30000)">⏳ 30 Detik (Real)</button>
+      <button type="button" class="preview-btn" id="btn-timer-fast" onclick="setTimerSpeed(3000)">⚡ 3 Detik (Test Cepat)</button>
+
+      <span style="border-left: 1px solid rgba(255,255,255,0.2); height: 16px; margin: 0 4px;"></span>
+
+      <!-- Langsung Buka Modal -->
+      <button type="button" class="preview-btn" onclick="openRitualModal()" style="background: var(--color-gold); color: #112e29; border-color: var(--color-gold);">
+        🚀 Buka Modal
+      </button>
+    </div>
+  </div>
+
+  <!-- FRAME WRAPPER (UNTUK TEST VIEWPORT DESKTOP / TABLET / MOBILE) -->
+  <div id="viewport-frame" class="viewport-frame">
+
+    <!-- ==========================================================================
+         HEADER
+         ========================================================================== -->
+    <header class="app-header">
+      <a href="#" class="brand-logo">
+        KelasWFA
+        <span class="brand-tag">Kado</span>
+      </a>
+      <div class="locale-switcher">
+        <button type="button" class="locale-btn active" id="loc-id" onclick="switchLanguage('id')">ID</button>
+        <button type="button" class="locale-btn" id="loc-en" onclick="switchLanguage('en')">EN</button>
+      </div>
+    </header>
+
+    <!-- ==========================================================================
+         MAIN SHOWCASE (HANYA DETIL REWARD + TOMBOL DOWNLOAD)
+         ========================================================================== -->
+    <main class="showcase-container">
+
+      <!-- Hero Header -->
+      <section class="reward-hero">
+        <p class="reward-overline" id="lbl-overline">BAYAR DENGAN DOA</p>
+        <h1 class="reward-title" id="lbl-title">Template Notion Freelance Hub &amp; Panduan Remote Work</h1>
+        <p class="reward-description" id="lbl-description">
+          Workspace Notion terstruktur dan panduan langkah demi langkah siap pakai untuk menata portofolio, memanajemen invoice, dan melacak prospek klien luar negeri secara profesional.
+        </p>
+
+        <!-- Featured Image Frame -->
+        <figure class="featured-image-wrapper">
+          <img
+            src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&h=640&q=80"
+            alt="Notion Freelance Hub Preview"
+            loading="eager"
+            id="img-featured"
+          />
+          <span class="featured-image-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+            Paket Digital Lengkap
+          </span>
+        </figure>
+      </section>
+
+      <!-- Manifest / Isi Paket Hadiah -->
+      <section class="manifest-panel">
+        <div class="manifest-panel-header">
+          <h2 class="manifest-heading" id="lbl-manifest-heading">Daftar Isi Paket Kado (3 Item)</h2>
+          <span class="manifest-badge" id="lbl-manifest-badge">Akses Langsung</span>
+        </div>
+        <ul class="manifest-list" id="manifest-list-container">
+          <li class="manifest-item">
+            <span class="manifest-icon-box" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+            </span>
+            <div class="manifest-details">
+              <strong class="manifest-item-title">Template Notion Freelance Hub</strong>
+              <p class="manifest-item-benefit">Database siap pakai untuk manajemen proyek, pipeline prospek klien, dan invoice otomatis.</p>
+              <p class="manifest-item-meta">
+                <span class="meta-tag">NOTION TEMPLATE</span>
+                <span>&middot;</span>
+                <span>Duplikasi Instan</span>
+              </p>
+            </div>
+          </li>
+          <li class="manifest-item">
+            <span class="manifest-icon-box" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </span>
+            <div class="manifest-details">
+              <strong class="manifest-item-title">E-Book: Roadmap Remote Work 2026</strong>
+              <p class="manifest-item-benefit">Strategi kurasi portfolio dan langkah menembus tawaran kerja remote global bergaji dollar.</p>
+              <p class="manifest-item-meta">
+                <span class="meta-tag">PDF</span>
+                <span>&middot;</span>
+                <span>4.8 MB</span>
+              </p>
+            </div>
+          </li>
+          <li class="manifest-item">
+            <span class="manifest-icon-box" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </span>
+            <div class="manifest-details">
+              <strong class="manifest-item-title">10 Script Email Pitching Klien Dingin</strong>
+              <p class="manifest-item-benefit">Template proposal dan follow-up email berbahasa Inggris yang sudah teruji mendapatkan respon positif.</p>
+              <p class="manifest-item-meta">
+                <span class="meta-tag">DOCX</span>
+                <span>&middot;</span>
+                <span>320 KB</span>
+              </p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Trust Badge -->
+      <div class="showcase-trust">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <span id="lbl-trust-note">Akses unduhan instan &amp; aman dikirim via email. Link berlaku 1 jam setelah dibuka.</span>
+      </div>
+
+      <!-- ==========================================================================
+           TOMBOL UTAMA: DOWNLOAD KADO (DENGAN SUBTEKS HALUS)
+           ========================================================================== -->
+      <div class="showcase-action-box">
+        <button type="button" class="btn-download-primary" id="btn-download-cta" onclick="openRitualModal()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span id="lbl-cta-btn-text">Download Kado</span>
+        </button>
+        <p class="action-subtext" id="lbl-cta-subtext">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          Cukup bayar dengan doa dan link akan dikirim via email
+        </p>
+      </div>
+
+    </main>
+
+  </div><!-- /viewport-frame -->
+
+
+  <!-- ==========================================================================
+       LAYER KEDUA: ON-PAGE MODAL / BOTTOM SHEET (BACA DULU BUAT UNLOCK)
+       ========================================================================== -->
+  <div
+    id="ritual-modal"
+    class="modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-ritual-title"
+    onclick="handleBackdropClick(event)"
+  >
+    <div class="ritual-modal-card" id="modal-card">
+
+      <!-- Mobile Drag Handle Bar -->
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+
+      <!-- Modal Header -->
+      <div class="modal-header-bar">
+        <div class="modal-header-titles">
+          <span class="ritual-header-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="lbl-step1-badge">Langkah 1: Luangkan Waktu Sejenak</span>
+          </span>
+          <h2 class="ritual-main-heading" id="modal-ritual-title">Baca dulu buat unlock</h2>
+        </div>
+        <button
+          type="button"
+          class="modal-close-btn"
+          aria-label="Tutup modal"
+          onclick="closeRitualModal()"
+        >
+          &times;
+        </button>
+      </div>
+
+      <!-- Modal Content Body -->
+      <div class="modal-body" id="modal-active-content">
+
+        <!-- Tabs Doa -->
+        <div role="tablist" aria-label="Pilihan Doa atau Refleksi" class="editorial-tablist">
+          <button
+            type="button"
+            role="tab"
+            id="tab-muslim"
+            aria-selected="true"
+            aria-controls="panel-muslim"
+            class="editorial-tab active"
+            onclick="switchTab('muslim')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              <path d="M20 3v4"/><path d="M22 5h-4"/>
+            </svg>
+            <span id="lbl-tab-muslim">Doa Muslim</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-universal"
+            aria-selected="false"
+            aria-controls="panel-universal"
+            class="editorial-tab"
+            onclick="switchTab('universal')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+            </svg>
+            <span id="lbl-tab-universal">Harapan Baik</span>
+          </button>
+        </div>
+
+        <!-- Teks Doa / Refleksi -->
+        <div id="panel-muslim" role="tabpanel" class="prayer-panel">
+          Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin.
+        </div>
+        <div id="panel-universal" role="tabpanel" class="prayer-panel" hidden>
+          Semoga setiap langkah dan ikhtiar baik hari ini dimudahkan, setiap ketulusan menemukan jalannya, dan setiap karya mendatangkan ketenangan serta keberkahan bagi sesama.
+        </div>
+
+        <hr class="card-hairline-divider" aria-hidden="true" />
+
+        <!-- Form Email & Timer Countdown (DIMULAI SAAT MODAL DIBUKA) -->
+        <form id="modal-claim-form" onsubmit="handleFormSubmit(event)" novalidate style="display: flex; flex-direction: column; gap: var(--space-3);">
+
+          <!-- Timer Status Panel -->
+          <p id="timer-status-box" class="timer-panel" role="status" aria-live="polite">
+            <svg class="timer-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span id="timer-status-text">Unlock setelah 30 detik. Baca doa dulu.</span>
+          </p>
+          <div class="timer-track" aria-hidden="true">
+            <div id="timer-bar" class="timer-bar"></div>
+          </div>
+
+          <!-- Email Input -->
+          <div>
+            <label for="input-email" class="field-label" id="lbl-email-label">Email untuk menerima hadiah</label>
+            <input
+              id="input-email"
+              type="email"
+              required
+              autocomplete="email"
+              inputmode="email"
+              placeholder="nama@gmail.com"
+              class="email-input"
+              oninput="clearFormError()"
+            />
+          </div>
+
+          <p id="form-error-box" class="form-error-alert" role="alert" hidden></p>
+
+          <!-- Consent -->
+          <p class="consent-text" id="lbl-consent-text">
+            Dengan mengklaim hadiah, kamu juga mendaftar ke newsletter KelasWFA. <a href="#">Lihat kebijakan privasi</a>.
+          </p>
+
+          <label class="resubscribe-label">
+            <input type="checkbox" id="check-consent" class="resubscribe-checkbox" />
+            <span id="lbl-resubscribe-text">Saya bersedia kembali menerima newsletter dan update materi dari KelasWFA.</span>
+          </label>
+
+          <!-- Tombol CTA Submit (Terkunci sampai timer selesai) -->
+          <button
+            id="modal-submit-btn"
+            type="submit"
+            class="submit-cta-btn"
+            disabled
+            aria-disabled="true"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            <span id="lbl-submit-btn-text">KIRIM LINK DOWNLOAD</span>
+          </button>
+        </form>
+
+      </div>
+
+      <!-- State Sukses Setelah Submit -->
+      <div id="modal-success-screen" class="modal-success-state" hidden>
+        <div class="success-icon-badge">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h3 class="success-title">Link Download Terkirim!</h3>
+        <p class="success-desc" id="success-message-text">
+          Tautan unduhan instan telah dikirim ke <strong id="submitted-email-placeholder">email kamu</strong>. Periksa inbox atau folder promosi. Link aktif selama 1 jam.
+        </p>
+        <button type="button" class="btn-done-close" onclick="closeRitualModal()">Tutup Jendela Ini</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ==========================================================================
+       JAVASCRIPT LOGIC
+       ========================================================================== -->
+  <script>
+    // Konfigurasi Timer
+    let timerDuration = 30000; // Default 30 detik
+    let timerRunning = false;
+    let timerStartTime = null;
+    let timerAnimationId = null;
+    let timerUnlocked = false;
+
+    // Elemen DOM
+    const modalBackdrop = document.getElementById("ritual-modal");
+    const timerStatusBox = document.getElementById("timer-status-box");
+    const timerStatusText = document.getElementById("timer-status-text");
+    const timerBar = document.getElementById("timer-bar");
+    const submitBtn = document.getElementById("modal-submit-btn");
+    const submitBtnText = document.getElementById("lbl-submit-btn-text");
+    const emailInput = document.getElementById("input-email");
+    const errorBox = document.getElementById("form-error-box");
+    const activeContent = document.getElementById("modal-active-content");
+    const successScreen = document.getElementById("modal-success-screen");
+
+    // Copywriting Bahasa
+    let currentLocale = "id";
+    const i18nData = {
+      id: {
+        overline: "BAYAR DENGAN DOA",
+        title: "Template Notion Freelance Hub & Panduan Remote Work",
+        description: "Workspace Notion terstruktur dan panduan langkah demi langkah siap pakai untuk menata portofolio, memanajemen invoice, dan melacak prospek klien luar negeri secara profesional.",
+        manifestHeading: "Daftar Isi Paket Kado (3 Item)",
+        manifestBadge: "Akses Langsung",
+        trustNote: "Akses unduhan instan & aman dikirim via email. Link berlaku 1 jam setelah dibuka.",
+        ctaBtn: "Download Kado",
+        ctaSubtext: "Cukup bayar dengan doa dan link akan dikirim via email",
+        step1Badge: "Langkah 1: Luangkan Waktu Sejenak",
+        modalTitle: "Baca dulu buat unlock",
+        tabMuslim: "Doa Muslim",
+        tabUniversal: "Harapan Baik",
+        prayerMuslim: "Ya Allah, berkahilah setiap usaha dan kerja keras kami hari ini. Lapangkan setiap langkah, mudahkan setiap urusan, dan jadikan ilmu yang kami pelajari bermanfaat bagi kami dan orang banyak. Aamiin.",
+        prayerUniversal: "Semoga setiap langkah dan ikhtiar baik hari ini dimudahkan, setiap ketulusan menemukan jalannya, dan setiap karya mendatangkan ketenangan serta keberkahan bagi sesama.",
+        timerInitial: "Unlock setelah 30 detik. Baca doa dulu.",
+        timerTen: "10 detik lagi.",
+        timerDone: "Tombol terbuka. Silakan kirim kado ke email kamu.",
+        emailLabel: "Email untuk menerima hadiah",
+        consentText: "Dengan mengklaim hadiah, kamu juga mendaftar ke newsletter KelasWFA. <a href='#'>Lihat kebijakan privasi</a>.",
+        resubscribeText: "Saya bersedia kembali menerima newsletter dan update materi dari KelasWFA.",
+        submitBtn: "KIRIM LINK DOWNLOAD",
+        submitting: "MENGIRIMKAN TAUTAN...",
+        errTooFast: "Mohon tunggu hingga timer 30 detik selesai.",
+        errEmail: "Mohon masukkan alamat email yang valid.",
+      },
+      en: {
+        overline: "FREE GIFT &bull; PAY WITH PRAYER",
+        title: "Notion Freelance Hub Template & Remote Work Guide",
+        description: "Structured Notion workspace and step-by-step roadmap to organize your client pipeline, track invoices, and land global remote opportunities with confidence.",
+        manifestHeading: "Gift Pack Inventory (3 Items)",
+        manifestBadge: "Instant Access",
+        trustNote: "Instant & safe download sent to your email. Link valid for 1 hour after opened.",
+        ctaBtn: "Download Gift",
+        ctaSubtext: "Simply pay with a prayer and the link will be sent to your email",
+        step1Badge: "Step 1: Take A Quiet Moment",
+        modalTitle: "Read before unlock",
+        tabMuslim: "Muslim Prayer",
+        tabUniversal: "Good Wishes",
+        prayerMuslim: "O Allah, bless our endeavors and diligence today. Make our steps steady, ease our matters, and let the knowledge we acquire benefit ourselves and humanity. Amen.",
+        prayerUniversal: "May good steps and earnest efforts today be smoothed, every sincere intention find its way, and our craft bring peace and goodness to all.",
+        timerInitial: "Unlocks after 30 seconds. Please read the prayer first.",
+        timerTen: "10 seconds left.",
+        timerDone: "Button unlocked. You can now send the gift to your email.",
+        emailLabel: "Email address to receive the gift",
+        consentText: "By claiming this gift, you also subscribe to the KelasWFA newsletter. <a href='#'>See privacy policy</a>.",
+        resubscribeText: "I agree to re-subscribe to receive newsletters and updates from KelasWFA.",
+        submitBtn: "SEND DOWNLOAD LINK",
+        submitting: "SENDING LINK...",
+        errTooFast: "Please wait until the 30-second timer finishes.",
+        errEmail: "Please enter a valid email address.",
+      }
+    };
+
+    // ========================================================================
+    // MODAL OPEN / CLOSE DENGAN TIMER YANG BARU DIMULAI SAAT MODAL DIBUKA
+    // ========================================================================
+    function openRitualModal() {
+      modalBackdrop.classList.add("is-open");
+      document.body.classList.add("modal-open");
+
+      // Reset state form jika sebelumnya selesai
+      if (!timerUnlocked) {
+        startRitualTimer();
+      }
+
+      // Auto focus ke email setelah timer atau keyboard trap
+      setTimeout(() => {
+        emailInput.focus();
+      }, 300);
+    }
+
+    function closeRitualModal() {
+      modalBackdrop.classList.remove("is-open");
+      document.body.classList.remove("modal-open");
+    }
+
+    function handleBackdropClick(event) {
+      if (event.target === modalBackdrop) {
+        closeRitualModal();
+      }
+    }
+
+    // Keyboard ESC untuk tutup
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modalBackdrop.classList.contains("is-open")) {
+        closeRitualModal();
+      }
+    });
+
+    // ========================================================================
+    // TIMER ENGINE (Dimulai saat modal dibuka)
+    // ========================================================================
+    function startRitualTimer() {
+      if (timerRunning || timerUnlocked) return;
+
+      timerRunning = true;
+      timerStartTime = Date.now();
+      let announcedTen = false;
+      const copy = i18nData[currentLocale];
+      const tenLeftTime = Math.max(0, timerDuration - 10000);
+
+      timerStatusText.textContent = copy.timerInitial;
+      timerStatusBox.classList.remove("unlocked");
+      timerBar.classList.remove("unlocked");
+      timerBar.style.width = "0%";
+
+      function tick() {
+        if (!timerRunning) return;
+        const elapsed = Date.now() - timerStartTime;
+        const pct = Math.min(100, (elapsed / timerDuration) * 100);
+        timerBar.style.width = `${pct}%`;
+
+        // 10 detik terakhir
+        if (!announcedTen && elapsed >= tenLeftTime && elapsed < timerDuration) {
+          announcedTen = true;
+          timerStatusText.textContent = copy.timerTen;
+        }
+
+        // Selesai
+        if (elapsed >= timerDuration) {
+          timerRunning = false;
+          timerUnlocked = true;
+          timerStatusText.textContent = copy.timerDone;
+          timerStatusBox.classList.add("unlocked");
+          timerBar.classList.add("unlocked");
+          timerBar.style.width = "100%";
+
+          // Aktifkan Tombol Submit
+          submitBtn.disabled = false;
+          submitBtn.removeAttribute("aria-disabled");
+          submitBtn.classList.add("active");
+          return;
+        }
+
+        timerAnimationId = requestAnimationFrame(tick);
+      }
+
+      timerAnimationId = requestAnimationFrame(tick);
+    }
+
+    // Reset Timer untuk testing
+    function resetTimer() {
+      timerRunning = false;
+      timerUnlocked = false;
+      if (timerAnimationId) cancelAnimationFrame(timerAnimationId);
+      submitBtn.disabled = true;
+      submitBtn.setAttribute("aria-disabled", "true");
+      submitBtn.classList.remove("active");
+      timerStatusBox.classList.remove("unlocked");
+      timerBar.classList.remove("unlocked");
+      timerBar.style.width = "0%";
+      timerStatusText.textContent = i18nData[currentLocale].timerInitial;
+    }
+
+    // ========================================================================
+    // FORM SUBMIT SIMULATION
+    // ========================================================================
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const copy = i18nData[currentLocale];
+
+      if (!timerUnlocked) {
+        showFormError(copy.errTooFast);
+        return;
+      }
+
+      const emailVal = emailInput.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailVal || !emailRegex.test(emailVal)) {
+        showFormError(copy.errEmail);
+        emailInput.focus();
+        return;
+      }
+
+      clearFormError();
+
+      // State loading tombol
+      const originalText = submitBtnText.textContent;
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = "0.7";
+      submitBtnText.textContent = copy.submitting;
+
+      // Simulasi AJAX POST ke /api/subscribe
+      setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = "1";
+        submitBtnText.textContent = originalText;
+
+        // Tampilkan State Sukses
+        activeContent.hidden = true;
+        successScreen.hidden = false;
+        document.getElementById("submitted-email-placeholder").textContent = emailVal;
+      }, 1200);
+    }
+
+    function showFormError(msg) {
+      errorBox.textContent = msg;
+      errorBox.hidden = false;
+    }
+    function clearFormError() {
+      errorBox.hidden = true;
+      errorBox.textContent = "";
+    }
+
+    // ========================================================================
+    // TAB SWITCHING (DOA MUSLIM vs HARAPAN BAIK)
+    // ========================================================================
+    function switchTab(type) {
+      const tabMuslim = document.getElementById("tab-muslim");
+      const tabUniversal = document.getElementById("tab-universal");
+      const panelMuslim = document.getElementById("panel-muslim");
+      const panelUniversal = document.getElementById("panel-universal");
+
+      if (type === "muslim") {
+        tabMuslim.classList.add("active");
+        tabMuslim.setAttribute("aria-selected", "true");
+        tabUniversal.classList.remove("active");
+        tabUniversal.setAttribute("aria-selected", "false");
+        panelMuslim.hidden = false;
+        panelUniversal.hidden = true;
+      } else {
+        tabUniversal.classList.add("active");
+        tabUniversal.setAttribute("aria-selected", "true");
+        tabMuslim.classList.remove("active");
+        tabMuslim.setAttribute("aria-selected", "false");
+        panelUniversal.hidden = false;
+        panelMuslim.hidden = true;
+      }
+    }
+
+    // ========================================================================
+    // PREVIEW CONTROLLER TOOLS
+    // ========================================================================
+    function setViewport(mode) {
+      const frame = document.getElementById("viewport-frame");
+      document.querySelectorAll("[id^='btn-view-']").forEach(b => b.classList.remove("active"));
+      frame.className = "viewport-frame";
+
+      if (mode === "mobile") {
+        frame.classList.add("view-mobile");
+        document.getElementById("btn-view-mobile").classList.add("active");
+      } else if (mode === "tablet") {
+        frame.classList.add("view-tablet");
+        document.getElementById("btn-view-tablet").classList.add("active");
+      } else {
+        document.getElementById("btn-view-desktop").classList.add("active");
+      }
+    }
+
+    function setTimerSpeed(ms) {
+      timerDuration = ms;
+      document.getElementById("btn-timer-real").classList.toggle("active", ms === 30000);
+      document.getElementById("btn-timer-fast").classList.toggle("active", ms === 3000);
+
+      // Jika modal sedang terbuka, restart timer dengan durasi baru
+      if (modalBackdrop.classList.contains("is-open")) {
+        resetTimer();
+        startRitualTimer();
+      } else {
+        resetTimer();
+      }
+    }
+
+    function switchLanguage(lang) {
+      currentLocale = lang;
+      const copy = i18nData[lang];
+      document.getElementById("loc-id").classList.toggle("active", lang === "id");
+      document.getElementById("loc-en").classList.toggle("active", lang === "en");
+
+      // Update Text di Showcase
+      document.getElementById("lbl-overline").innerHTML = copy.overline;
+      document.getElementById("lbl-title").textContent = copy.title;
+      document.getElementById("lbl-description").textContent = copy.description;
+      document.getElementById("lbl-manifest-heading").textContent = copy.manifestHeading;
+      document.getElementById("lbl-manifest-badge").textContent = copy.manifestBadge;
+      document.getElementById("lbl-trust-note").innerHTML = copy.trustNote;
+      document.getElementById("lbl-cta-btn-text").textContent = copy.ctaBtn;
+      document.getElementById("lbl-cta-subtext").innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        ${copy.ctaSubtext}
+      `;
+
+      // Update Text di Modal
+      document.getElementById("lbl-step1-badge").textContent = copy.step1Badge;
+      document.getElementById("modal-ritual-title").textContent = copy.modalTitle;
+      document.getElementById("lbl-tab-muslim").textContent = copy.tabMuslim;
+      document.getElementById("lbl-tab-universal").textContent = copy.tabUniversal;
+      document.getElementById("panel-muslim").textContent = copy.prayerMuslim;
+      document.getElementById("panel-universal").textContent = copy.prayerUniversal;
+      document.getElementById("lbl-email-label").textContent = copy.emailLabel;
+      document.getElementById("lbl-consent-text").innerHTML = copy.consentText;
+      document.getElementById("lbl-resubscribe-text").textContent = copy.resubscribeText;
+      submitBtnText.textContent = copy.submitBtn;
+
+      if (!timerUnlocked) {
+        timerStatusText.textContent = copy.timerInitial;
+      } else {
+        timerStatusText.textContent = copy.timerDone;
+      }
+    }
+  </script>
+</body>
+</html>

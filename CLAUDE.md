@@ -1,12 +1,12 @@
-## Active Next Task: Reward Page Redesign ("The Split Gift Desk")
+## Active Next Task: Reward Page Redesign ("The Progressive Modal Desk")
 
-Task prioritas berikutnya terkait UI/UX adalah **Redesign Halaman Reward Publik (`/r/[slug]` dan `/en/r/[slug]`)**.
-- **Spesifikasi Lengkap**: [`docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md`](docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md)
-- **Konsep Terpilih**: Konsep No. 2 — **"The Split Gift Desk"** (Macrostructure Hallmark: *Split Studio / Workbench Asymmetric*).
+Task prioritas implementasi UI/UX adalah **Redesign Halaman Reward Publik (`/r/[slug]` dan `/en/r/[slug]`)**.
+- **Konsep Terpilih**: **"The Progressive Modal Desk"** (Showcase 1-Kolom Terfokus + Modal/Bottom-Sheet Ritual).
 - **Aturan Terkunci**:
   1. Copywriting 100% TETAP (tidak boleh diubah).
   2. Design tokens & filosofi `.agents/DESIGN.md` TETAP dipertahankan.
-  3. Logika bisnis timer 30 detik anti-bot dan form klaim tetap 100%.
+  3. Timer 30 detik baru mulai berjalan saat modal dibuka (bukan saat halaman dibuka).
+  4. Logika bisnis anti-bot dan form klaim tetap 100%.
 
 ## Development
 

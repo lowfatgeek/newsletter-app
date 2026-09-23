@@ -4,6 +4,10 @@ test("funnel: timer unlocks, submit shows generic check-email page", async ({ pa
   await page.goto("/r/starter-kit");
   await expect(page.getByRole("heading", { name: "Starter Kit KelasWFA" })).toBeVisible();
 
+  // Buka modal klaim via tombol Download Kado
+  await page.click("#btn-download-cta");
+  await expect(page.locator("#ritual-modal")).toHaveClass(/is-open/);
+
   // Timer deterministik via TEST_TIMER_MS (vite.define di astro.config.mjs).
   await expect(page.locator("#claim-form")).toHaveAttribute("data-timer-ms", "100");
   await expect(page.locator("#submit-btn")).toBeDisabled();

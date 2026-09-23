@@ -6,7 +6,16 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!dist", "!.astro", "!node_modules", "!drizzle", "!test-results", "!playwright-report"]
+    "includes": [
+      "**",
+      "!dist",
+      "!.astro",
+      "!node_modules",
+      "!drizzle",
+      "!test-results",
+      "!playwright-report",
+      "!preview-*.html"
+    ]
   },
   "formatter": {
     "enabled": true,

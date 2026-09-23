@@ -65,6 +65,16 @@ const dict = {
   itemFormat: { id: "Format", en: "Format" },
   itemSize: { id: "Ukuran", en: "Size" },
   skipToForm: { id: "Lewati ke form klaim", en: "Skip to the claim form" },
+  downloadCta: { id: "Download Kado", en: "Download Gift" },
+  downloadSubtext: {
+    id: "Cukup bayar dengan doa dan link akan dikirim via email",
+    en: "Simply pay with a prayer and the link will be sent to your email",
+  },
+  stepTakeMoment: {
+    id: "Langkah 1: Luangkan Waktu Sejenak",
+    en: "Step 1: Take A Quiet Moment",
+  },
+  closeModal: { id: "Tutup modal", en: "Close modal" },
 } as const;
 
 export type I18nKey = keyof typeof dict;

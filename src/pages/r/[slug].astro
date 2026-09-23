@@ -1,8 +1,7 @@
 ---
 import CampaignPaused from "../../components/CampaignPaused.astro";
-import EmailForm from "../../components/EmailForm.astro";
 import LocaleSwitch from "../../components/LocaleSwitch.astro";
-import ReflectionTabs from "../../components/ReflectionTabs.astro";
+import RewardClaimModal from "../../components/RewardClaimModal.astro";
 import RewardHero from "../../components/RewardHero.astro";
 import RewardItemList from "../../components/RewardItemList.astro";
 import PublicLayout from "../../layouts/PublicLayout.astro";
@@ -57,7 +56,7 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
   noindex={!isIndexable}
   canonical={`${siteUrl}/r/${slug}`}
   alternates={alternates}
-  skipTo={!paused && localeRow ? "claim-form" : undefined}
+  skipTo={!paused && localeRow ? "btn-download-cta" : undefined}
 >
   <header slot="header" class="reward-header">
     <a href="/" style="color: var(--color-ink); font-weight: var(--font-weight-bold); font-size: var(--text-body-lg); text-decoration: none;">KelasWFA</a>
@@ -66,65 +65,58 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
   {paused ? (
     <CampaignPaused locale="id" />
   ) : (
-    <main class="workbench-container">
-      <div class="split-desk-grid">
-        <section class="showcase-column">
-          <RewardHero
-            overline={t("id", "overline")}
-            title={localeRow!.title}
-            description={localeRow!.description}
-            imageKey={data!.campaign.featuredImageKey}
-          />
-          <RewardItemList items={items} locale="id" />
-          <div class="showcase-trust">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="m9 12 2 2 4-4"/>
-            </svg>
-            <span>Akses unduhan instan &amp; aman dikirim via email. Link berlaku 1 jam setelah dibuka.</span>
-          </div>
-        </section>
-        <aside class="ritual-column">
-          <div class="ritual-card">
-            <ReflectionTabs
-              muslimText={await data!.doaText("muslim", "id")}
-              universalText={await data!.doaText("universal", "id")}
-              locale="id"
-            />
-            <hr class="card-hairline-divider" aria-hidden="true" />
-            <EmailForm slug={slug!} locale="id" campaignId={data!.campaign.id} />
-          </div>
-        </aside>
+    <main class="showcase-container">
+      <RewardHero
+        overline={t("id", "overline")}
+        title={localeRow!.title}
+        description={localeRow!.description}
+        imageKey={data!.campaign.featuredImageKey}
+      />
+      <RewardItemList items={items} locale="id" />
+      <div class="showcase-trust">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <span>Akses unduhan instan &amp; aman dikirim via email. Link berlaku 1 jam setelah dibuka.</span>
       </div>
+
+      <div class="showcase-action-box">
+        <button type="button" class="btn-download-primary" id="btn-download-cta">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>{t("id", "downloadCta")}</span>
+        </button>
+        <p class="action-subtext">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          <span>{t("id", "downloadSubtext")}</span>
+        </p>
+      </div>
+
+      <RewardClaimModal
+        slug={slug!}
+        locale="id"
+        campaignId={data!.campaign.id}
+        muslimText={await data!.doaText("muslim", "id")}
+        universalText={await data!.doaText("universal", "id")}
+      />
     </main>
   )}
 </PublicLayout>
 
 <style>
-  .workbench-container {
-    max-width: var(--workbench-max);
+  .showcase-container {
+    max-width: var(--showcase-max, 740px);
     margin: 0 auto;
-    padding: var(--space-6) var(--space-6) var(--space-12);
-  }
-
-  .split-desk-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
-    align-items: start;
-  }
-
-  @media (min-width: 1024px) {
-    .split-desk-grid {
-      grid-template-columns: 1.15fr 1fr;
-      gap: var(--space-8);
-    }
-  }
-
-  .showcase-column {
+    padding: var(--space-8) var(--space-6) var(--space-16);
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-6);
   }
 
   .showcase-trust {
@@ -144,30 +136,65 @@ const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
     color: var(--color-primary);
   }
 
-  .ritual-column {
-    position: relative;
-  }
-
-  @media (min-width: 1024px) {
-    .ritual-column {
-      position: sticky;
-      top: calc(72px + var(--space-5));
-    }
-  }
-
-  .ritual-card {
+  .showcase-action-box {
     background: var(--color-surface-raised);
     border: var(--border-default);
     border-radius: var(--radius-card);
-    padding: var(--space-6);
     box-shadow: var(--shadow-card);
-    position: relative;
+    padding: var(--space-6);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
   }
 
-  .card-hairline-divider {
-    height: 1px;
-    background: var(--color-border);
-    margin: var(--space-4) 0;
+  .btn-download-primary {
+    width: 100%;
+    max-width: 440px;
+    background: var(--color-primary);
+    color: var(--color-surface-raised);
     border: none;
+    border-radius: var(--radius-control);
+    padding: 16px var(--space-6);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    box-shadow: 0 4px 14px rgba(23, 107, 91, 0.28);
+    transition: all 180ms ease;
+  }
+
+  .btn-download-primary:hover {
+    background: var(--color-primary-hover);
+    box-shadow: 0 6px 18px rgba(23, 107, 91, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-download-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(23, 107, 91, 0.2);
+  }
+
+  .action-subtext {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .action-subtext svg {
+    color: var(--color-gold);
+    flex-shrink: 0;
   }
 </style>

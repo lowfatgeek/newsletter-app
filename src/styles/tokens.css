@@ -54,6 +54,7 @@
   --funnel-content: 680px;
   --workbench-max: 1140px;
   --download-content: 760px;
+  --showcase-max: 740px;
   --auth-content: 440px;
   --admin-content: 1440px;
 }
@@ -68,6 +69,9 @@ body {
   font-family: var(--font-sans);
   color: var(--color-text);
   background: var(--color-canvas);
+}
+body.modal-open {
+  overflow: hidden;
 }
 :focus-visible {
   outline: none;

@@ -1,0 +1,214 @@
+---
+import { type Locale, t } from "../lib/i18n";
+import EmailForm from "./EmailForm.astro";
+import ReflectionTabs from "./ReflectionTabs.astro";
+
+interface Props {
+  slug: string;
+  locale: Locale;
+  campaignId: string;
+  muslimText: string;
+  universalText: string;
+}
+
+const { slug, locale, campaignId, muslimText, universalText } = Astro.props;
+---
+<div
+  id="ritual-modal"
+  class="modal-backdrop"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-ritual-title"
+>
+  <div class="ritual-modal-card" id="modal-card">
+    <div class="modal-drag-handle" aria-hidden="true"></div>
+    <button
+      type="button"
+      id="modal-close-btn"
+      class="modal-close-btn"
+      aria-label={t(locale, "closeModal")}
+    >
+      &times;
+    </button>
+    <div class="modal-body">
+      <ReflectionTabs
+        muslimText={muslimText}
+        universalText={universalText}
+        locale={locale}
+        embedded={true}
+      />
+      <hr class="card-hairline-divider" aria-hidden="true" />
+      <EmailForm slug={slug} locale={locale} campaignId={campaignId} />
+    </div>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById("ritual-modal");
+  const closeBtn = document.getElementById("modal-close-btn");
+
+  const openModal = () => {
+    if (!modal) return;
+    modal.classList.add("is-open");
+    document.body.classList.add("modal-open");
+    window.dispatchEvent(new CustomEvent("reward-modal:open"));
+    // Focus ke input email atau dialog
+    const email = document.getElementById("email") as HTMLInputElement | null;
+    if (email) {
+      setTimeout(() => email.focus(), 250);
+    }
+  };
+
+  const closeModal = () => {
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    document.body.classList.remove("modal-open");
+  };
+
+  // Trigger buttons (baik #btn-download-cta maupun data attribute)
+  document.querySelectorAll("[data-open-reward-modal]").forEach((btn) => {
+    btn.addEventListener("click", openModal);
+  });
+
+  const downloadBtn = document.getElementById("btn-download-cta");
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", openModal);
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeModal);
+  }
+
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal?.classList.contains("is-open")) {
+      closeModal();
+    }
+  });
+</script>
+
+<style>
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(17, 46, 41, 0.6);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), visibility 240ms;
+  }
+
+  .modal-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .ritual-modal-card {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-modal);
+    box-shadow: 0 24px 64px -12px rgba(21, 59, 53, 0.22);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    position: relative;
+    padding: var(--space-6);
+    transform: scale(0.95) translateY(12px);
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 260ms;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-backdrop.is-open .ritual-modal-card {
+    transform: scale(1) translateY(0);
+  }
+
+  /* Responsif Mobile: Bottom Sheet Mode */
+  @media (max-width: 640px) {
+    .modal-backdrop {
+      padding: 0;
+      align-items: flex-end;
+    }
+
+    .ritual-modal-card {
+      max-width: 100%;
+      max-height: 88vh;
+      border-radius: 24px 24px 0 0;
+      border-bottom: none;
+      padding: var(--space-4) var(--space-5) var(--space-6);
+      transform: translateY(100%);
+    }
+
+    .modal-backdrop.is-open .ritual-modal-card {
+      transform: translateY(0);
+    }
+  }
+
+  .modal-drag-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: var(--radius-pill);
+    margin: 0 auto var(--space-3);
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .modal-drag-handle {
+      display: block;
+    }
+  }
+
+  .modal-close-btn {
+    position: absolute;
+    top: var(--space-5);
+    right: var(--space-5);
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: all 150ms ease;
+    z-index: 10;
+  }
+
+  .modal-close-btn:hover {
+    background: var(--color-border);
+    color: var(--color-ink);
+  }
+
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .card-hairline-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: var(--space-2) 0;
+    border: none;
+  }
+</style>
