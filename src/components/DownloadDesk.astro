@@ -1,0 +1,792 @@
+---
+import { humanSize } from "../lib/admin/format";
+import type { Locale } from "../lib/i18n";
+
+interface Asset {
+  id: string;
+  campaignId?: string;
+  nameId: string;
+  nameEn?: string | null;
+  descId?: string | null;
+  descEn?: string | null;
+  mimeType: string;
+  sizeBytes: number | bigint;
+  checksum?: string;
+}
+
+interface Props {
+  locale: Locale;
+  sessionToken: string;
+  assets: Asset[];
+}
+
+const { locale, sessionToken, assets } = Astro.props;
+const isEn = locale === "en";
+
+function getFileMeta(mimeType: string, filename: string) {
+  const lowerMime = (mimeType || "").toLowerCase();
+  const lowerName = (filename || "").toLowerCase();
+
+  if (
+    lowerMime.includes("zip") ||
+    lowerMime.includes("compressed") ||
+    lowerName.endsWith(".zip") ||
+    lowerName.endsWith(".tar") ||
+    lowerName.endsWith(".gz") ||
+    lowerName.endsWith(".rar") ||
+    lowerName.endsWith(".7z")
+  ) {
+    return {
+      iconType: "zip",
+      ext: "ZIP",
+      label: "ZIP ARCHIVE",
+    };
+  }
+  if (lowerMime.includes("pdf") || lowerName.endsWith(".pdf")) {
+    return {
+      iconType: "pdf",
+      ext: "PDF",
+      label: "PDF DOCUMENT",
+    };
+  }
+  if (
+    lowerMime.includes("sheet") ||
+    lowerMime.includes("excel") ||
+    lowerMime.includes("csv") ||
+    lowerName.endsWith(".xlsx") ||
+    lowerName.endsWith(".xls") ||
+    lowerName.endsWith(".csv")
+  ) {
+    return {
+      iconType: "sheet",
+      ext: "XLS",
+      label: "SPREADSHEET",
+    };
+  }
+  return {
+    iconType: "zip",
+    ext: "FILE",
+    label: "DIGITAL FILE",
+  };
+}
+---
+
+<!-- App Header Bar -->
+<header class="desk-header">
+  <a href="/" class="desk-logo">
+    <span>KelasWFA</span>
+    <span class="desk-logo-badge">Kado Desk</span>
+  </a>
+  <div class="header-security-badge">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    <span>{isEn ? "Verified Access" : "Akses Terverifikasi"}</span>
+  </div>
+</header>
+
+<!-- Main Content Area -->
+<main class="desk-main">
+  <!-- Hero Section -->
+  <div class="desk-hero">
+    <div class="celebration-pill">
+      {isEn ? "🎁 Gift Ready for Download" : "🎁 Kado Siap Diunduh"}
+    </div>
+    <h1>{isEn ? "Your gift is ready." : "Kadonya siap dibuka."}</h1>
+    <p>
+      {isEn
+        ? "Your secure access token has been verified. Download your digital files below."
+        : "Akses unduhan aman Anda telah diverifikasi. Simpan berkas digital ke perangkatmu sekarang."}
+    </p>
+    <div class="session-expiry-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>
+        {isEn ? "Active session · Download links valid for 1 hour" : "Sesi aktif · Link unduhan berlaku 1 jam"}
+      </span>
+    </div>
+  </div>
+
+  <!-- Asset List Section -->
+  {assets.length === 0 ? (
+    <div class="empty-state-card">
+      <div class="empty-icon-circle" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 13.5 5.2 5.4A2 2 0 0 1 7.1 4h9.8a2 2 0 0 1 1.9 1.4L21 13.5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <path d="M3 13.5h4.3l1 1.8h7.4l1-1.8H21"></path>
+        </svg>
+      </div>
+      <h2>{isEn ? "No download files yet" : "Berkas unduhan belum tersedia"}</h2>
+      <p>
+        {isEn
+          ? "This gift has no files attached yet. Save your email link and check back later, or contact us if you need help."
+          : "Hadiah ini belum dilengkapi berkas. Simpan tautan di emailmu dan coba lagi nanti, atau hubungi admin bila menurutmu ini keliru."}
+      </p>
+      <a href="/" class="empty-home-link">
+        &larr; {isEn ? "Back to Homepage" : "Kembali ke Beranda"}
+      </a>
+    </div>
+  ) : (
+    <ul class="asset-list">
+      {assets.map((a) => {
+        const title = isEn && a.nameEn ? a.nameEn : a.nameId;
+        const desc = isEn && a.descEn ? a.descEn : (a.descId ?? "");
+        const meta = getFileMeta(a.mimeType, title);
+        const formattedSize = humanSize(Number(a.sizeBytes));
+        const btnLabel = isEn ? `Secure download (${formattedSize})` : `Unduh aman (${formattedSize})`;
+
+        return (
+          <li class="asset-card">
+            <div class="asset-card-inner">
+              <div class="asset-meta-group">
+                <div class={`file-icon-box ${meta.iconType}`} aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <polyline points="9 15 12 18 15 15"></polyline>
+                  </svg>
+                  <span class="file-icon-ext">{meta.ext}</span>
+                </div>
+                <div class="asset-details">
+                  <h2 class="asset-title">{title}</h2>
+                  {desc && <p class="asset-desc">{desc}</p>}
+                  <div class="asset-submeta">
+                    <span class="meta-tag">{meta.label}</span>
+                    <span aria-hidden="true">&bull;</span>
+                    <span>{formattedSize}</span>
+                    <span aria-hidden="true">&bull;</span>
+                    <span class="security-check-label">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>{isEn ? "Malware scanned" : "Terverifikasi aman"}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <a
+                  href={`/api/download/${sessionToken}/${a.id}`}
+                  referrerpolicy="no-referrer"
+                  class="btn-download-action"
+                  data-downloading-text={isEn ? "Preparing download..." : "Menyiapkan berkas..."}
+                  data-success-text={isEn ? "✓ Downloading..." : "✓ Mengunduh..."}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span class="btn-label">{btnLabel}</span>
+                </a>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+
+  <!-- Quick Guide Section -->
+  {assets.length > 0 && (
+    <div class="guide-card">
+      <div class="guide-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>{isEn ? "How to Open Your Gift" : "Panduan Membuka Berkas"}</span>
+      </div>
+      <div class="guide-steps">
+        <div class="guide-step">
+          <div class="step-num" aria-hidden="true">1</div>
+          <div>
+            {isEn ? (
+              <><strong>Download Files:</strong> Tap the green download button above to save the file to your device (smartphone or laptop).</>
+            ) : (
+              <><strong>Unduh Berkas:</strong> Klik tombol hijau di atas untuk menyimpan file ke perangkatmu (HP atau Laptop).</>
+            )}
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num" aria-hidden="true">2</div>
+          <div>
+            {isEn ? (
+              <><strong>Open or Extract:</strong> For .zip files, open your Files app on Android/iOS to extract, or right-click <em>Extract All</em> on PC/Mac.</>
+            ) : (
+              <><strong>Buka atau Ekstrak:</strong> Buka aplikasi <em>Files</em> di HP Android/iOS lalu ketuk untuk ekstrak/buka, atau klik kanan <em>Extract All</em> di Laptop.</>
+            )}
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num" aria-hidden="true">3</div>
+          <div>
+            {isEn ? (
+              <><strong>1-Hour Session:</strong> If your session expires after 1 hour, simply click the link in your email again to refresh access.</>
+            ) : (
+              <><strong>Akses Aman Kapan Saja:</strong> Tautan sesi ini aktif 1 jam. Jika lewat, kamu cukup buka kembali email dari kami untuk membuat sesi baru.</>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- Support & Session Bar -->
+  <div class="support-bar">
+    <span>
+      {isEn ? "Having issues with your download? Email us at " : "Mengalami kendala unduhan? Hubungi kami di "}
+      <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>
+    </span>
+    <span class="session-label">
+      {isEn ? "Session ID: " : "ID Sesi: "}{sessionToken.slice(0, 10)}...
+    </span>
+  </div>
+</main>
+
+<script>
+  document.querySelectorAll<HTMLAnchorElement>(".btn-download-action").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const label = btn.querySelector(".btn-label");
+      if (!label) return;
+      const originalText = label.textContent || "";
+      const downloadingText = btn.dataset.downloadingText || "Mengunduh...";
+      const successText = btn.dataset.successText || "✓ Mengunduh...";
+
+      label.textContent = downloadingText;
+      btn.classList.add("downloading");
+
+      setTimeout(() => {
+        btn.classList.remove("downloading");
+        btn.classList.add("download-success");
+        label.textContent = successText;
+
+        setTimeout(() => {
+          btn.classList.remove("download-success");
+          label.textContent = originalText;
+        }, 2500);
+      }, 900);
+    });
+  });
+</script>
+
+<style>
+  /* Header Bar */
+  .desk-header {
+    height: 68px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-6);
+    background: rgba(255, 252, 245, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .desk-logo {
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--color-ink);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .desk-logo-badge {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+  }
+
+  .header-security-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-success);
+    background: var(--color-success-subtle);
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(35, 122, 85, 0.2);
+  }
+
+  /* Main Container */
+  .desk-main {
+    width: 100%;
+    max-width: var(--download-content);
+    margin: 0 auto;
+    padding: 44px 20px 60px;
+    box-sizing: border-box;
+  }
+
+  /* Hero Header */
+  .desk-hero {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .celebration-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 16px;
+  }
+
+  .desk-hero h1 {
+    font-size: clamp(28px, 4.5vw, 36px);
+    font-weight: 800;
+    color: var(--color-ink);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+  }
+
+  .desk-hero p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 520px;
+    margin: 0 auto 18px;
+  }
+
+  .session-expiry-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-warning-subtle);
+    border: 1px solid rgba(154, 101, 20, 0.25);
+    padding: 7px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-warning);
+  }
+
+  /* Asset List & Cards */
+  .asset-list {
+    list-style: none;
+    display: grid;
+    gap: 16px;
+    margin: 0 0 32px;
+    padding: 0;
+  }
+
+  .asset-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .asset-card:hover {
+    box-shadow: 0 8px 28px rgba(21, 59, 53, 0.08);
+    border-color: #D6CABA;
+  }
+
+  .asset-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-gold) 100%);
+  }
+
+  .asset-card-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .asset-meta-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* File Icon Avatar */
+  .file-icon-box {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .file-icon-box.zip {
+    background: #FFF2D6;
+    border-color: #EED7AA;
+    color: #B57715;
+  }
+
+  .file-icon-box.pdf {
+    background: #FCECEE;
+    border-color: #F4C7CD;
+    color: #B53C4A;
+  }
+
+  .file-icon-box.sheet {
+    background: #E8F6EE;
+    border-color: #C0E8D0;
+    color: #237A55;
+  }
+
+  .file-icon-ext {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 2px;
+    line-height: 1;
+  }
+
+  .asset-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .asset-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-ink);
+    line-height: 1.35;
+    margin: 0 0 6px;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .asset-desc {
+    font-size: 13px;
+    color: var(--color-text);
+    margin: 0 0 6px;
+    line-height: 1.45;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .asset-submeta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+
+  .meta-tag {
+    background: var(--color-surface-subtle);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .security-check-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-success);
+    font-weight: 500;
+  }
+
+  /* Download Action Button */
+  .btn-download-action {
+    background: var(--color-primary);
+    color: #FFFFFF;
+    text-decoration: none;
+    padding: 13px 24px;
+    border-radius: var(--radius-control);
+    font-weight: 700;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    min-height: 48px;
+    box-shadow: 0 4px 12px rgba(23, 107, 91, 0.2);
+  }
+
+  .btn-download-action:hover {
+    background: var(--color-primary-hover);
+    box-shadow: 0 6px 16px rgba(23, 107, 91, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-download-action:active {
+    transform: translateY(1px);
+  }
+
+  .btn-download-action.downloading {
+    background: #105447;
+    opacity: 0.92;
+  }
+
+  .btn-download-action.download-success {
+    background: #237A55;
+  }
+
+  /* Quick Guide Card */
+  .guide-card {
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .guide-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .guide-steps {
+    display: grid;
+    gap: 14px;
+  }
+
+  .guide-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-text);
+  }
+
+  .step-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Support & Help Bar */
+  .support-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+
+  .support-bar a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .session-label {
+    font-size: 11px;
+    color: #8C9995;
+    font-family: monospace;
+    white-space: nowrap;
+  }
+
+  /* Empty State Card */
+  .empty-state-card {
+    background: #FFFFFF;
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: 40px 24px;
+    text-align: center;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 24px;
+  }
+
+  .empty-icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-warning-subtle);
+    color: var(--color-warning);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .empty-state-card h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin-bottom: 8px;
+  }
+
+  .empty-state-card p {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    max-width: 440px;
+    margin: 0 auto 20px;
+  }
+
+  .empty-home-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-primary);
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 14px;
+  }
+
+  .empty-home-link:hover {
+    text-decoration: underline;
+  }
+
+  /* ========================================================
+     MOBILE VIEWPORT (< 640px)
+     ======================================================== */
+  @media (max-width: 640px) {
+    .desk-header {
+      height: 56px;
+      padding: 0 16px;
+    }
+    .desk-logo {
+      font-size: 16px;
+    }
+    .header-security-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .desk-main {
+      padding: 24px 16px 40px;
+    }
+    .desk-hero {
+      margin-bottom: 24px;
+    }
+    .celebration-pill {
+      font-size: 11px;
+      padding: 5px 12px;
+      margin-bottom: 12px;
+    }
+    .desk-hero h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .desk-hero p {
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+    .session-expiry-pill {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    .asset-card {
+      padding: 18px 16px;
+    }
+    .asset-card-inner {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 16px !important;
+    }
+    .asset-meta-group {
+      align-items: flex-start !important;
+      width: 100% !important;
+      gap: 14px !important;
+    }
+    .file-icon-box {
+      width: 44px !important;
+      height: 44px !important;
+    }
+    .asset-details {
+      flex: 1 !important;
+      min-width: 0 !important;
+      width: calc(100% - 58px) !important;
+    }
+    .asset-title {
+      font-size: 15px !important;
+      word-break: normal !important;
+      overflow-wrap: break-word !important;
+    }
+    .asset-submeta {
+      font-size: 12px !important;
+    }
+    .btn-download-action {
+      width: 100% !important;
+      display: flex !important;
+      justify-content: center !important;
+      padding: 14px 16px !important;
+      font-size: 14px !important;
+      white-space: normal !important;
+      text-align: center !important;
+    }
+    .guide-card {
+      padding: 18px 16px !important;
+    }
+    .guide-title {
+      font-size: 13px !important;
+    }
+    .guide-step {
+      font-size: 12px !important;
+    }
+    .support-bar {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      padding: 14px 16px !important;
+      gap: 6px !important;
+    }
+  }
+</style>

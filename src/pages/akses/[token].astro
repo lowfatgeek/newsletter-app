@@ -1,7 +1,7 @@
 ---
+import DownloadDesk from "../../components/DownloadDesk.astro";
 import PublicLayout from "../../layouts/PublicLayout.astro";
 import { resolveAccess } from "../../lib/access-page";
-import { humanSize } from "../../lib/admin/format";
 import { listCampaignAssets } from "../../lib/rewards";
 
 export const prerender = false;
@@ -18,36 +18,5 @@ if (sessionToken !== token) {
 const assets = await listCampaignAssets(campaignId);
 ---
 <PublicLayout title="Kadonya siap dibuka" lang="id" noindex>
-  <main style="max-width: var(--download-content); margin: 0 auto; padding: var(--space-12) var(--space-5);">
-    <h1 style="color: var(--color-ink);">Kadonya siap dibuka.</h1>
-    <p style="color: var(--color-text-muted); margin: 0 0 var(--space-6);">Link unduhan berlaku 1 jam.</p>
-    {assets.length === 0 ? (
-      <div style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); display: flex; gap: var(--space-4); align-items: flex-start;">
-        <span aria-hidden="true" style="color: var(--color-text-muted); display: inline-flex; flex: none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-            <path d="M3 13.5 5.2 5.4A2 2 0 0 1 7.1 4h9.8a2 2 0 0 1 1.9 1.4L21 13.5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <path d="M3 13.5h4.3l1 1.8h7.4l1-1.8H21"></path>
-          </svg>
-        </span>
-        <div>
-          <strong style="color: var(--color-ink); display: block; margin-bottom: 4px;">Berkas unduhan belum tersedia</strong>
-          <p style="margin: 0; color: var(--color-text-muted); font-size: var(--text-body-sm); line-height: 1.6;">
-            Hadiah ini belum dilengkapi berkas. Simpan tautan ini dan coba lagi nanti, atau hubungi admin KelasWFA bila menurutmu ini keliru.
-          </p>
-        </div>
-      </div>
-    ) : (
-      <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3);">
-        {assets.map((a) => (
-          <li style="background: var(--color-surface-raised); border: var(--border-default); border-radius: var(--radius-card); padding: var(--space-6); display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);">
-            <div>
-              <strong style="color: var(--color-ink);">{a.nameId}</strong>
-              <p style="margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-body-sm);">{a.mimeType} · {humanSize(Number(a.sizeBytes))}</p>
-            </div>
-            <a href={`/api/download/${sessionToken}/${a.id}`} referrerpolicy="no-referrer" style="background: var(--color-primary); color: var(--color-surface-raised); text-decoration: none; padding: 12px 20px; border-radius: var(--radius-control); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center;">Unduh aman</a>
-          </li>
-        ))}
-      </ul>
-    )}
-  </main>
+  <DownloadDesk locale="id" sessionToken={sessionToken} assets={assets} />
 </PublicLayout>
