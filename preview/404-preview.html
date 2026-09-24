@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Redesign Halaman 404 (Kurir Nyasar) — KelasWFA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-canvas: #FFFCF5;
+      --color-surface-subtle: #F7F1E6;
+      --color-surface-raised: #FFFFFF;
+      --color-ink: #153B35;
+      --color-text: #36514B;
+      --color-text-muted: #566662;
+      --color-border: #E7DED0;
+      --color-primary: #176B5B;
+      --color-primary-hover: #105447;
+      --color-primary-subtle: #E5F2EE;
+      --color-gold: #D99020;
+      --color-gold-subtle: #FFF2D6;
+      --color-warning: #9A6514;
+      --color-warning-subtle: #FFF4DC;
+      --color-sand: #F3EBDD;
+
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --radius-control: 12px;
+      --radius-card: 22px;
+      --radius-pill: 999px;
+      --border-default: 1px solid var(--color-border);
+      --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 12px 36px rgba(21, 59, 53, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #E7E2D6;
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ========================================================
+       TOP STUDIO CONTROLLER BAR
+       ======================================================== */
+    .studio-bar {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--color-border);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(21, 59, 53, 0.04);
+    }
+
+    .studio-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-pill {
+      background: var(--color-ink);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .studio-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .scenario-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-surface-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: #FFFFFF;
+      color: var(--color-primary);
+      box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
+    }
+
+    .device-switcher {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-surface-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+    }
+
+    .device-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .device-btn.active {
+      background: #FFFFFF;
+      color: var(--color-ink);
+      box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
+    }
+
+    /* ========================================================
+       PREVIEW CANVAS & SIMULATED FRAMES
+       ======================================================== */
+    .preview-canvas {
+      flex: 1;
+      padding: 36px 16px 64px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
+    .device-frame {
+      width: 100%;
+      max-width: 900px;
+      background: var(--color-canvas);
+      border-radius: 24px;
+      box-shadow: 0 16px 48px rgba(21, 59, 53, 0.14);
+      border: 1px solid rgba(21, 59, 53, 0.08);
+      overflow: hidden;
+      transition: max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .device-frame.mobile {
+      max-width: 390px;
+      border-radius: 36px;
+      border: 8px solid #2C3531;
+    }
+
+    /* Browser Bar */
+    .browser-bar {
+      background: #F4EFE6;
+      border-bottom: 1px solid var(--color-border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #D9CFC1;
+    }
+
+    .browser-url {
+      flex: 1;
+      background: #FFFFFF;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-notch {
+      display: none;
+      background: #2C3531;
+      height: 24px;
+      width: 140px;
+      margin: 0 auto;
+      border-radius: 0 0 14px 14px;
+    }
+
+    .device-frame.mobile .mobile-notch {
+      display: block;
+    }
+
+    .device-frame.mobile .browser-bar {
+      display: none;
+    }
+
+    /* ========================================================
+       404 PAGE STYLING ("THE LOST COURIER DESK")
+       ======================================================== */
+    .not-found-page {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-canvas);
+    }
+
+    /* Header Bar */
+    .desk-header {
+      height: 68px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(255, 252, 245, 0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .desk-logo {
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--color-ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .desk-logo-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      color: var(--color-text-muted);
+    }
+
+    .header-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #A34824;
+      background: #FFF0E8;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(163, 72, 36, 0.2);
+    }
+
+    /* Main Container */
+    .not-found-main {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 44px 20px 64px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Card Box */
+    .not-found-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      padding: 36px 32px 32px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Top Accent Ribbon */
+    .not-found-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #F06A3A 0%, var(--color-gold) 50%, var(--color-primary) 100%);
+    }
+
+    /* Illustration Stage */
+    .illustration-stage {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .character-img {
+      width: 250px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      filter: drop-shadow(0 12px 20px rgba(21, 59, 53, 0.12));
+      animation: floatCourier 3.5s ease-in-out infinite alternate;
+      cursor: pointer;
+      transition: transform 0.25s ease;
+    }
+
+    .character-img:hover {
+      transform: scale(1.04) rotate(-2deg);
+    }
+
+    @keyframes floatCourier {
+      0% {
+        transform: translateY(0px);
+      }
+      100% {
+        transform: translateY(-8px);
+      }
+    }
+
+    /* Floating Question Mark Badge */
+    .question-balloon {
+      position: absolute;
+      top: 4px;
+      right: 12px;
+      background: #FFFFFF;
+      border: 1.5px solid var(--color-border);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(21, 59, 53, 0.1);
+      animation: pulseBalloon 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseBalloon {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    /* Status Pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #FFF2E8;
+      border: 1px solid rgba(240, 106, 58, 0.25);
+      color: #D14D1A;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 12px;
+    }
+
+    .not-found-card h1 {
+      font-size: clamp(23px, 4.2vw, 28px);
+      font-weight: 800;
+      color: var(--color-ink);
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .not-found-lead {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--color-text-muted);
+      margin-bottom: 22px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Action Buttons Group */
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .btn-primary-home {
+      background: var(--color-primary);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 14px 24px;
+      border-radius: var(--radius-control);
+      font-weight: 700;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      min-height: 48px;
+      box-shadow: 0 4px 14px rgba(23, 107, 91, 0.25);
+    }
+
+    .btn-primary-home:hover {
+      background: var(--color-primary-hover);
+      box-shadow: 0 6px 18px rgba(23, 107, 91, 0.32);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary-home:active {
+      transform: translateY(1px);
+    }
+
+    /* Secondary Tip Card */
+    .hints-card {
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      text-align: left;
+    }
+
+    .hints-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .hints-list {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .hint-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+
+    .hint-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 1px solid var(--color-border);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Support Footer */
+    .not-found-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+    }
+
+    .not-found-footer a {
+      color: var(--color-primary);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    /* ========================================================
+       MOBILE VIEWPORT (< 640px)
+       ======================================================== */
+    @media (max-width: 640px) {
+      .desk-header {
+        height: 56px;
+        padding: 0 16px;
+      }
+      .desk-logo {
+        font-size: 16px;
+      }
+      .header-status-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+      .not-found-main {
+        padding: 24px 16px 40px;
+      }
+      .not-found-card {
+        padding: 24px 18px 24px;
+        border-radius: 18px;
+      }
+      .character-img {
+        width: 190px;
+      }
+      .question-balloon {
+        width: 32px;
+        height: 32px;
+        font-size: 15px;
+        right: 4px;
+      }
+      .not-found-card h1 {
+        font-size: 21px;
+      }
+      .not-found-lead {
+        font-size: 14px;
+        margin-bottom: 18px;
+      }
+      .hints-card {
+        padding: 16px 14px;
+      }
+      .hint-item {
+        font-size: 12px;
+      }
+      .not-found-footer {
+        font-size: 12px;
+      }
+    }
+
+    /* Device frame mobile simulation override */
+    .device-frame.mobile .desk-header {
+      height: 56px;
+      padding: 0 16px;
+    }
+    .device-frame.mobile .desk-logo {
+      font-size: 16px;
+    }
+    .device-frame.mobile .header-status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .device-frame.mobile .not-found-main {
+      padding: 24px 16px 40px;
+    }
+    .device-frame.mobile .not-found-card {
+      padding: 24px 18px 24px;
+      border-radius: 18px;
+    }
+    .device-frame.mobile .character-img {
+      width: 190px;
+    }
+    .device-frame.mobile .question-balloon {
+      width: 32px;
+      height: 32px;
+      font-size: 15px;
+      right: 4px;
+    }
+    .device-frame.mobile .not-found-card h1 {
+      font-size: 21px;
+    }
+    .device-frame.mobile .not-found-lead {
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .device-frame.mobile .hints-card {
+      padding: 16px 14px;
+    }
+    .device-frame.mobile .hint-item {
+      font-size: 12px;
+    }
+    .device-frame.mobile .not-found-footer {
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Studio Control Bar -->
+  <div class="studio-bar">
+    <div class="studio-brand">
+      <span class="brand-pill">KelasWFA</span>
+      <span class="studio-title">404 Lost Courier Redesign Studio</span>
+    </div>
+
+    <!-- Scenario Selector -->
+    <div class="scenario-tabs">
+      <button class="tab-btn active" onclick="switchScenario('bahasa-id')">1. Bahasa Indonesia (ID)</button>
+      <button class="tab-btn" onclick="switchScenario('english-en')">2. English Version (EN)</button>
+      <button class="tab-btn" onclick="switchScenario('campaign-404')">3. Rute Campaign Salah (/r/404)</button>
+    </div>
+
+    <!-- Device Switcher -->
+    <div class="device-switcher">
+      <button class="device-btn active" id="btn-desktop" onclick="setDevice('desktop')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Desktop (600px card)
+      </button>
+      <button class="device-btn" id="btn-mobile" onclick="setDevice('mobile')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        Mobile Phone (390px)
+      </button>
+    </div>
+  </div>
+
+  <!-- Workspace Canvas -->
+  <div class="preview-canvas">
+    <div class="device-frame" id="device-frame">
+      
+      <!-- Desktop Browser Address Bar -->
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+        </div>
+        <div class="browser-url" id="browser-url-display">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          https://kado.kelaswfa.my.id/r/halaman-salah
+        </div>
+      </div>
+
+      <!-- Mobile Notch -->
+      <div class="mobile-notch"></div>
+
+      <!-- 404 Page Content Area -->
+      <div class="not-found-page" id="not-found-content">
+        <!-- Rendered by JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const scenarios = {
+      'bahasa-id': {
+        url: 'https://kado.kelaswfa.my.id/r/halaman-salah',
+        lang: 'id',
+        badge: '🏖️ 404 · SALAH KOORDINAT',
+        headerBadge: '404 Kurir Nyasar',
+        heading: 'Waduh, Kurirnya Malah Nyasar ke Pantai! 🏖️',
+        lead: 'Paket kado atau halaman yang kamu cari sepertinya salah alamat atau terselip di bagasi kurir. Jangan sedih, kado aslimu masih aman di rak utama kami!',
+        btnText: 'Kembali ke Beranda 🚀',
+        hintsTitle: '💡 Kemungkinan Penyebab:',
+        hints: [
+          '<strong>Tautan Terpotong:</strong> Mungkin ada huruf atau karakter yang hilang saat menyalin link.',
+          '<strong>Hadiah Berpindah Tempat:</strong> Campaign kado mungkin sudah diperbarui ke tautan yang baru.',
+          '<strong>Tautan Kedaluwarsa:</strong> Promo atau masa aktif kado ini sudah selesai.'
+        ],
+        supportNote: 'Tetap butuh bantuan mencari kado? Hubungi tim kurir di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'english-en': {
+        url: 'https://kado.kelaswfa.my.id/en/r/missing-gift',
+        lang: 'en',
+        badge: '🏖️ 404 · WRONG COORDINATES',
+        headerBadge: '404 Courier Lost',
+        heading: 'Oops! Our Courier Wandered to the Beach! 🏖️',
+        lead: 'The gift or page you are looking for seems to have taken a wrong turn or got misplaced in the courier bag. Don’t worry, your actual gifts are safe on our main shelf!',
+        btnText: 'Back to Homepage 🚀',
+        hintsTitle: '💡 What Could Have Happened:',
+        hints: [
+          '<strong>Broken Link:</strong> A character might have been clipped when copying the URL.',
+          '<strong>Gift Relocated:</strong> This campaign might have moved to a fresh link.',
+          '<strong>Expired Promo:</strong> The promotional period for this specific link has wrapped up.'
+        ],
+        supportNote: 'Still searching for your gift? Contact our courier team at <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'campaign-404': {
+        url: 'https://kado.kelaswfa.my.id/r/404',
+        lang: 'id',
+        badge: '🏖️ 404 · KADO TIDAK DITEMUKAN',
+        headerBadge: '404 Not Found',
+        heading: 'Waduh, Kurirnya Malah Nyasar ke Pantai! 🏖️',
+        lead: 'Halaman atau hadiah yang kamu cari mungkin sudah dipindah atau tautannya tidak berlaku lagi.',
+        btnText: 'Kembali ke Beranda 🚀',
+        hintsTitle: '💡 Langkah Selanjutnya:',
+        hints: [
+          '<strong>Cek Email:</strong> Buka pesan email konfirmasi terbaru dari KelasWFA.',
+          '<strong>Kunjungi Beranda:</strong> Buka beranda utama untuk melihat daftar kado digital aktif yang siap diklaim.'
+        ],
+        supportNote: 'Punya pertanyaan seputar kado? Hubungi kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      }
+    };
+
+    function renderPage(key) {
+      const data = scenarios[key];
+      const isEn = data.lang === 'en';
+
+      document.getElementById('browser-url-display').innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        ${data.url}
+      `;
+
+      const html = `
+        <!-- App Header Bar -->
+        <header class="desk-header">
+          <a href="/" class="desk-logo">
+            <span>KelasWFA</span>
+            <span class="desk-logo-badge">Kado Desk</span>
+          </a>
+          <div class="header-status-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>${data.headerBadge}</span>
+          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="not-found-main">
+          
+          <div class="not-found-card">
+            
+            <!-- Character Illustration Stage -->
+            <div class="illustration-stage">
+              <img 
+                src="404-kurir-nyasar.png" 
+                alt="Karakter Kado Kurir Nyasar ke Pantai" 
+                class="character-img"
+                title="Kurir KelasWFA lagi pegang peta di pantai!"
+              />
+              <div class="question-balloon" title="Hah, mana alamatnya?">🗺️</div>
+            </div>
+
+            <!-- Status Pill Tag -->
+            <div>
+              <span class="status-pill">${data.badge}</span>
+            </div>
+
+            <!-- Primary Heading -->
+            <h1>${data.heading}</h1>
+
+            <!-- Explanation Lead -->
+            <p class="not-found-lead">${data.lead}</p>
+
+            <!-- Primary CTA Action -->
+            <div class="action-group">
+              <a href="/" class="btn-primary-home" onclick="simulateReturn(event)">
+                <span>${data.btnText}</span>
+              </a>
+            </div>
+
+            <!-- Helpful Hints Card -->
+            <div class="hints-card">
+              <div class="hints-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span>${data.hintsTitle}</span>
+              </div>
+              <ul class="hints-list">
+                ${data.hints.map((h, i) => `
+                  <li class="hint-item">
+                    <span class="hint-dot">${i + 1}</span>
+                    <span>${h}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- Support Footer -->
+          <div class="not-found-footer">
+            <p>${data.supportNote}</p>
+          </div>
+
+        </main>
+      `;
+
+      document.getElementById('not-found-content').innerHTML = html;
+    }
+
+    function switchScenario(key) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderPage(key);
+    }
+
+    function setDevice(device) {
+      document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+      const frame = document.getElementById('device-frame');
+      if (device === 'mobile') {
+        document.getElementById('btn-mobile').classList.add('active');
+        frame.classList.add('mobile');
+      } else {
+        document.getElementById('btn-desktop').classList.add('active');
+        frame.classList.remove('mobile');
+      }
+    }
+
+    function simulateReturn(e) {
+      e.preventDefault();
+      alert('Simulasi: Mengarahkan pengguna kembali ke halaman utama / beranda kado.');
+    }
+
+    // Initialize with Indonesian scenario
+    renderPage('bahasa-id');
+  </script>
+</body>
+</html>
