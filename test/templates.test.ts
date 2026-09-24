@@ -21,8 +21,8 @@ describe("rewardAccessEmail", () => {
     expect(m.html).toContain("Starter Checklist");
     expect(m.html).toContain("https://x/akses/t");
   });
-  it("sets from header constant", () => {
-    expect(EMAIL_FROM).toBe("KelasWFA <admin@kelaswfa.my.id>");
+  it("sets from header constants", () => {
+    expect(EMAIL_FROM).toBe("KelasWFA <hi@kelaswfa.my.id>");
   });
   it("escapes HTML-dangerous characters in html body only; subject/text keep raw title", () => {
     const m = rewardAccessEmail("id", "https://x/akses/t", '<script>x</script> Sticker & "Gift"');

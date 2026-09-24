@@ -7,6 +7,7 @@ export type ProviderMessage = {
   subject: string;
   html: string;
   text: string;
+  replyTo?: string;
   idempotencyKey?: string;
 };
 
@@ -24,7 +25,7 @@ export async function sendViaEmailit(msg: ProviderMessage, fetchImpl: typeof fet
     body: JSON.stringify({
       from: msg.from,
       to: [msg.to],
-      reply_to: EMAIL_REPLY_TO,
+      reply_to: msg.replyTo ?? EMAIL_REPLY_TO,
       subject: msg.subject,
       html: msg.html,
       text: msg.text,

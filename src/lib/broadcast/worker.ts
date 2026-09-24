@@ -3,7 +3,7 @@ import { db } from "../db";
 import { sendViaEmailit } from "../emailit";
 import { env } from "../env";
 import { contacts, emailCampaignRecipients, emailCampaigns, emailDeliveries } from "../schema";
-import { EMAIL_FROM } from "../templates";
+import { EMAIL_FROM_CAMPAIGN, EMAIL_REPLY_TO_CAMPAIGN } from "../templates";
 import { htmlToText } from "./content";
 import { claimForSending, getCampaignForBroadcast, markCompleted, providerCaps } from "./machine";
 
@@ -190,7 +190,8 @@ export async function processBroadcast(opts?: { fetchImpl?: typeof fetch; now?: 
         ? `mo-${row.id}`
         : await sendViaEmailit(
             {
-              from: EMAIL_FROM,
+              from: EMAIL_FROM_CAMPAIGN,
+              replyTo: EMAIL_REPLY_TO_CAMPAIGN,
               to: row.email,
               subject,
               html: row.html,

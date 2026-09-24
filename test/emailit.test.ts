@@ -17,7 +17,7 @@ describe("sendViaEmailit", () => {
 
     const id = await sendViaEmailit(
       {
-        from: "KelasWFA <admin@kelaswfa.my.id>",
+        from: "KelasWFA <hi@kelaswfa.my.id>",
         to: "budi@gmail.com",
         subject: "Hadiah KelasWFA-mu",
         html: "<p>Hadiah sudah siap diunduh.</p>",
@@ -30,10 +30,36 @@ describe("sendViaEmailit", () => {
     expect(id).toBe("emailit-1");
     expect(authHeader).toBe("Bearer k");
     expect(captured).toMatchObject({
-      from: "KelasWFA <admin@kelaswfa.my.id>",
+      from: "KelasWFA <hi@kelaswfa.my.id>",
       to: ["budi@gmail.com"],
       reply_to: EMAIL_REPLY_TO,
       subject: "Hadiah KelasWFA-mu",
+    });
+  });
+
+  it("respects custom replyTo when specified", async () => {
+    let captured: Record<string, unknown> | undefined;
+    const fetchMock = (async (_url: unknown, init?: RequestInit) => {
+      captured = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response(JSON.stringify({ id: "emailit-2" }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await sendViaEmailit(
+      {
+        from: "KelasWFA <kurir@kelaswfa.my.id>",
+        replyTo: "kurir@kelaswfa.my.id",
+        to: "budi@gmail.com",
+        subject: "Newsletter",
+        html: "<p>Halo</p>",
+        text: "Halo",
+      },
+      fetchMock,
+    );
+
+    expect(captured).toMatchObject({
+      from: "KelasWFA <kurir@kelaswfa.my.id>",
+      to: ["budi@gmail.com"],
+      reply_to: "kurir@kelaswfa.my.id",
     });
   });
 

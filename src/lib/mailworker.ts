@@ -4,8 +4,14 @@ import { sendViaEmailit } from "./emailit";
 import { env } from "./env";
 import { emailOutbox } from "./schema";
 
+import {
+  EMAIL_FROM_CAMPAIGN,
+  EMAIL_FROM_TRANSACTIONAL,
+  EMAIL_REPLY_TO_CAMPAIGN,
+  EMAIL_REPLY_TO_TRANSACTIONAL,
+} from "./templates";
+
 const MAX_ATTEMPTS = 5;
-const FROM = "KelasWFA <admin@kelaswfa.my.id>";
 
 export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promise<{ sent: number; failed: number }> {
   // 1. Pemulihan baris "processing" yang macet/stale (mis. server mati saat pengiriman)
@@ -45,9 +51,13 @@ export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promis
       continue;
     }
     try {
+      const isBroadcast = row.emailType.startsWith("broadcast");
+      const from = isBroadcast ? EMAIL_FROM_CAMPAIGN : EMAIL_FROM_TRANSACTIONAL;
+      const replyTo = isBroadcast ? EMAIL_REPLY_TO_CAMPAIGN : EMAIL_REPLY_TO_TRANSACTIONAL;
       await sendViaEmailit(
         {
-          from: FROM,
+          from,
+          replyTo,
           to: row.toEmail,
           subject: row.subject,
           html: row.html,
