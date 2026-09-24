@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview: Redesign Admin Dashboard — "The Editorial Funnel Desk"</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM TOKENS — KELASWFA KADO (.agents/DESIGN.md & tokens.css)
+       ========================================================================== */
+    :root {
+      --color-canvas: #fffcf5;           /* Ivory Paper */
+      --color-surface-subtle: #f7f1e6;   /* Linen Surface */
+      --color-surface-raised: #ffffff;   /* White Surface */
+      --color-ink: #153b35;              /* Ink Forest */
+      --color-text: #36514b;             /* Body Moss */
+      --color-text-muted: #566662;       /* Quiet Moss (WCAG AA) */
+      --color-border: #e7ded0;           /* Paper Border */
+      --color-border-subtle: #f0e9df;    /* Subtle Hairline Border */
+      --color-primary: #176b5b;          /* Forest Action */
+      --color-primary-hover: #105447;    /* Forest Hover */
+      --color-primary-subtle: #e5f2ee;   /* Forest Tint */
+      --color-gold: #d99020;             /* Gift Gold */
+      --color-gold-hover: #b87515;       /* Gold Hover */
+      --color-gold-subtle: #fff2d6;      /* Gold Tint */
+      --color-info: #24709a;             /* Open Sky */
+      --color-info-subtle: #e6f3fa;      /* Sky Tint */
+      --color-danger: #b53c4a;           /* Rose Error */
+      --color-danger-subtle: #fcecee;    /* Rose Tint */
+      --color-success: #237a55;          /* Success Green */
+      --color-success-subtle: #e8f6ee;   /* Success Tint */
+      --color-warning: #9a6514;          /* Warning Amber */
+      --color-warning-subtle: #fff4dc;   /* Warning Tint */
+
+      --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-weight-regular: 400;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+
+      --text-h1: clamp(1.75rem, 2.8vw, 2.25rem);
+      --text-h2: clamp(1.35rem, 2.2vw, 1.625rem);
+      --text-h3: 1.15rem;
+      --text-body-lg: 1.125rem;
+      --text-body: 1rem;
+      --text-body-sm: 0.875rem;
+      --text-caption: 0.75rem;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+
+      --radius-control: 10px;
+      --radius-badge: 999px;
+      --radius-card: 16px;
+      --radius-container: 20px;
+
+      --border-default: 1px solid var(--color-border);
+      --shadow-card: 0 1px 3px rgba(21, 59, 53, 0.04), 0 6px 16px rgba(21, 59, 53, 0.04);
+      --shadow-float: 0 12px 32px rgba(21, 59, 53, 0.08);
+
+      --admin-sidebar-width: 250px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--color-canvas);
+      color: var(--color-text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* -------------------------------------------------------------
+       PREVIEW CONTROLLER BAR (Demo switcher)
+       ------------------------------------------------------------- */
+    .preview-bar {
+      background: var(--color-ink);
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: var(--text-caption);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .preview-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+    }
+    .preview-pill {
+      background: var(--color-gold);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-badge);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .preview-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .preview-toggle-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 160ms ease;
+    }
+    .preview-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .preview-toggle-btn.active {
+      background: var(--color-primary);
+      border-color: #3bb39b;
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    /* -------------------------------------------------------------
+       LAYOUT SHELL: SIDEBAR + MAIN CONTENT
+       ------------------------------------------------------------- */
+    .admin-app {
+      display: flex;
+      flex: 1;
+      min-height: calc(100vh - 42px);
+    }
+
+    /* --- SIDEBAR --- */
+    .admin-sidebar {
+      width: var(--admin-sidebar-width);
+      background-color: var(--color-ink);
+      color: var(--color-canvas);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+    .sidebar-header {
+      padding: var(--space-6) var(--space-5);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-ink) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-gold-subtle);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #fff;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.55);
+      font-weight: 400;
+    }
+
+    .sidebar-nav {
+      padding: var(--space-4) var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+    .nav-category {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 12px 10px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      color: rgba(255, 255, 255, 0.78);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      border-radius: var(--radius-control);
+      transition: all 160ms ease;
+      position: relative;
+    }
+    .nav-item:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .nav-item.active {
+      color: #fff;
+      background: rgba(23, 107, 91, 0.55);
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    }
+    .nav-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3.5px;
+      border-radius: 0 4px 4px 0;
+      background: var(--color-gold);
+    }
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.8;
+      stroke: currentColor;
+      fill: none;
+      flex-shrink: 0;
+      opacity: 0.9;
+    }
+    .nav-badge {
+      margin-left: auto;
+      font-size: 11px;
+      padding: 1px 7px;
+      border-radius: var(--radius-badge);
+      font-weight: 600;
+    }
+    .nav-badge.gold {
+      background: var(--color-gold-subtle);
+      color: var(--color-warning);
+    }
+    .nav-badge.subtle {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .sidebar-footer {
+      padding: var(--space-4) var(--space-3);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .admin-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-control);
+      margin-bottom: 8px;
+    }
+    .profile-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+    }
+    .profile-meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .profile-email {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .profile-role {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    .logout-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.75);
+      padding: 7px 12px;
+      border-radius: var(--radius-control);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 160ms ease;
+    }
+    .logout-btn:hover {
+      background: rgba(181, 60, 74, 0.2);
+      border-color: rgba(181, 60, 74, 0.4);
+      color: #ff9da8;
+    }
+
+    /* --- MAIN CONTENT AREA --- */
+    .admin-main {
+      flex: 1;
+      padding: var(--space-8);
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* -------------------------------------------------------------
+       COMMAND BAR / HEADER
+       ------------------------------------------------------------- */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-5);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .page-breadcrumbs {
+      font-size: var(--text-caption);
+      font-weight: 600;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-title {
+      font-size: var(--text-h1);
+      font-weight: 700;
+      color: var(--color-ink);
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      margin-bottom: 6px;
+    }
+    .page-subtitle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .page-subtitle {
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+    }
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      background: var(--color-success-subtle);
+      border: 1px solid rgba(35, 122, 85, 0.25);
+      border-radius: var(--radius-badge);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--color-success);
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-success);
+      box-shadow: 0 0 0 2px rgba(35, 122, 85, 0.2);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      font-family: inherit;
+      font-size: var(--text-body-sm);
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: var(--radius-control);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 160ms ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--color-primary);
+      color: #fff;
+      border: 1px solid var(--color-primary);
+      box-shadow: 0 1px 2px rgba(23, 107, 91, 0.16);
+    }
+    .btn-primary:hover {
+      background: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
+    }
+    .btn-secondary {
+      background: var(--color-surface-raised);
+      color: var(--color-ink);
+      border: var(--border-default);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+    .btn-secondary:hover {
+      background: var(--color-surface-subtle);
+      border-color: #d8cdbe;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-text-muted);
+      border: 1px solid transparent;
+    }
+    .btn-ghost:hover {
+      color: var(--color-ink);
+      background: rgba(21, 59, 53, 0.04);
+    }
+
+    /* -------------------------------------------------------------
+       1. HERO KPI CARDS (3 Sorotan Utama)
+       ------------------------------------------------------------- */
+    .hero-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+      margin-bottom: var(--space-6);
+    }
+    .hero-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-container);
+      padding: var(--space-5) var(--space-6);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 140px;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+    .hero-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-float);
+    }
+    .hero-card.featured {
+      background: linear-gradient(to bottom right, #ffffff, #fdfaf2);
+      border-color: #ded1be;
+    }
+    .hero-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .hero-title {
+      font-size: var(--text-body-sm);
+      font-weight: 600;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hero-icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-icon-wrap.primary {
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+    }
+    .hero-icon-wrap.gold {
+      background: var(--color-gold-subtle);
+      color: var(--color-gold);
+    }
+    .hero-icon-wrap.sky {
+      background: var(--color-info-subtle);
+      color: var(--color-info);
+    }
+
+    .hero-value {
+      font-size: clamp(2rem, 3.2vw, 2.5rem);
+      font-weight: 700;
+      color: var(--color-ink);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--text-caption);
+      color: var(--color-text-muted);
+      flex-wrap: wrap;
+    }
+    .badge-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: var(--radius-badge);
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .badge-trend.success {
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+    }
+    .badge-trend.gold {
+      background: var(--color-gold-subtle);
+      color: var(--color-warning);
+    }
+
+    /* -------------------------------------------------------------
+       2. VISUAL FUNNEL PIPELINE (Inti Redesign)
+       ------------------------------------------------------------- */
+    .funnel-container {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-container);
+      padding: var(--space-6);
+      box-shadow: var(--shadow-card);
+      margin-bottom: var(--space-6);
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .section-title-wrap h2 {
+      font-size: var(--text-h3);
+      font-weight: 700;
+      color: var(--color-ink);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title-wrap p {
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+    }
+    .funnel-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-badge);
+      color: var(--color-text);
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+      position: relative;
+    }
+
+    .pipeline-step {
+      background: var(--color-canvas);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 160ms ease;
+    }
+    .pipeline-step:hover {
+      border-color: #d1c5b3;
+      background: #fff;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-3);
+    }
+    .step-number {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .step-icon {
+      color: var(--color-text-muted);
+    }
+    .step-name {
+      font-size: var(--text-body-sm);
+      font-weight: 600;
+      color: var(--color-ink);
+      margin-bottom: 12px;
+    }
+
+    .step-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+    .metric-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .metric-row-label {
+      font-size: 12.5px;
+      color: var(--color-text-muted);
+    }
+    .metric-row-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .step-connector-info {
+      padding-top: 10px;
+      border-top: 1px dashed var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+    }
+    .conversion-rate {
+      font-weight: 700;
+      color: var(--color-primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .conversion-label {
+      color: var(--color-text-muted);
+    }
+
+    /* -------------------------------------------------------------
+       3. LOWER SECTION: TWO COLUMNS (Outbox Health + Activity Feed)
+       ------------------------------------------------------------- */
+    .lower-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: var(--space-5);
+    }
+    .panel-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-container);
+      padding: var(--space-5) var(--space-6);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-sub {
+      font-size: var(--text-body-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Outbox Status Rows */
+    .outbox-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+    .outbox-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--color-canvas);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-control);
+      transition: background 160ms ease;
+    }
+    .outbox-row:hover {
+      background: var(--color-surface-subtle);
+    }
+    .outbox-row-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .outbox-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .outbox-status-dot.green { background: var(--color-success); }
+    .outbox-status-dot.blue { background: var(--color-info); }
+    .outbox-status-dot.amber { background: var(--color-warning); }
+
+    .outbox-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+    .outbox-desc {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+    .outbox-count {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stream Feed */
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+    .feed-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .feed-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .feed-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid rgba(23, 107, 91, 0.2);
+    }
+    .feed-avatar.gold {
+      background: var(--color-gold-subtle);
+      color: var(--color-gold);
+      border-color: rgba(217, 144, 32, 0.25);
+    }
+    .feed-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .feed-line {
+      font-size: 13px;
+      color: var(--color-ink);
+      line-height: 1.35;
+      margin-bottom: 2px;
+    }
+    .feed-target {
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    .feed-meta {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-footer-action {
+      margin-top: var(--space-4);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border-subtle);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .link-action {
+      color: var(--color-primary);
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .link-action:hover {
+      text-decoration: underline;
+    }
+
+    /* -------------------------------------------------------------
+       RESPONSIVE BREAKPOINTS
+       ------------------------------------------------------------- */
+    @media (max-width: 1120px) {
+      .hero-kpis { grid-template-columns: 1fr; gap: var(--space-4); }
+      .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
+      .lower-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .admin-sidebar { display: none; }
+      .admin-main { padding: var(--space-4); }
+      .pipeline-grid { grid-template-columns: 1fr; }
+      .preview-bar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PREVIEW CONTROLLER BAR (Interaktif: Ganti Data Simulasi vs Nol) -->
+  <aside class="preview-bar">
+    <div class="preview-bar-left">
+      <span class="preview-pill">Interactive Preview</span>
+      <span>Redesign Admin Dashboard — <strong>"The Editorial Funnel Desk"</strong></span>
+    </div>
+    <div class="preview-bar-right">
+      <span style="opacity: 0.8;">Simulasi State:</span>
+      <button id="btn-mode-populated" class="preview-toggle-btn active" onclick="switchMode('populated')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Dengan Data Trafik Riil
+      </button>
+      <button id="btn-mode-zero" class="preview-toggle-btn" onclick="switchMode('zero')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+        Data Awal / Nol (Kondisi Saat Ini)
+      </button>
+    </div>
+  </aside>
+
+  <div class="admin-app">
+    <!-- SIDEBAR: EDITORIAL NAVIGATION -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-mark">W</div>
+        <div>
+          <div class="brand-title">KelasWFA Admin</div>
+          <div class="brand-sub">Kado & Broadcast System</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <span class="nav-category">Navigasi Utama</span>
+        <a href="#dashboard" class="nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Dashboard Funnel
+          <span class="nav-badge gold">Live</span>
+        </a>
+        <a href="#campaigns" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect width="20" height="5" x="2" y="7"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          Reward Campaign
+          <span class="nav-badge subtle">3</span>
+        </a>
+        <a href="#email-campaigns" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Email Campaign
+        </a>
+        <a href="#doa" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Preset Doa
+        </a>
+        <a href="#contacts" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Kontak
+        </a>
+
+        <span class="nav-category" style="margin-top: 14px;">Infrastruktur</span>
+        <a href="#domains" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Domain Email
+        </a>
+        <a href="#audit" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+          Audit Log
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="admin-profile">
+          <div class="profile-avatar">AD</div>
+          <div class="profile-meta">
+            <div class="profile-email">admin@kelaswfa.my.id</div>
+            <div class="profile-role">Super Admin</div>
+          </div>
+        </div>
+        <button class="logout-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          Keluar dari Sesi
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <main class="admin-main">
+      
+      <!-- COMMAND BAR / HEADER -->
+      <div class="page-header">
+        <div>
+          <div class="page-breadcrumbs">
+            <span>Ringkasan Ekosistem</span>
+            <span>/</span>
+            <span>Funnel Analitik</span>
+          </div>
+          <h1 class="page-title">Dashboard Funnel</h1>
+          <div class="page-subtitle-wrap">
+            <p class="page-subtitle">Statistik berbasis data tersimpan; tanpa pelacakan page-view.</p>
+            <div class="live-indicator">
+              <span class="live-dot"></span>
+              Database Real-time
+            </div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <a href="#audit" class="btn btn-ghost">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+            Audit Log
+          </a>
+          <a href="#contacts" class="btn btn-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Kelola Kontak
+          </a>
+          <a href="#campaigns" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Buat Campaign
+          </a>
+        </div>
+      </div>
+
+      <!-- 1. HERO KPIS (3 METRIK UTAMA) -->
+      <section class="hero-kpis">
+        <!-- KPI 1 -->
+        <article class="hero-card">
+          <div class="hero-card-top">
+            <span class="hero-title">Subscriber Aktif</span>
+            <div class="hero-icon-wrap primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+          </div>
+          <div id="stat-active-subscribers" class="hero-value">1.428</div>
+          <div class="hero-footer">
+            <span id="badge-subscribers" class="badge-trend success">● Aktif</span>
+            <span>marketing_subscription berstatus aktif</span>
+          </div>
+        </article>
+
+        <!-- KPI 2 -->
+        <article class="hero-card">
+          <div class="hero-card-top">
+            <span class="hero-title">Unduhan Diterbitkan</span>
+            <div class="hero-icon-wrap sky">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            </div>
+          </div>
+          <div id="stat-downloads" class="hero-value">942</div>
+          <div class="hero-footer">
+            <span id="badge-downloads" class="badge-trend success">Fulfillment</span>
+            <span>Token sesi unduhan akses dibuat</span>
+          </div>
+        </article>
+
+        <!-- KPI 3 -->
+        <article class="hero-card featured">
+          <div class="hero-card-top">
+            <span class="hero-title" style="color: var(--color-ink);">Reward Access Rate</span>
+            <div class="hero-icon-wrap gold">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+            </div>
+          </div>
+          <div id="stat-access-rate" class="hero-value" style="color: var(--color-gold);">74,8%</div>
+          <div class="hero-footer">
+            <span id="badge-rate" class="badge-trend gold">KPI Konversi</span>
+            <span>unduhan ÷ email akses hadiah</span>
+          </div>
+        </article>
+      </section>
+
+      <!-- 2. FUNNEL CONVERSION PIPELINE (ALUR TAHAPAN KONVERSI) -->
+      <section class="funnel-container">
+        <div class="section-head">
+          <div class="section-title-wrap">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              Alur Perjalanan Konversi (Conversion Funnel)
+            </h2>
+            <p>Visualisasi rasio perjalanan kontak dari pengisian formulir hingga unduh kado.</p>
+          </div>
+          <span class="funnel-tag">4 Tahap Utama</span>
+        </div>
+
+        <div class="pipeline-grid">
+          
+          <!-- STEP 1 -->
+          <div class="pipeline-step">
+            <div class="step-header">
+              <span class="step-number">Tahap 01</span>
+              <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <h3 class="step-name">1. Form & Klaim</h3>
+            <div class="step-metrics">
+              <div class="metric-row">
+                <span class="metric-row-label">Total kontak</span>
+                <span id="stat-total-contacts" class="metric-row-val">1.520</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row-label">Total klaim</span>
+                <span id="stat-total-claims" class="metric-row-val">1.480</span>
+              </div>
+            </div>
+            <div class="step-connector-info">
+              <span class="conversion-label">Kelengkapan Form:</span>
+              <span id="step1-conv" class="conversion-rate">97,3% Valid</span>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div class="pipeline-step">
+            <div class="step-header">
+              <span class="step-number">Tahap 02</span>
+              <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <h3 class="step-name">2. Outbox & Verifikasi</h3>
+            <div class="step-metrics">
+              <div class="metric-row">
+                <span class="metric-row-label">Email konfirmasi</span>
+                <span id="stat-confirmations-sent" class="metric-row-val">1.480</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row-label">Email akses hadiah</span>
+                <span id="stat-reward-access-sent" class="metric-row-val">1.260</span>
+              </div>
+            </div>
+            <div class="step-connector-info">
+              <span class="conversion-label">Konfirmasi Terbuka:</span>
+              <span id="step2-conv" class="conversion-rate">85,1% Sent</span>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="pipeline-step" style="border-color: #d8c8b2; background: #fffcf8;">
+            <div class="step-header">
+              <span class="step-number" style="color: var(--color-gold);">Tahap 03</span>
+              <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <h3 class="step-name">3. Hadiah Terbuka</h3>
+            <div class="step-metrics">
+              <div class="metric-row">
+                <span class="metric-row-label">Terkonfirmasi 30h</span>
+                <span id="stat-confirmed-30d" class="metric-row-val">1.260</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row-label">Unduhan diterbitkan</span>
+                <span id="stat-downloads-issued" class="metric-row-val">942</span>
+              </div>
+            </div>
+            <div class="step-connector-info">
+              <span class="conversion-label">Reward Access Rate:</span>
+              <span id="step3-conv" class="conversion-rate" style="color: var(--color-gold);">74,8% Rasio</span>
+            </div>
+          </div>
+
+          <!-- STEP 4 -->
+          <div class="pipeline-step">
+            <div class="step-header">
+              <span class="step-number">Tahap 04</span>
+              <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </div>
+            <h3 class="step-name">4. Retensi Komunitas</h3>
+            <div class="step-metrics">
+              <div class="metric-row">
+                <span class="metric-row-label">Subscriber aktif</span>
+                <span id="stat-active-subscribers-pipeline" class="metric-row-val">1.428</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row-label">Berhenti langganan</span>
+                <span id="stat-unsubscribed" class="metric-row-val" style="color: var(--color-danger);">52</span>
+              </div>
+            </div>
+            <div class="step-connector-info">
+              <span class="conversion-label">Rasio Retensi:</span>
+              <span id="step4-conv" class="conversion-rate">96,4% Sehat</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 3. LOWER SECTION: OPERATIONAL OUTBOX + ACTIVITY FEED -->
+      <section class="lower-grid">
+        
+        <!-- KOLOM KIRI: STATUS PENGIRIMAN & OUTBOX -->
+        <article class="panel-card">
+          <h3 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            Detail Operasional Outbox
+          </h3>
+          <p class="panel-sub">Status teknis pengiriman email konfirmasi dan token unduhan.</p>
+          
+          <div class="outbox-list">
+            <div class="outbox-row">
+              <div class="outbox-row-info">
+                <span class="outbox-status-dot green"></span>
+                <div>
+                  <div class="outbox-name">Email Konfirmasi Akun</div>
+                  <div class="outbox-desc">Outbox tipe 'confirmation' terkirim</div>
+                </div>
+              </div>
+              <span id="outbox-conf-val" class="outbox-count">1.480</span>
+            </div>
+
+            <div class="outbox-row">
+              <div class="outbox-row-info">
+                <span class="outbox-status-dot blue"></span>
+                <div>
+                  <div class="outbox-name">Email Akses Hadiah Digital</div>
+                  <div class="outbox-desc">Outbox tipe 'reward_access' terkirim</div>
+                </div>
+              </div>
+              <span id="outbox-reward-val" class="outbox-count">1.260</span>
+            </div>
+
+            <div class="outbox-row">
+              <div class="outbox-row-info">
+                <span class="outbox-status-dot amber"></span>
+                <div>
+                  <div class="outbox-name">Subscriber Berhenti (Unsubscribe)</div>
+                  <div class="outbox-desc">Permintaan berhenti langganan newsletter</div>
+                </div>
+              </div>
+              <span id="outbox-unsub-val" class="outbox-count" style="color: var(--color-text-muted);">52</span>
+            </div>
+          </div>
+
+          <div class="panel-footer-action">
+            <a href="#domains" class="link-action">
+              Periksa kesehatan domain & DNS
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <!-- KOLOM KANAN: STREAM AKTIVITAS TERKINI (LIVE FEED) -->
+        <article class="panel-card">
+          <h3 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Aktivitas Terkini di Sistem
+          </h3>
+          <p class="panel-sub">Pencatatan interaksi klaim hadiah dan akses pengguna terbaru.</p>
+          
+          <div id="activity-feed" class="feed-list">
+            <!-- Feed Item 1 -->
+            <div class="feed-item">
+              <div class="feed-avatar">RC</div>
+              <div class="feed-content">
+                <div class="feed-line">
+                  <span class="feed-target">Klaim Hadiah baru</span> dari <code>di***@gmail.com</code>
+                </div>
+                <div class="feed-meta">
+                  <span>Campaign: Checklist Kerja Remote 2026</span>
+                  <span>•</span>
+                  <span>4 menit lalu</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feed Item 2 -->
+            <div class="feed-item">
+              <div class="feed-avatar gold">TK</div>
+              <div class="feed-content">
+                <div class="feed-line">
+                  <span class="feed-target">Token Sesi Unduhan Dibuat</span> untuk <code>kurn***@outlook.com</code>
+                </div>
+                <div class="feed-meta">
+                  <span>Aset: Template-Notion-WFA.zip</span>
+                  <span>•</span>
+                  <span>18 menit lalu</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feed Item 3 -->
+            <div class="feed-item">
+              <div class="feed-avatar">CF</div>
+              <div class="feed-content">
+                <div class="feed-line">
+                  <span class="feed-target">Email Konfirmasi Terkirim</span> ke <code>budi.pras***@yahoo.com</code>
+                </div>
+                <div class="feed-meta">
+                  <span>Outbox: confirmation • ID: #9042</span>
+                  <span>•</span>
+                  <span>35 menit lalu</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feed Item 4 -->
+            <div class="feed-item">
+              <div class="feed-avatar">BC</div>
+              <div class="feed-content">
+                <div class="feed-line">
+                  <span class="feed-target">Broadcast Email Selesai</span>
+                </div>
+                <div class="feed-meta">
+                  <span>1.240 subscriber • 0 bounce</span>
+                  <span>•</span>
+                  <span>2 jam lalu</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-footer-action">
+            <a href="#audit" class="link-action">
+              Buka riwayat audit log lengkap
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- LIGHTWEIGHT INTERACTIVE DEMO SCRIPT -->
+  <script>
+    const populatedData = {
+      activeSubscribers: "1.428",
+      downloads: "942",
+      accessRate: "74,8%",
+      totalContacts: "1.520",
+      totalClaims: "1.480",
+      step1Conv: "97,3% Valid",
+      confirmationsSent: "1.480",
+      rewardAccessSent: "1.260",
+      step2Conv: "85,1% Sent",
+      confirmed30d: "1.260",
+      downloadsIssued: "942",
+      step3Conv: "74,8% Rasio",
+      pipelineActiveSubscribers: "1.428",
+      unsubscribed: "52",
+      step4Conv: "96,4% Sehat",
+      outboxConf: "1.480",
+      outboxReward: "1.260",
+      outboxUnsub: "52",
+      feedHTML: `
+        <div class="feed-item">
+          <div class="feed-avatar">RC</div>
+          <div class="feed-content">
+            <div class="feed-line"><span class="feed-target">Klaim Hadiah baru</span> dari <code>di***@gmail.com</code></div>
+            <div class="feed-meta"><span>Campaign: Checklist Kerja Remote 2026</span><span>•</span><span>4 menit lalu</span></div>
+          </div>
+        </div>
+        <div class="feed-item">
+          <div class="feed-avatar gold">TK</div>
+          <div class="feed-content">
+            <div class="feed-line"><span class="feed-target">Token Sesi Unduhan Dibuat</span> untuk <code>kurn***@outlook.com</code></div>
+            <div class="feed-meta"><span>Aset: Template-Notion-WFA.zip</span><span>•</span><span>18 menit lalu</span></div>
+          </div>
+        </div>
+        <div class="feed-item">
+          <div class="feed-avatar">CF</div>
+          <div class="feed-content">
+            <div class="feed-line"><span class="feed-target">Email Konfirmasi Terkirim</span> ke <code>budi.pras***@yahoo.com</code></div>
+            <div class="feed-meta"><span>Outbox: confirmation • ID: #9042</span><span>•</span><span>35 menit lalu</span></div>
+          </div>
+        </div>
+        <div class="feed-item">
+          <div class="feed-avatar">BC</div>
+          <div class="feed-content">
+            <div class="feed-line"><span class="feed-target">Broadcast Email Selesai</span></div>
+            <div class="feed-meta"><span>1.240 subscriber • 0 bounce</span><span>•</span><span>2 jam lalu</span></div>
+          </div>
+        </div>
+      `
+    };
+
+    const zeroData = {
+      activeSubscribers: "0",
+      downloads: "0",
+      accessRate: "—",
+      totalContacts: "0",
+      totalClaims: "0",
+      step1Conv: "0% Masuk",
+      confirmationsSent: "0",
+      rewardAccessSent: "0",
+      step2Conv: "0% Sent",
+      confirmed30d: "0",
+      downloadsIssued: "0",
+      step3Conv: "—",
+      pipelineActiveSubscribers: "0",
+      unsubscribed: "0",
+      step4Conv: "100% Sehat",
+      outboxConf: "0",
+      outboxReward: "0",
+      outboxUnsub: "0",
+      feedHTML: `
+        <div class="feed-item" style="padding: 24px 0; justify-content: center; text-align: center; color: var(--color-text-muted);">
+          <div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 8px; opacity: 0.6;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p style="font-size: 13px; font-weight: 500;">Belum ada riwayat aktivitas tercatat.</p>
+            <p style="font-size: 11.5px; opacity: 0.8; margin-top: 2px;">Aktivitas klaim atau pengiriman email akan otomatis muncul di sini.</p>
+          </div>
+        </div>
+      `
+    };
+
+    function switchMode(mode) {
+      const data = mode === "zero" ? zeroData : populatedData;
+      
+      document.getElementById("btn-mode-populated").classList.toggle("active", mode === "populated");
+      document.getElementById("btn-mode-zero").classList.toggle("active", mode === "zero");
+
+      document.getElementById("stat-active-subscribers").textContent = data.activeSubscribers;
+      document.getElementById("stat-downloads").textContent = data.downloads;
+      document.getElementById("stat-access-rate").textContent = data.accessRate;
+
+      document.getElementById("stat-total-contacts").textContent = data.totalContacts;
+      document.getElementById("stat-total-claims").textContent = data.totalClaims;
+      document.getElementById("step1-conv").textContent = data.step1Conv;
+
+      document.getElementById("stat-confirmations-sent").textContent = data.confirmationsSent;
+      document.getElementById("stat-reward-access-sent").textContent = data.rewardAccessSent;
+      document.getElementById("step2-conv").textContent = data.step2Conv;
+
+      document.getElementById("stat-confirmed-30d").textContent = data.confirmed30d;
+      document.getElementById("stat-downloads-issued").textContent = data.downloadsIssued;
+      document.getElementById("step3-conv").textContent = data.step3Conv;
+
+      document.getElementById("stat-active-subscribers-pipeline").textContent = data.pipelineActiveSubscribers;
+      document.getElementById("stat-unsubscribed").textContent = data.unsubscribed;
+      document.getElementById("step4-conv").textContent = data.step4Conv;
+
+      document.getElementById("outbox-conf-val").textContent = data.outboxConf;
+      document.getElementById("outbox-reward-val").textContent = data.outboxReward;
+      document.getElementById("outbox-unsub-val").textContent = data.outboxUnsub;
+
+      document.getElementById("activity-feed").innerHTML = data.feedHTML;
+    }
+  </script>
+</body>
+</html>

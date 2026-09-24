@@ -2,6 +2,7 @@
 import AdminLayout from "../../layouts/AdminLayout.astro";
 import { getAdmin } from "../../lib/admin/guard";
 import { getFunnelStats } from "../../lib/funnel";
+import { listAuditEvents } from "../../lib/admin/audit";
 
 // Route on-demand — guard cookie + agregat funnel bersifat per-request.
 export const prerender = false;
@@ -10,7 +11,11 @@ const secure = Astro.url.protocol === "https:";
 const admin = await getAdmin(Astro.cookies, secure);
 if (!admin) return Astro.redirect("/admin/login", 303);
 
-const stats = await getFunnelStats();
+const [stats, auditData] = await Promise.all([
+  getFunnelStats(),
+  listAuditEvents({ limit: 4 }).catch(() => ({ rows: [], total: 0 })),
+]);
+
 const fmt = new Intl.NumberFormat("id-ID");
 function fmtNum(n: number): string {
   return fmt.format(n);
@@ -20,95 +25,905 @@ function fmtNum(n: number): string {
 const accessRate =
   stats.rewardAccessSent > 0 ? `${fmt.format((stats.downloadsIssued / stats.rewardAccessSent) * 100)}%` : "—";
 
-const cards: { label: string; value: string; helper: string }[] = [
-  { label: "Total kontak", value: fmtNum(stats.contactsTotal), helper: "Semua email yang pernah submit" },
-  {
-    label: "Terkonfirmasi 30 hari",
-    value: fmtNum(stats.contactsConfirmed30d),
-    helper: "confirmed_at ≥ 30 hari terakhir",
-  },
-  { label: "Subscriber aktif", value: fmtNum(stats.activeSubscribers), helper: "marketing_subscription aktif" },
-  { label: "Total klaim", value: fmtNum(stats.claimsTotal), helper: "reward_claim tercatat" },
-  { label: "Email konfirmasi", value: fmtNum(stats.confirmationsSent), helper: "outbox tipe confirmation" },
-  { label: "Email akses hadiah", value: fmtNum(stats.rewardAccessSent), helper: "outbox tipe reward_access" },
-  { label: "Unduhan diterbitkan", value: fmtNum(stats.downloadsIssued), helper: "token sesi akses dibuat" },
-  { label: "Berhenti berlangganan", value: fmtNum(stats.unsubscribedTotal), helper: "marketing_subscription berhenti" },
-];
+// Funnel conversion stage rates
+const step1Rate =
+  stats.contactsTotal > 0
+    ? `${fmt.format(Math.min(100, (stats.claimsTotal / stats.contactsTotal) * 100))}% Valid`
+    : stats.claimsTotal > 0
+      ? "100% Valid"
+      : "0% Masuk";
+
+const step2Rate =
+  stats.confirmationsSent > 0
+    ? `${fmt.format(Math.min(100, (stats.rewardAccessSent / stats.confirmationsSent) * 100))}% Sent`
+    : "0% Sent";
+
+const step3Rate = accessRate !== "—" ? `${accessRate} Rasio` : "—";
+
+const totalRetentionAudience = stats.activeSubscribers + stats.unsubscribedTotal;
+const step4Rate =
+  totalRetentionAudience > 0
+    ? `${fmt.format((stats.activeSubscribers / totalRetentionAudience) * 100)}% Sehat`
+    : "100% Sehat";
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+function fmtDate(d: Date): string {
+  return dateFmt.format(d);
+}
+
+function getActionLabel(action: string): string {
+  if (action === "otp_login") return "Login OTP Admin";
+  if (action === "create_campaign") return "Buat Campaign Baru";
+  if (action === "update_campaign") return "Perbarui Campaign";
+  if (action === "publish_campaign") return "Publikasi Campaign";
+  if (action === "pause_campaign") return "Jeda Campaign";
+  if (action === "schedule_broadcast") return "Jadwalkan Broadcast";
+  if (action === "claim_submitted") return "Klaim Hadiah Masuk";
+  return action;
+}
+
+function getActionAvatar(action: string): { label: string; isGold: boolean } {
+  if (action === "claim_submitted" || action.includes("claim")) return { label: "RC", isGold: false };
+  if (action === "publish_campaign" || action.includes("download")) return { label: "TK", isGold: true };
+  if (action.includes("broadcast") || action.includes("email")) return { label: "BC", isGold: false };
+  return { label: "AD", isGold: false };
+}
 ---
 <AdminLayout title="Dashboard" admin={admin}>
-  <div class="page-head">
-    <div>
-      <h1>Dashboard Funnel</h1>
-      <p class="helper">Statistik berbasis data tersimpan; tanpa pelacakan page-view.</p>
-    </div>
-    <div class="head-links">
-      <a href="/admin/contacts">Kontak</a>
-      <a href="/admin/campaigns">Reward Campaign</a>
-      <a href="/admin/audit">Lihat audit log</a>
-    </div>
-  </div>
+  <div class="dashboard-shell">
+    
+    <!-- COMMAND BAR / HEADER -->
+    <header class="page-header">
+      <div class="header-main">
+        <div class="breadcrumbs">
+          <span>Ringkasan Ekosistem</span>
+          <span class="bc-sep">/</span>
+          <span>Funnel Analitik</span>
+        </div>
+        <h1 class="page-title">Dashboard Funnel</h1>
+        <div class="subtitle-wrap">
+          <p class="helper">Statistik berbasis data tersimpan; tanpa pelacakan page-view.</p>
+          <div class="live-indicator" aria-label="Status database real-time">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span>Database Real-time</span>
+          </div>
+        </div>
+      </div>
 
-  <div class="cards">
-    {cards.map((c) => (
-      <article class="card">
-        <p class="card-label">{c.label}</p>
-        <p class="card-value">{c.value}</p>
-        <p class="card-helper">{c.helper}</p>
+      <div class="header-actions">
+        <a href="/admin/audit" class="btn btn-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+          Lihat audit log
+        </a>
+        <a href="/admin/contacts" class="btn btn-secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Kontak
+        </a>
+        <a href="/admin/campaigns" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Reward Campaign
+        </a>
+      </div>
+    </header>
+
+    <!-- 1. HERO KPIS (3 METRIK UTAMA) -->
+    <section class="hero-kpis" aria-label="Metrik Utama">
+      <!-- KPI 1 -->
+      <article class="hero-card">
+        <div class="hero-card-top">
+          <span class="hero-title">Subscriber aktif</span>
+          <div class="hero-icon-wrap primary" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+        </div>
+        <div class="hero-value">{fmtNum(stats.activeSubscribers)}</div>
+        <div class="hero-footer">
+          <span class="badge-trend success">● Aktif</span>
+          <span class="hero-helper">marketing_subscription aktif</span>
+        </div>
       </article>
-    ))}
-    <article class="card">
-      <p class="card-label">Reward access rate</p>
-      <p class="card-value">{accessRate}</p>
-      <p class="card-helper">unduhan ÷ email akses hadiah</p>
-    </article>
+
+      <!-- KPI 2 -->
+      <article class="hero-card">
+        <div class="hero-card-top">
+          <span class="hero-title">Unduhan diterbitkan</span>
+          <div class="hero-icon-wrap sky" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          </div>
+        </div>
+        <div class="hero-value">{fmtNum(stats.downloadsIssued)}</div>
+        <div class="hero-footer">
+          <span class="badge-trend success">Fulfillment</span>
+          <span class="hero-helper">token sesi akses dibuat</span>
+        </div>
+      </article>
+
+      <!-- KPI 3 -->
+      <article class="hero-card featured">
+        <div class="hero-card-top">
+          <span class="hero-title" style="color: var(--color-ink);">Reward access rate</span>
+          <div class="hero-icon-wrap gold" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+          </div>
+        </div>
+        <div class="hero-value" style="color: var(--color-gold);">{accessRate}</div>
+        <div class="hero-footer">
+          <span class="badge-trend gold">KPI Konversi</span>
+          <span class="hero-helper">unduhan ÷ email akses hadiah</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- 2. FUNNEL CONVERSION PIPELINE (4 TAHAP ALUR) -->
+    <section class="funnel-container" aria-label="Alur Konversi Funnel">
+      <div class="section-head">
+        <div class="section-title-wrap">
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Alur Perjalanan Konversi
+          </h2>
+          <p class="section-desc">Visualisasi rasio perjalanan kontak dari pengisian formulir hingga unduh kado.</p>
+        </div>
+        <span class="funnel-tag">4 Tahap Utama</span>
+      </div>
+
+      <div class="pipeline-grid">
+        
+        <!-- STEP 1 -->
+        <div class="pipeline-step">
+          <div class="step-header">
+            <span class="step-number">Tahap 01</span>
+            <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <h3 class="step-name">1. Form & Klaim</h3>
+          <div class="step-metrics">
+            <div class="metric-row">
+              <span class="metric-row-label">Total kontak</span>
+              <span class="metric-row-val">{fmtNum(stats.contactsTotal)}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-row-label">Total klaim</span>
+              <span class="metric-row-val">{fmtNum(stats.claimsTotal)}</span>
+            </div>
+          </div>
+          <div class="step-connector-info">
+            <span class="conversion-label">Kelengkapan Form:</span>
+            <span class="conversion-rate">{step1Rate}</span>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="pipeline-step">
+          <div class="step-header">
+            <span class="step-number">Tahap 02</span>
+            <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <h3 class="step-name">2. Outbox & Verifikasi</h3>
+          <div class="step-metrics">
+            <div class="metric-row">
+              <span class="metric-row-label">Email konfirmasi</span>
+              <span class="metric-row-val">{fmtNum(stats.confirmationsSent)}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-row-label">Email akses hadiah</span>
+              <span class="metric-row-val">{fmtNum(stats.rewardAccessSent)}</span>
+            </div>
+          </div>
+          <div class="step-connector-info">
+            <span class="conversion-label">Konfirmasi Terbuka:</span>
+            <span class="conversion-rate">{step2Rate}</span>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="pipeline-step step-highlight">
+          <div class="step-header">
+            <span class="step-number" style="color: var(--color-gold);">Tahap 03</span>
+            <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <h3 class="step-name">3. Hadiah Terbuka</h3>
+          <div class="step-metrics">
+            <div class="metric-row">
+              <span class="metric-row-label">Terkonfirmasi 30 hari</span>
+              <span class="metric-row-val">{fmtNum(stats.contactsConfirmed30d)}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-row-label">Unduhan diterbitkan</span>
+              <span class="metric-row-val">{fmtNum(stats.downloadsIssued)}</span>
+            </div>
+          </div>
+          <div class="step-connector-info">
+            <span class="conversion-label">Access Rate:</span>
+            <span class="conversion-rate" style="color: var(--color-gold);">{step3Rate}</span>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="pipeline-step">
+          <div class="step-header">
+            <span class="step-number">Tahap 04</span>
+            <svg class="step-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          </div>
+          <h3 class="step-name">4. Retensi Komunitas</h3>
+          <div class="step-metrics">
+            <div class="metric-row">
+              <span class="metric-row-label">Subscriber aktif</span>
+              <span class="metric-row-val">{fmtNum(stats.activeSubscribers)}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-row-label">Berhenti berlangganan</span>
+              <span class="metric-row-val" style="color: var(--color-danger);">{fmtNum(stats.unsubscribedTotal)}</span>
+            </div>
+          </div>
+          <div class="step-connector-info">
+            <span class="conversion-label">Rasio Retensi:</span>
+            <span class="conversion-rate">{step4Rate}</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. LOWER SECTION: OPERATIONAL OUTBOX + ACTIVITY FEED -->
+    <section class="lower-grid">
+      
+      <!-- KOLOM KIRI: STATUS PENGIRIMAN & OUTBOX -->
+      <article class="panel-card">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          Detail Operasional Outbox
+        </h2>
+        <p class="panel-sub">Status teknis pengiriman email konfirmasi dan token unduhan.</p>
+        
+        <div class="outbox-list">
+          <div class="outbox-row">
+            <div class="outbox-row-info">
+              <span class="outbox-status-dot green" aria-hidden="true"></span>
+              <div>
+                <div class="outbox-name">Email Konfirmasi Akun</div>
+                <div class="outbox-desc">Outbox tipe 'confirmation' terkirim</div>
+              </div>
+            </div>
+            <span class="outbox-count">{fmtNum(stats.confirmationsSent)}</span>
+          </div>
+
+          <div class="outbox-row">
+            <div class="outbox-row-info">
+              <span class="outbox-status-dot blue" aria-hidden="true"></span>
+              <div>
+                <div class="outbox-name">Email Akses Hadiah Digital</div>
+                <div class="outbox-desc">Outbox tipe 'reward_access' terkirim</div>
+              </div>
+            </div>
+            <span class="outbox-count">{fmtNum(stats.rewardAccessSent)}</span>
+          </div>
+
+          <div class="outbox-row">
+            <div class="outbox-row-info">
+              <span class="outbox-status-dot amber" aria-hidden="true"></span>
+              <div>
+                <div class="outbox-name">Subscriber Berhenti (Unsubscribe)</div>
+                <div class="outbox-desc">Permintaan berhenti langganan newsletter</div>
+              </div>
+            </div>
+            <span class="outbox-count" style="color: var(--color-text-muted);">{fmtNum(stats.unsubscribedTotal)}</span>
+          </div>
+        </div>
+
+        <div class="panel-footer-action">
+          <a href="/admin/domains" class="link-action">
+            Periksa kesehatan domain & DNS
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- KOLOM KANAN: STREAM AKTIVITAS TERKINI (LIVE FEED) -->
+      <article class="panel-card">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Aktivitas Terkini di Sistem
+        </h2>
+        <p class="panel-sub">Pencatatan interaksi operasional dan akses sistem terbaru.</p>
+        
+        {auditData.rows.length === 0 ? (
+          <div class="feed-empty">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p class="empty-title">Belum ada aktivitas tercatat.</p>
+            <p class="empty-desc">Aktivitas klaim atau operasional admin akan otomatis muncul di sini.</p>
+          </div>
+        ) : (
+          <div class="feed-list">
+            {auditData.rows.map((row) => {
+              const avatar = getActionAvatar(row.action);
+              const label = getActionLabel(row.action);
+              return (
+                <div class="feed-item">
+                  <div class={`feed-avatar ${avatar.isGold ? "gold" : ""}`}>{avatar.label}</div>
+                  <div class="feed-content">
+                    <div class="feed-line">
+                      <span class="feed-target">{label}</span>
+                      {row.adminEmail && <span class="feed-by"> oleh <code>{row.adminEmail}</code></span>}
+                    </div>
+                    <div class="feed-meta">
+                      <span>{fmtDate(row.createdAt)}</span>
+                      {row.action && <span>• ID: {row.id.slice(0, 8)}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div class="panel-footer-action">
+          <a href="/admin/audit" class="link-action">
+            Buka riwayat audit log lengkap ({auditData.total} aktivitas)
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+      </article>
+
+    </section>
+
   </div>
 </AdminLayout>
 
 <style>
-  .page-head {
+  .dashboard-shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  /* -------------------------------------------------------------
+     COMMAND BAR / HEADER
+     ------------------------------------------------------------- */
+  .page-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-5);
-    margin-bottom: var(--space-8);
+    flex-wrap: wrap;
+    padding-bottom: var(--space-2);
   }
-  h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
-  .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
-  .head-links { display: flex; gap: var(--space-4); flex: none; }
-  .head-links a {
+  .header-main {
+    display: flex;
+    flex-direction: column;
+  }
+  .breadcrumbs {
+    font-size: var(--text-caption, 0.75rem);
+    font-weight: 600;
     color: var(--color-primary);
-    text-decoration: underline;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bc-sep { color: var(--color-text-muted); opacity: 0.6; }
+  .page-title {
+    color: var(--color-ink);
+    font-size: var(--text-h1, 2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+  }
+  .subtitle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .helper {
+    color: var(--color-text-muted);
     font-size: var(--text-body-sm);
-    min-height: 44px;
+    margin: 0;
+  }
+  .live-indicator {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    background: var(--color-success-subtle);
+    border: 1px solid rgba(35, 122, 85, 0.25);
+    border-radius: var(--radius-pill, 999px);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-success);
   }
-  .cards {
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 0 2px rgba(35, 122, 85, 0.2);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: var(--radius-control);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 160ms ease;
+    white-space: nowrap;
+    min-height: 42px;
+    box-sizing: border-box;
+  }
+  .btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 1px 2px rgba(23, 107, 91, 0.16);
+  }
+  .btn-primary:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
+  .btn-secondary {
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
+    border: var(--border-default);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  .btn-secondary:hover {
+    background: var(--color-surface-subtle);
+    border-color: #d8cdbe;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid transparent;
+  }
+  .btn-ghost:hover {
+    color: var(--color-ink);
+    background: rgba(21, 59, 53, 0.05);
+  }
+
+  /* -------------------------------------------------------------
+     1. HERO KPIS
+     ------------------------------------------------------------- */
+  .hero-kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-5);
   }
-  .card {
+  .hero-card {
     background: var(--color-surface-raised);
     border: var(--border-default);
     border-radius: var(--radius-card);
+    padding: var(--space-5) var(--space-6);
     box-shadow: var(--shadow-card);
-    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 140px;
+    transition: transform 180ms ease, box-shadow 180ms ease;
   }
-  .card-label {
-    color: var(--color-text-muted);
+  .hero-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card), 0 8px 24px rgba(21, 59, 53, 0.06);
+  }
+  .hero-card.featured {
+    background: linear-gradient(to bottom right, #ffffff, #fdfaf2);
+    border-color: #ded1be;
+  }
+  .hero-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .hero-title {
     font-size: var(--text-body-sm);
-    font-weight: var(--font-weight-semibold);
-    margin: 0 0 var(--space-2);
+    font-weight: 600;
+    color: var(--color-text-muted);
   }
-  .card-value {
+  .hero-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .hero-icon-wrap.primary {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+  }
+  .hero-icon-wrap.gold {
+    background: var(--color-gold-subtle);
+    color: var(--color-gold);
+  }
+  .hero-icon-wrap.sky {
+    background: var(--color-info-subtle);
+    color: var(--color-info);
+  }
+  .hero-value {
+    font-size: clamp(2rem, 3.2vw, 2.5rem);
+    font-weight: 700;
     color: var(--color-ink);
-    font-size: var(--text-h2);
-    font-weight: var(--font-weight-semibold);
-    margin: 0 0 var(--space-2);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
   }
-  .card-helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
-  @media (max-width: 640px) {
-    .page-head { flex-direction: column; }
+  .hero-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-caption, 0.75rem);
+    color: var(--color-text-muted);
+    flex-wrap: wrap;
+  }
+  .hero-helper {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption, 0.75rem);
+  }
+  .badge-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill, 999px);
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .badge-trend.success {
+    background: var(--color-success-subtle);
+    color: var(--color-success);
+  }
+  .badge-trend.gold {
+    background: var(--color-gold-subtle);
+    color: var(--color-warning);
+  }
+
+  /* -------------------------------------------------------------
+     2. VISUAL FUNNEL PIPELINE
+     ------------------------------------------------------------- */
+  .funnel-container {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-card);
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .section-title-wrap h2 {
+    font-size: var(--text-h3, 1.25rem);
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0 0 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-desc {
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+  .funnel-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill, 999px);
+    color: var(--color-text);
+  }
+
+  .pipeline-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+  }
+  .pipeline-step {
+    background: var(--color-canvas);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    transition: all 160ms ease;
+  }
+  .pipeline-step:hover {
+    border-color: #d1c5b3;
+    background: #fff;
+  }
+  .pipeline-step.step-highlight {
+    border-color: #ded1be;
+    background: #fffcf8;
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+  .step-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .step-icon { color: var(--color-text-muted); }
+  .step-name {
+    font-size: var(--text-body-sm);
+    font-weight: 600;
+    color: var(--color-ink);
+    margin: 0 0 12px;
+  }
+  .step-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex: 1;
+  }
+  .metric-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .metric-row-label {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+  }
+  .metric-row-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .step-connector-info {
+    padding-top: 10px;
+    border-top: 1px dashed var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+  }
+  .conversion-rate {
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+  .conversion-label { color: var(--color-text-muted); }
+
+  /* -------------------------------------------------------------
+     3. LOWER SECTION (OUTBOX + FEED)
+     ------------------------------------------------------------- */
+  .lower-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: var(--space-5);
+  }
+  .panel-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-5) var(--space-6);
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-sub {
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-4);
+  }
+
+  .outbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  .outbox-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--color-canvas);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    transition: background 160ms ease;
+  }
+  .outbox-row:hover { background: var(--color-surface-subtle); }
+  .outbox-row-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .outbox-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .outbox-status-dot.green { background: var(--color-success); }
+  .outbox-status-dot.blue { background: var(--color-info); }
+  .outbox-status-dot.amber { background: var(--color-warning); }
+  .outbox-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .outbox-desc {
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+  .outbox-count {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+  .feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .feed-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .feed-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid rgba(23, 107, 91, 0.2);
+  }
+  .feed-avatar.gold {
+    background: var(--color-gold-subtle);
+    color: var(--color-gold);
+    border-color: rgba(217, 144, 32, 0.25);
+  }
+  .feed-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .feed-line {
+    font-size: 13px;
+    color: var(--color-ink);
+    line-height: 1.35;
+    margin-bottom: 2px;
+  }
+  .feed-target {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+  .feed-by {
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+  .feed-by code {
+    font-size: 11px;
+    background: var(--color-surface-subtle);
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: var(--color-ink);
+  }
+  .feed-meta {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .feed-empty {
+    padding: var(--space-6) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-text-muted);
+    gap: 6px;
+    flex: 1;
+  }
+  .feed-empty svg { opacity: 0.6; }
+  .empty-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin: 0;
+  }
+  .empty-desc {
+    font-size: 11.5px;
+    margin: 0;
+  }
+
+  .panel-footer-action {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+  }
+  .link-action {
+    color: var(--color-primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .link-action:hover { text-decoration: underline; }
+
+  /* -------------------------------------------------------------
+     RESPONSIVE BREAKPOINTS
+     ------------------------------------------------------------- */
+  @media (max-width: 1120px) {
+    .hero-kpis { grid-template-columns: 1fr; gap: var(--space-4); }
+    .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
+    .lower-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .page-header { flex-direction: column; }
+    .pipeline-grid { grid-template-columns: 1fr; }
+    .header-actions { width: 100%; justify-content: flex-start; }
   }
 </style>

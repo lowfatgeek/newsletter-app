@@ -10,6 +10,15 @@ interface Props {
   admin?: { email: string } | null;
 }
 const { title, admin = null } = Astro.props;
+
+const currentPath = Astro.url.pathname;
+const isDashboard = currentPath === "/admin" || currentPath === "/admin/";
+const isReward = currentPath.startsWith("/admin/campaigns");
+const isEmail = currentPath.startsWith("/admin/email-campaigns");
+const isDoa = currentPath.startsWith("/admin/doa");
+const isContacts = currentPath.startsWith("/admin/contacts");
+const isDomains = currentPath.startsWith("/admin/domains");
+const isAudit = currentPath.startsWith("/admin/audit");
 ---
 <!doctype html>
 <html lang="id">
@@ -27,18 +36,59 @@ const { title, admin = null } = Astro.props;
     {admin && <label for="admin-nav-toggle" class="admin-nav-scrim" aria-hidden="true"></label>}
     {admin && (
       <aside class="admin-sidebar" id="admin-nav">
-        <strong class="admin-brand">KelasWFA Admin</strong>
+        <div class="admin-brand-header">
+          <div class="admin-brand-mark">W</div>
+          <div class="admin-brand-text">
+            <strong class="admin-brand">KelasWFA Admin</strong>
+            <span class="admin-brand-sub">Kado & Broadcast</span>
+          </div>
+        </div>
         <nav class="admin-nav" aria-label="Navigasi admin">
-          <a href="/admin/campaigns">Reward Campaign</a>
-          <a href="/admin/email-campaigns">Email Campaign</a>
-          <a href="/admin/doa">Preset Doa</a>
-          <a href="/admin/contacts">Kontak</a>
-          <a href="/admin/domains">Domain Email</a>
-          <a href="/admin/audit">Audit Log</a>
+          <a href="/admin" class={isDashboard ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Dashboard Funnel</span>
+            <span class="nav-badge gold" aria-hidden="true">Live</span>
+          </a>
+          <a href="/admin/campaigns" class={isReward ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect width="20" height="5" x="2" y="7"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            <span>Reward Campaign</span>
+          </a>
+          <a href="/admin/email-campaigns" class={isEmail ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>Email Campaign</span>
+          </a>
+          <a href="/admin/doa" class={isDoa ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Preset Doa</span>
+          </a>
+          <a href="/admin/contacts" class={isContacts ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Kontak</span>
+          </a>
+          <a href="/admin/domains" class={isDomains ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Domain Email</span>
+          </a>
+          <a href="/admin/audit" class={isAudit ? "active" : ""}>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+            <span>Audit Log</span>
+          </a>
         </nav>
-        <form method="post" action="/admin/api/logout" class="admin-logout">
-          <button type="submit">Keluar</button>
-        </form>
+        <div class="admin-sidebar-footer">
+          <div class="admin-profile">
+            <div class="profile-avatar">{admin.email ? admin.email.slice(0, 2).toUpperCase() : "AD"}</div>
+            <div class="profile-meta">
+              <div class="profile-email" title={admin.email}>{admin.email}</div>
+              <div class="profile-role">Super Admin</div>
+            </div>
+          </div>
+          <form method="post" action="/admin/api/logout" class="admin-logout">
+            <button type="submit" class="logout-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+              <span>Keluar</span>
+            </button>
+          </form>
+        </div>
       </aside>
     )}
     <main class={admin ? "admin-main" : "admin-auth"}>
@@ -83,43 +133,185 @@ const { title, admin = null } = Astro.props;
   .admin-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: 240px;
+    width: 250px;
     background: var(--color-ink);
     color: var(--color-canvas);
-    padding: var(--space-6);
+    padding: var(--space-5) var(--space-4);
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
     z-index: 30;
     overflow-y: auto;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-sizing: border-box;
   }
-  .admin-brand { margin-bottom: var(--space-5); color: var(--color-canvas); }
-  .admin-nav { display: flex; flex-direction: column; gap: var(--space-2); }
+  .admin-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: var(--space-2) var(--space-2) var(--space-5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: var(--space-2);
+  }
+  .admin-brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-ink) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gold-subtle);
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .admin-brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .admin-brand {
+    color: #fff;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .admin-brand-sub {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .admin-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
   .admin-nav a {
-    color: var(--color-canvas);
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
     padding: 10px 12px;
     border-radius: var(--radius-control);
-    min-height: 24px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 160ms ease;
+    box-sizing: border-box;
   }
-  .admin-nav a:hover { background: rgba(255, 252, 245, 0.1); }
-  .admin-logout { margin-top: auto; }
+  .admin-nav a:hover {
+    background: rgba(255, 252, 245, 0.1);
+    color: #fff;
+  }
+  .admin-nav a.active {
+    background: rgba(23, 107, 91, 0.55);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    border-left: 3.5px solid var(--color-gold);
+  }
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.8;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+    opacity: 0.9;
+  }
+  .nav-badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: var(--radius-badge, 999px);
+    font-weight: 600;
+  }
+  .nav-badge.gold {
+    background: var(--color-gold-subtle);
+    color: var(--color-warning);
+  }
+  .admin-sidebar-footer {
+    margin-top: auto;
+    padding-top: var(--space-4);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .admin-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius-control);
+  }
+  .profile-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+  }
+  .profile-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-email {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-role {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .admin-logout { width: 100%; }
+  .logout-btn,
   .admin-sidebar button,
   .admin-mobile-bar button {
-    background: none;
-    border: 1px solid rgba(255, 252, 245, 0.3);
-    color: var(--color-canvas);
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.85);
     border-radius: var(--radius-control);
-    padding: 10px 12px;
-    min-height: 44px;
+    padding: 8px 12px;
+    min-height: 42px;
     width: 100%;
     font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 160ms ease;
+    box-sizing: border-box;
+  }
+  .logout-btn:hover {
+    background: rgba(181, 60, 74, 0.2);
+    border-color: rgba(181, 60, 74, 0.4);
+    color: #ff9da8;
   }
   .admin-main {
-    margin-left: 240px;
+    margin-left: 250px;
     padding: var(--space-8);
-    max-width: calc(var(--admin-content) - 240px);
+    max-width: calc(var(--admin-content) - 250px);
+    width: calc(100% - 250px);
+    box-sizing: border-box;
   }
   .admin-mobile-bar { display: none; }
   .admin-auth {
@@ -173,7 +365,7 @@ const { title, admin = null } = Astro.props;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .admin-main { margin-left: 0; max-width: none; padding: var(--space-4); }
+    .admin-main { margin-left: 0; max-width: 100%; width: 100%; padding: var(--space-4); }
     .admin-mobile-bar {
       display: flex;
       align-items: center;
