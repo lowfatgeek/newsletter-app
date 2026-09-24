@@ -18,25 +18,36 @@ const resendHref = resendSlug ? (isEn ? `/en/r/${resendSlug}` : `/r/${resendSlug
 
 // Copy definitions
 const copy = {
-  headerBadge: isError
-    ? (isEn ? "Delivery Paused" : "Periksa Alamat Email")
-    : (isEn ? "Link Sent" : "Tautan Dikirim"),
+  headerBadge: isError ? (isEn ? "Delivery Paused" : "Periksa Alamat Email") : isEn ? "Link Sent" : "Tautan Dikirim",
   pillText: isError
-    ? (error === "too-fast"
-        ? (isEn ? "⏱ Reflection Time" : "⏱ Verifikasi Reflektif")
-        : (isEn ? "⚠️ Delivery Paused" : "⚠️ Pengiriman Tertunda"))
-    : (isEn ? "✉️ Link Dispatched" : "✉️ Tautan Terkirim"),
+    ? error === "too-fast"
+      ? isEn
+        ? "⏱ Reflection Time"
+        : "⏱ Verifikasi Reflektif"
+      : isEn
+        ? "⚠️ Delivery Paused"
+        : "⚠️ Pengiriman Tertunda"
+    : isEn
+      ? "✉️ Link Dispatched"
+      : "✉️ Tautan Terkirim",
   heading: isError
-    ? (error === "too-fast"
-        ? (isEn ? "Please take a moment" : "Mohon luangkan waktu sejenak")
-        : t(locale, "checkEmailErrorTitle"))
+    ? error === "too-fast"
+      ? isEn
+        ? "Please take a moment"
+        : "Mohon luangkan waktu sejenak"
+      : t(locale, "checkEmailErrorTitle")
     : t(locale, "checkEmailTitle"),
   lead: isError ? t(locale, "checkEmailErrorBody") : t(locale, "checkEmailBody"),
-  btnPrimarySuccess: isEn ? "Open Gmail ↗" : "Buka Gmail Langsung ↗",
+  btnPrimarySuccess: isEn ? "Open Gmail ↗" : "Buka Gmail ↗",
   btnSecondarySuccess: isEn ? "Open Yahoo Mail ↗" : "Buka Yahoo Mail ↗",
-  btnRetryError: error === "too-fast"
-    ? (isEn ? "Retry Gift Claim ↺" : "Ulangi Klaim Hadiah ↺")
-    : (isEn ? "Try Again with Another Email ↺" : "Coba Lagi dengan Email Lain ↺"),
+  btnRetryError:
+    error === "too-fast"
+      ? isEn
+        ? "Retry Gift Claim ↺"
+        : "Ulangi Klaim Hadiah ↺"
+      : isEn
+        ? "Try Again with Another Email ↺"
+        : "Coba Lagi dengan Email Lain ↺",
   resendText: isEn ? "Didn’t receive it? Resend link" : "Belum menerima email? Kirim ulang",
   backText: isEn ? "← Back to gift page" : "← Kembali ke halaman hadiah",
   whitelistTag: isEn ? "Whitelist Advice" : "Tips Bebas Nyasar",
@@ -46,11 +57,11 @@ const copy = {
   contact1Role: isEn ? "Gift Links & Confirmations" : "Tautan Kado & Konfirmasi",
   contact2Role: isEn ? "Newsletter & Weekly Editions" : "Newsletter & Materi Berkala",
   whitelistNote: isEn
-    ? "If our email lands in Spam or Promotions, open it and click <strong>\"Not Spam\"</strong> or drag it to your <strong>Primary</strong> tab."
-    : "Jika masuk ke folder Spam/Promosi, buka pesannya lalu klik <strong>\"Laporkan Bukan Spam\"</strong> atau pindahkan ke tab <strong>Utama</strong>.",
+    ? 'If our email lands in Spam or Promotions, open it and click <strong>"Not Spam"</strong> or drag it to your <strong>Primary</strong> tab.'
+    : 'Jika masuk ke folder Spam/Promosi, buka pesannya lalu klik <strong>"Laporkan Bukan Spam"</strong> atau pindahkan ke tab <strong>Utama</strong>.',
   supportText: isEn
-    ? "Need assistance or having delivery issues? Contact us at <a href=\"mailto:hi@kelaswfa.my.id\">hi@kelaswfa.my.id</a>"
-    : "Butuh bantuan atau mengalami kendala pengiriman? Hubungi kami di <a href=\"mailto:hi@kelaswfa.my.id\">hi@kelaswfa.my.id</a>",
+    ? 'Need assistance or having delivery issues? Contact us at <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+    : 'Butuh bantuan atau mengalami kendala pengiriman? Hubungi kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>',
 };
 ---
 

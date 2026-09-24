@@ -1,8 +1,8 @@
 ---
 import AdminLayout from "../../layouts/AdminLayout.astro";
+import { listAuditEvents } from "../../lib/admin/audit";
 import { getAdmin } from "../../lib/admin/guard";
 import { getFunnelStats } from "../../lib/funnel";
-import { listAuditEvents } from "../../lib/admin/audit";
 
 // Route on-demand — guard cookie + agregat funnel bersifat per-request.
 export const prerender = false;

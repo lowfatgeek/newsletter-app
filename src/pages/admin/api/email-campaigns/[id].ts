@@ -123,4 +123,3 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
   if (result.ok) return json({ ok: true });
   return json({ ok: false, reason: result.reason }, result.reason === "not-found" ? 404 : 400);
 };
-

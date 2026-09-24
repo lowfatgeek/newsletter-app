@@ -179,7 +179,7 @@ export function confirmationEmail(locale: "id" | "en", confirmUrl: string) {
       html: layout(
         "en",
         "Confirm your email",
-        "<p style=\"margin:0 0 16px 0;\">Tap the button below to confirm your email and unlock your reward.</p>",
+        '<p style="margin:0 0 16px 0;">Tap the button below to confirm your email and unlock your reward.</p>',
         "Confirm Email & Unlock Gift →",
         confirmUrl,
         {
@@ -198,7 +198,7 @@ export function confirmationEmail(locale: "id" | "en", confirmUrl: string) {
     html: layout(
       "id",
       "Satu langkah lagi",
-      "<p style=\"margin:0 0 16px 0;\">Klik tombol di bawah untuk mengonfirmasi emailmu dan membuka hadiah dari KelasWFA.</p>",
+      '<p style="margin:0 0 16px 0;">Klik tombol di bawah untuk mengonfirmasi emailmu dan membuka hadiah dari KelasWFA.</p>',
       "Konfirmasi Email & Buka Hadiah →",
       confirmUrl,
       {

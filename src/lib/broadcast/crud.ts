@@ -164,10 +164,7 @@ export type DeleteDraftResult = { ok: true } | { ok: false; reason: "not-found" 
  * Hapus draft campaign. Hanya campaign berstatus 'draft' yang diizinkan untuk
  * dihapus; status selain draft (scheduled/queued/sending/completed) terkunci.
  */
-export async function deleteEmailCampaignDraft(
-  id: string,
-  auditOpts?: AuditOpts,
-): Promise<DeleteDraftResult> {
+export async function deleteEmailCampaignDraft(id: string, auditOpts?: AuditOpts): Promise<DeleteDraftResult> {
   if (!isValidUuid(id)) return { ok: false, reason: "not-found" };
 
   const [campaign] = await db
@@ -188,4 +185,3 @@ export async function deleteEmailCampaignDraft(
 
   return { ok: true };
 }
-
