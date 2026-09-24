@@ -1,5 +1,11 @@
 import type { APIRoute } from "astro";
-import { changeSlug, getCampaignById, updateCampaignMeta, upsertCampaignLocale } from "../../../../lib/admin/campaigns";
+import {
+  changeSlug,
+  deleteCampaign,
+  getCampaignById,
+  updateCampaignMeta,
+  upsertCampaignLocale,
+} from "../../../../lib/admin/campaigns";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../lib/admin/guard";
 import { clientIp } from "../../../../lib/ip";
@@ -131,4 +137,52 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
   }
 
   return new Response(JSON.stringify({ ok: true }), { headers: noStore });
+};
+
+/**
+ * DELETE /admin/api/campaigns/[id] — hapus reward campaign.
+ * Query param ?force=true atau JSON body { force?: boolean } untuk menghapus paksa bila ada klaim.
+ * 200 { ok: true }
+ * 400 { ok: false, reason: "has-claims", claimsCount: number }
+ * 404 { ok: false, reason: "not-found" }
+ * 401 { ok: false, reason: "unauthorized" }
+ * 403 { ok: false, reason: "forbidden" }
+ */
+export const DELETE: APIRoute = async ({ request, cookies, params, url }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const admin = await getAdmin(cookies);
+  if (!admin) {
+    return new Response(JSON.stringify({ ok: false, reason: "unauthorized" }), { status: 401, headers: noStore });
+  }
+
+  const id = params.id ?? "";
+  if (!id) {
+    return new Response(JSON.stringify({ ok: false, reason: "invalid" }), { status: 400, headers: noStore });
+  }
+
+  let force = url.searchParams.get("force") === "true";
+  if (!force) {
+    try {
+      const body = await request.json();
+      if (body && body.force === true) force = true;
+    } catch {
+      // Body opsional / request tanpa body
+    }
+  }
+
+  const ip = clientIp(request);
+  const auditOpts = { adminUserId: admin.id, ip };
+
+  const result = await deleteCampaign(id, { force }, auditOpts);
+  if (result.ok) {
+    return new Response(JSON.stringify({ ok: true }), { headers: noStore });
+  }
+
+  const status = result.reason === "not-found" ? 404 : 400;
+  return new Response(JSON.stringify(result), { status, headers: noStore });
 };

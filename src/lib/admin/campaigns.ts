@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from "../pgerror";
 import { listCampaignAssets } from "../rewards";
@@ -9,6 +9,7 @@ import {
   rewardAssets,
   rewardCampaignLocales,
   rewardCampaigns,
+  rewardClaims,
 } from "../schema";
 import { isValidUuid } from "../uuid";
 import { audit } from "./audit";
@@ -245,6 +246,67 @@ export async function setCampaignStatus(
     ...auditArgs(auditOpts),
     detail: { campaignId: id, from: camp.status, to: nextStatus },
   });
+  return { ok: true };
+}
+
+export type DeleteCampaignResult =
+  | { ok: true }
+  | { ok: false; reason: "not-found" }
+  | { ok: false; reason: "has-claims"; claimsCount: number };
+
+/**
+ * Hapus reward campaign.
+ * Bila campaign memiliki riwayat klaim pengunjung dan force !== true, operasi
+ * ditolak dengan reason "has-claims" serta mengembalikan claimsCount.
+ * Bila force === true, data klaim (beserta cascade access_token) dihapus dalam
+ * transaksi bersama campaign (beserta cascade locales, assets, doa, redirects).
+ */
+export async function deleteCampaign(
+  id: string,
+  options?: { force?: boolean },
+  auditOpts?: AuditOpts,
+): Promise<DeleteCampaignResult> {
+  if (!isValidUuid(id)) return { ok: false, reason: "not-found" };
+
+  const [campaign] = await db
+    .select({
+      id: rewardCampaigns.id,
+      slug: rewardCampaigns.slug,
+      status: rewardCampaigns.status,
+    })
+    .from(rewardCampaigns)
+    .where(eq(rewardCampaigns.id, id));
+
+  if (!campaign) return { ok: false, reason: "not-found" };
+
+  const [claimRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(rewardClaims)
+    .where(eq(rewardClaims.campaignId, id));
+
+  const claimsCount = claimRow?.count ?? 0;
+
+  if (claimsCount > 0 && !options?.force) {
+    return { ok: false, reason: "has-claims", claimsCount };
+  }
+
+  await db.transaction(async (tx) => {
+    if (claimsCount > 0) {
+      await tx.delete(rewardClaims).where(eq(rewardClaims.campaignId, id));
+    }
+    await tx.delete(rewardCampaigns).where(eq(rewardCampaigns.id, id));
+  });
+
+  await audit("campaign_deleted", {
+    ...auditArgs(auditOpts),
+    detail: {
+      campaignId: id,
+      slug: campaign.slug,
+      status: campaign.status,
+      claimsDeleted: claimsCount,
+    },
+  });
+
   return { ok: true };
 }
 

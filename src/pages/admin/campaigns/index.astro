@@ -96,6 +96,15 @@ function fmtDate(d: Date | null): string {
                   <a href={`/admin/campaigns/${row.id}`}>Edit</a>
                   <a href={`/admin/preview/${row.id}`}>Preview</a>
                   <a href={`/r/${row.slug}`} target="_blank" rel="noopener noreferrer" title="Buka halaman publik di tab baru">Buka</a>
+                  <button
+                    type="button"
+                    class="btn-delete-campaign"
+                    data-id={row.id}
+                    data-name={row.titleId || row.slug}
+                    title="Hapus reward campaign"
+                  >
+                    Hapus
+                  </button>
                 </td>
               </tr>
             );
@@ -224,6 +233,26 @@ function fmtDate(d: Date | null): string {
     display: inline-flex;
     align-items: center;
   }
+  .btn-delete-campaign {
+    background: transparent;
+    border: none;
+    color: var(--color-danger);
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    padding: 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn-delete-campaign:hover {
+    color: #8c2531;
+  }
+  .btn-delete-campaign:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
 
   @media (max-width: 640px) {
     .page-head { flex-direction: column; }
@@ -292,6 +321,52 @@ function fmtDate(d: Date | null): string {
         }, 1800);
       } catch (err) {
         console.error("Failed to copy:", err);
+      }
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".btn-delete-campaign").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const name = btn.dataset.name ?? "campaign ini";
+      if (!id) return;
+      if (!window.confirm(`Yakin ingin menghapus reward campaign "${name}"? Tindakan ini tidak dapat dibatalkan.`)) {
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        let res = await fetch(`/admin/api/campaigns/${id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        });
+        let data = await res.json();
+
+        if (!res.ok && data.reason === "has-claims") {
+          const forceConfirm = window.confirm(
+            `Campaign "${name}" memiliki ${data.claimsCount} data klaim dari pengunjung. Hapus paksa beserta semua riwayat klaimnya?`
+          );
+          if (!forceConfirm) {
+            btn.disabled = false;
+            return;
+          }
+          res = await fetch(`/admin/api/campaigns/${id}?force=true`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+          });
+          data = await res.json();
+        }
+
+        if (data.ok) {
+          window.location.reload();
+          return;
+        }
+
+        alert(data.reason === "not-found" ? "Campaign tidak ditemukan." : "Gagal menghapus campaign.");
+        btn.disabled = false;
+      } catch {
+        alert("Terjadi kesalahan jaringan saat menghapus campaign.");
+        btn.disabled = false;
       }
     });
   });

@@ -100,6 +100,7 @@ function excerpt(text: string, max = 80): string {
       </button>
       <button type="button" id="save-btn" class={campaign.status === "draft" ? "btn-secondary" : "btn-primary"}>Simpan</button>
       <a href={`/admin/preview/${campaign.id}`} class="btn-secondary">Preview</a>
+      <button type="button" id="btn-delete-campaign" class="btn-ghost-danger">Hapus</button>
     </div>
   </div>
 
@@ -649,6 +650,7 @@ function excerpt(text: string, max = 80): string {
       {campaign.status !== "archived" && (
         <button type="button" class="btn-secondary" data-status-action="duplicate" data-slug={campaign.slug}>Gandakan</button>
       )}
+      <button type="button" class="btn-ghost-danger" id="btn-delete-campaign-bottom">Hapus campaign</button>
     </div>
   </section>
 </AdminLayout>
@@ -2357,4 +2359,55 @@ function excerpt(text: string, max = 80): string {
       }
     });
   });
+
+  async function handleDeleteCampaign() {
+    const title = titleId?.value.trim() || slugInput?.value.trim() || "campaign ini";
+    if (!window.confirm(`Yakin ingin menghapus reward campaign "${title}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      return;
+    }
+
+    try {
+      let res = await fetch(`/admin/api/campaigns/${campaignId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+      let data = await res.json();
+
+      if (!res.ok && data.reason === "has-claims") {
+        const forceConfirm = window.confirm(
+          `Campaign "${title}" memiliki ${data.claimsCount} data klaim dari pengunjung. Hapus paksa beserta semua riwayat klaimnya?`
+        );
+        if (!forceConfirm) return;
+
+        res = await fetch(`/admin/api/campaigns/${campaignId}?force=true`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        });
+        data = await res.json();
+      }
+
+      if (data.ok) {
+        window.location.assign("/admin/campaigns");
+        return;
+      }
+
+      if (globalError) {
+        globalError.textContent =
+          data.reason === "not-found" ? "Campaign tidak ditemukan." : "Gagal menghapus campaign.";
+        globalError.hidden = false;
+      } else {
+        alert(data.reason === "not-found" ? "Campaign tidak ditemukan." : "Gagal menghapus campaign.");
+      }
+    } catch {
+      if (globalError) {
+        globalError.textContent = "Terjadi kesalahan jaringan saat menghapus campaign.";
+        globalError.hidden = false;
+      } else {
+        alert("Terjadi kesalahan jaringan saat menghapus campaign.");
+      }
+    }
+  }
+
+  $<HTMLButtonElement>("#btn-delete-campaign")?.addEventListener("click", handleDeleteCampaign);
+  $<HTMLButtonElement>("#btn-delete-campaign-bottom")?.addEventListener("click", handleDeleteCampaign);
 </script>

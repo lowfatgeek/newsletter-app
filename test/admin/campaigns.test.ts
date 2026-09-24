@@ -4,6 +4,7 @@ import {
   changeSlug,
   checkPublishReadiness,
   createCampaign,
+  deleteCampaign,
   duplicateCampaign,
   getCampaignById,
   setCampaignStatus,
@@ -13,7 +14,15 @@ import {
   validateSlug,
 } from "../../src/lib/admin/campaigns";
 import { db } from "../../src/lib/db";
-import { adminAuditLog, campaignRedirects, doaTemplates, rewardAssets, rewardCampaigns } from "../../src/lib/schema";
+import {
+  adminAuditLog,
+  campaignRedirects,
+  contacts,
+  doaTemplates,
+  rewardAssets,
+  rewardCampaigns,
+  rewardClaims,
+} from "../../src/lib/schema";
 import { resetDb } from "../helpers";
 
 const AUDIT = { adminUserId: null, ip: "127.0.0.1" };
@@ -236,5 +245,60 @@ describe("campaigns lib", () => {
     expect(await updatedRows()).toHaveLength(0);
     await updateCampaignMeta(id, { order: 3 }, AUDIT);
     expect(await updatedRows()).toHaveLength(1);
+  });
+
+  it("deleteCampaign rejects invalid uuid and missing campaign", async () => {
+    expect(await deleteCampaign("not-a-uuid")).toEqual({ ok: false, reason: "not-found" });
+    expect(await deleteCampaign("00000000-0000-0000-0000-000000000000")).toEqual({
+      ok: false,
+      reason: "not-found",
+    });
+  });
+
+  it("deleteCampaign deletes draft campaign and cascade records", async () => {
+    const { id } = (await createCampaign({ slug: "del-draft" })) as { ok: true; id: string };
+    await upsertCampaignLocale(id, "id", { title: "Title ID", description: "Desc", rewardItems: [] });
+    await db.insert(rewardAssets).values({
+      campaignId: id,
+      storageKey: "test-key",
+      nameId: "Asset 1",
+      mimeType: "application/pdf",
+      sizeBytes: 1024,
+      checksum: "abc",
+    });
+
+    const res = await deleteCampaign(id, {}, AUDIT);
+    expect(res).toEqual({ ok: true });
+
+    const exists = await getCampaignById(id);
+    expect(exists).toBeNull();
+
+    // Verify audit log
+    const deletedLogs = await db.select().from(adminAuditLog).where(eq(adminAuditLog.action, "campaign_deleted"));
+    expect(deletedLogs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("deleteCampaign handles campaign with claims: blocks when force=false, deletes when force=true", async () => {
+    const { id } = (await createCampaign({ slug: "del-claims" })) as { ok: true; id: string };
+    const [c] = await db.insert(contacts).values({ emailNormalized: "user@example.com" }).returning();
+    await db.insert(rewardClaims).values({
+      contactId: c.id,
+      campaignId: id,
+    });
+
+    // 1. Without force -> blocked
+    const blocked = await deleteCampaign(id, { force: false });
+    expect(blocked).toEqual({ ok: false, reason: "has-claims", claimsCount: 1 });
+
+    // Campaign still exists
+    expect(await getCampaignById(id)).not.toBeNull();
+
+    // 2. With force -> deleted along with claim
+    const deleted = await deleteCampaign(id, { force: true }, AUDIT);
+    expect(deleted).toEqual({ ok: true });
+    expect(await getCampaignById(id)).toBeNull();
+
+    const remainingClaims = await db.select().from(rewardClaims).where(eq(rewardClaims.campaignId, id));
+    expect(remainingClaims).toHaveLength(0);
   });
 });
