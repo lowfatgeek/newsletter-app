@@ -58,13 +58,13 @@ function fmtDateTime(d: Date | null): string {
       <h1>Email Campaign</h1>
       <p class="helper">Kelola broadcast email: segmen audiens, konten dua bahasa, jadwal, dan laporan.</p>
     </div>
-    <a href="/admin/email-campaigns/new" class="btn-primary">Buat email campaign</a>
+    <a href="/admin/email-campaigns/new" class="btn-primary create-email-btn">Buat email campaign</a>
   </div>
 
   {rows.length === 0 ? (
     <div class="empty">
       <p>Belum ada email campaign. Buat campaign pertama untuk mulai broadcast.</p>
-      <a href="/admin/email-campaigns/new" class="btn-primary">Buat email campaign</a>
+      <a href="/admin/email-campaigns/new" class="btn-primary create-email-btn">Buat email campaign</a>
     </div>
   ) : (
     <div class="table-wrap">
@@ -103,6 +103,11 @@ function fmtDateTime(d: Date | null): string {
                 </td>
                 <td class="actions">
                   <a href={`/admin/email-campaigns/${row.id}`}>Edit</a>
+                  {row.status === "draft" && (
+                    <button type="button" class="btn-delete-draft" data-id={row.id}>
+                      Hapus
+                    </button>
+                  )}
                   {hasSnapshot && <a href={`/admin/email-campaigns/${row.id}/laporan`}>Laporan</a>}
                 </td>
               </tr>
@@ -201,7 +206,81 @@ function fmtDateTime(d: Date | null): string {
     align-items: center;
   }
 
+  .btn-delete-draft {
+    background: none;
+    border: none;
+    color: var(--color-danger);
+    text-decoration: underline;
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    cursor: pointer;
+    margin-right: var(--space-4);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+  }
+  .btn-delete-draft:hover { color: #8c2531; }
+  .btn-delete-draft:disabled { opacity: 0.5; cursor: wait; }
+
   @media (max-width: 640px) {
     .page-head { flex-direction: column; }
   }
 </style>
+
+<script>
+  // 1. Instant Create Email Campaign: langsung buat draft & redirect ke form editor
+  const createBtns = document.querySelectorAll<HTMLElement>(".create-email-btn");
+  createBtns.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const originalText = btn.textContent;
+      btn.textContent = "Membuat draft...";
+      btn.style.pointerEvents = "none";
+      try {
+        const res = await fetch("/admin/api/email-campaigns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await res.json();
+        if (data.ok && data.id) {
+          window.location.assign(`/admin/email-campaigns/${data.id}`);
+          return;
+        }
+        alert("Gagal membuat draft email campaign.");
+        btn.textContent = originalText;
+        btn.style.pointerEvents = "";
+      } catch {
+        alert("Terjadi kesalahan jaringan.");
+        btn.textContent = originalText;
+        btn.style.pointerEvents = "";
+      }
+    });
+  });
+
+  // 2. Hapus Draft Campaign
+  const deleteBtns = document.querySelectorAll<HTMLButtonElement>(".btn-delete-draft");
+  deleteBtns.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (!window.confirm("Yakin ingin menghapus draft campaign ini?")) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/admin/api/email-campaigns/${id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+        if (data.ok) {
+          window.location.reload();
+          return;
+        }
+        alert(data.reason === "not-draft" ? "Hanya campaign berstatus draft yang bisa dihapus." : "Gagal menghapus draft campaign.");
+      } catch {
+        alert("Terjadi kesalahan jaringan.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+</script>

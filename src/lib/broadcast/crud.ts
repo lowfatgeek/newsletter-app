@@ -157,3 +157,35 @@ export async function listEmailCampaignRows() {
     .from(emailCampaigns)
     .orderBy(desc(emailCampaigns.createdAt));
 }
+
+export type DeleteDraftResult = { ok: true } | { ok: false; reason: "not-found" | "not-draft" };
+
+/**
+ * Hapus draft campaign. Hanya campaign berstatus 'draft' yang diizinkan untuk
+ * dihapus; status selain draft (scheduled/queued/sending/completed) terkunci.
+ */
+export async function deleteEmailCampaignDraft(
+  id: string,
+  auditOpts?: AuditOpts,
+): Promise<DeleteDraftResult> {
+  if (!isValidUuid(id)) return { ok: false, reason: "not-found" };
+
+  const [campaign] = await db
+    .select({ status: emailCampaigns.status })
+    .from(emailCampaigns)
+    .where(eq(emailCampaigns.id, id));
+
+  if (!campaign) return { ok: false, reason: "not-found" };
+  if (campaign.status !== "draft") return { ok: false, reason: "not-draft" };
+
+  await db.delete(emailCampaigns).where(eq(emailCampaigns.id, id));
+
+  await audit("campaign_draft_deleted", {
+    adminUserId: auditOpts?.adminUserId,
+    ip: auditOpts?.ip,
+    detail: { campaignId: id },
+  });
+
+  return { ok: true };
+}
+

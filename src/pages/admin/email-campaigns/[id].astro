@@ -77,7 +77,12 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     </div>
     <div class="save-area">
       <span id="save-status" role="status" aria-live="polite"></span>
-      {isDraft && <button type="button" id="save-btn" class="btn-secondary">Simpan</button>}
+      {isDraft && (
+        <div class="save-actions">
+          <button type="button" id="delete-btn" class="btn-destructive">Hapus draft</button>
+          <button type="button" id="save-btn" class="btn-secondary">Simpan</button>
+        </div>
+      )}
     </div>
   </div>
 
@@ -316,9 +321,10 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
   h1 { color: var(--color-ink); font-size: var(--text-h2); margin: 0 0 var(--space-2); }
   .helper { color: var(--color-text-muted); font-size: var(--text-body-sm); margin: 0; }
   .save-area { display: flex; align-items: center; gap: var(--space-3); flex: none; }
+  .save-actions { display: flex; align-items: center; gap: var(--space-2); }
   #save-status { color: var(--color-text-muted); font-size: var(--text-body-sm); }
 
-  .btn-primary, .btn-secondary {
+  .btn-primary, .btn-secondary, .btn-destructive {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -330,11 +336,16 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     font-size: var(--text-body-sm);
     text-decoration: none;
     cursor: pointer;
+    transition: all 160ms ease;
   }
   .btn-primary { background: var(--color-primary); color: var(--color-canvas); border: none; }
   .btn-primary:hover { background: var(--color-primary-hover); }
   .btn-primary:disabled { background: var(--color-surface-subtle); color: var(--color-text-muted); cursor: not-allowed; }
   .btn-secondary { background: var(--color-surface-raised); border: var(--border-default); color: var(--color-ink); }
+  .btn-secondary:hover { background: var(--color-surface-subtle); border-color: #d8cdbe; }
+  .btn-destructive { background: var(--color-surface-raised); border: 1px solid var(--color-danger); color: var(--color-danger); }
+  .btn-destructive:hover { background: var(--color-danger); color: #fff; }
+  .btn-destructive:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .card {
     background: var(--color-surface-raised);
@@ -711,6 +722,29 @@ const filterJson = JSON.stringify(campaign.audienceFilter ?? {});
     }
   }
   saveBtn?.addEventListener("click", () => void save());
+
+  const deleteBtn = $<HTMLButtonElement>("#delete-btn");
+  deleteBtn?.addEventListener("click", async () => {
+    if (!window.confirm("Yakin ingin menghapus draft campaign ini? Tindakan ini tidak dapat dibatalkan.")) {
+      return;
+    }
+    deleteBtn.disabled = true;
+    try {
+      const res = await fetch(`/admin/api/email-campaigns/${campaignId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.ok) {
+        window.location.assign("/admin/email-campaigns");
+        return;
+      }
+      alert(data.reason === "not-draft" ? "Hanya campaign berstatus draft yang bisa dihapus." : "Gagal menghapus draft campaign.");
+    } catch {
+      alert("Terjadi kesalahan jaringan. Coba lagi.");
+    } finally {
+      deleteBtn.disabled = false;
+    }
+  });
 
   // ===== Schedule + review modal =====
 

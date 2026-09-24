@@ -1,6 +1,11 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createEmailCampaign, getEmailCampaignById, updateEmailCampaignDraft } from "../../src/lib/broadcast/crud";
+import {
+  createEmailCampaign,
+  deleteEmailCampaignDraft,
+  getEmailCampaignById,
+  updateEmailCampaignDraft,
+} from "../../src/lib/broadcast/crud";
 import { db } from "../../src/lib/db";
 import { adminUsers, emailCampaigns } from "../../src/lib/schema";
 import { resetDb, setEnv } from "../helpers";
@@ -180,3 +185,40 @@ describe("getEmailCampaignById", () => {
     expect(await getEmailCampaignById("00000000-0000-0000-0000-000000000000")).toBeNull();
   });
 });
+
+describe("deleteEmailCampaignDraft", () => {
+  it("deletes draft campaign and audits", async () => {
+    const { adminAuditLog } = await import("../../src/lib/schema");
+    const id = await createEmailCampaign(AUDIT);
+    const res = await deleteEmailCampaignDraft(id, AUDIT);
+    expect(res).toEqual({ ok: true });
+
+    const row = await getEmailCampaignById(id);
+    expect(row).toBeNull();
+
+    const rows = await db.select().from(adminAuditLog);
+    const entry = rows.find((r) => r.action === "campaign_draft_deleted");
+    expect(entry).toBeDefined();
+    expect((entry!.detail as { campaignId?: string }).campaignId).toBe(id);
+  });
+
+  it("refuses to delete campaign after schedule", async () => {
+    const id = await createEmailCampaign(AUDIT);
+    await db
+      .update(emailCampaigns)
+      .set({ status: "scheduled", snapshotAt: new Date() })
+      .where(eq(emailCampaigns.id, id));
+
+    const res = await deleteEmailCampaignDraft(id, AUDIT);
+    expect(res).toEqual({ ok: false, reason: "not-draft" });
+
+    const row = await getEmailCampaignById(id);
+    expect(row).not.toBeNull();
+  });
+
+  it("returns not-found for unknown id", async () => {
+    const res = await deleteEmailCampaignDraft("00000000-0000-0000-0000-000000000000", AUDIT);
+    expect(res).toEqual({ ok: false, reason: "not-found" });
+  });
+});
+

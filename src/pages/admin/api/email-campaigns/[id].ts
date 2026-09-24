@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 // Route on-demand — tidak pernah diprerender.
 import { getAdmin, verifyAdminOrigin } from "../../../../lib/admin/guard";
 import { validateContent } from "../../../../lib/broadcast/content";
-import { updateEmailCampaignDraft } from "../../../../lib/broadcast/crud";
+import { deleteEmailCampaignDraft, updateEmailCampaignDraft } from "../../../../lib/broadcast/crud";
 import { clientIp } from "../../../../lib/ip";
 
 export const prerender = false;
@@ -96,3 +96,31 @@ export const POST: APIRoute = async ({ request, cookies, params }) => {
   if (result.ok) return json({ ok: true, missing });
   return json({ ok: false, reason: result.reason }, result.reason === "not-found" ? 404 : 400);
 };
+
+/**
+ * DELETE /admin/api/email-campaigns/[id] — hapus draft campaign.
+ * Hanya campaign berstatus 'draft' yang diizinkan untuk dihapus.
+ * 200 { ok: true } · 400 not-draft/invalid · 404 not-found · 401 unauthorized · 403 forbidden.
+ */
+export const DELETE: APIRoute = async ({ request, cookies, params }) => {
+  if (!verifyAdminOrigin(request)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const admin = await getAdmin(cookies);
+  if (!admin) return json({ ok: false, reason: "unauthorized" }, 401);
+
+  const id = params.id ?? "";
+  if (!id) return json({ ok: false, reason: "invalid" }, 400);
+
+  const result = await deleteEmailCampaignDraft(id, {
+    adminUserId: admin.id,
+    ip: clientIp(request),
+  });
+
+  if (result.ok) return json({ ok: true });
+  return json({ ok: false, reason: result.reason }, result.reason === "not-found" ? 404 : 400);
+};
+
