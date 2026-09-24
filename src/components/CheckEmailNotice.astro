@@ -1,0 +1,651 @@
+---
+import type { Locale } from "../lib/i18n";
+import { t } from "../lib/i18n";
+
+interface Props {
+  locale?: Locale;
+  resendSlug?: string;
+  error?: string | null;
+  errorText?: string | null;
+}
+
+const { locale = "id", resendSlug = "", error = null, errorText = null } = Astro.props;
+const isEn = locale === "en";
+const isError = Boolean(error && errorText);
+
+const homeUrl = isEn ? "/en" : "/";
+const resendHref = resendSlug ? (isEn ? `/en/r/${resendSlug}` : `/r/${resendSlug}`) : homeUrl;
+
+// Copy definitions
+const copy = {
+  headerBadge: isError
+    ? (isEn ? "Delivery Paused" : "Periksa Alamat Email")
+    : (isEn ? "Link Sent" : "Tautan Dikirim"),
+  pillText: isError
+    ? (error === "too-fast"
+        ? (isEn ? "⏱ Reflection Time" : "⏱ Verifikasi Reflektif")
+        : (isEn ? "⚠️ Delivery Paused" : "⚠️ Pengiriman Tertunda"))
+    : (isEn ? "✉️ Link Dispatched" : "✉️ Tautan Terkirim"),
+  heading: isError
+    ? (error === "too-fast"
+        ? (isEn ? "Please take a moment" : "Mohon luangkan waktu sejenak")
+        : t(locale, "checkEmailErrorTitle"))
+    : t(locale, "checkEmailTitle"),
+  lead: isError ? t(locale, "checkEmailErrorBody") : t(locale, "checkEmailBody"),
+  btnPrimarySuccess: isEn ? "Open Gmail ↗" : "Buka Gmail Langsung ↗",
+  btnSecondarySuccess: isEn ? "Open Yahoo Mail ↗" : "Buka Yahoo Mail ↗",
+  btnRetryError: error === "too-fast"
+    ? (isEn ? "Retry Gift Claim ↺" : "Ulangi Klaim Hadiah ↺")
+    : (isEn ? "Try Again with Another Email ↺" : "Coba Lagi dengan Email Lain ↺"),
+  resendText: isEn ? "Didn’t receive it? Resend link" : "Belum menerima email? Kirim ulang",
+  backText: isEn ? "← Back to gift page" : "← Kembali ke halaman hadiah",
+  whitelistTag: isEn ? "Whitelist Advice" : "Tips Bebas Nyasar",
+  whitelistDesc: isEn
+    ? "To ensure our emails land directly in your Primary inbox, please add these official addresses to your contacts (whitelist):"
+    : "Agar email konfirmasi & materi mingguan tidak masuk Spam/Promosi, simpan kontak resmi KelasWFA ini:",
+  contact1Role: isEn ? "Gift Links & Confirmations" : "Tautan Kado & Konfirmasi",
+  contact2Role: isEn ? "Newsletter & Weekly Editions" : "Newsletter & Materi Berkala",
+  whitelistNote: isEn
+    ? "💡 If our email lands in Spam or Promotions, open it and click <strong>\"Not Spam\"</strong> or drag it to your <strong>Primary</strong> tab."
+    : "💡 Jika masuk ke folder Spam/Promosi, buka pesannya lalu klik <strong>\"Laporkan Bukan Spam\"</strong> atau pindahkan ke tab <strong>Utama</strong>.",
+  supportText: isEn
+    ? "Need assistance or having delivery issues? Contact us at <a href=\"mailto:hi@kelaswfa.my.id\">hi@kelaswfa.my.id</a>"
+    : "Butuh bantuan atau mengalami kendala pengiriman? Hubungi kami di <a href=\"mailto:hi@kelaswfa.my.id\">hi@kelaswfa.my.id</a>",
+};
+---
+
+<!-- App Header Bar -->
+<header class="desk-header">
+  <a href={homeUrl} class="desk-logo">
+    <span>KelasWFA</span>
+    <span class="desk-logo-badge">Kado Desk</span>
+  </a>
+  <div class:list={["header-status-badge", { error: isError }]}>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      {isError ? (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </>
+      ) : (
+        <>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </>
+      )}
+    </svg>
+    <span>{copy.headerBadge}</span>
+  </div>
+</header>
+
+<!-- Main Content Area: Focused 1-Column Desk -->
+<main class="dispatch-main">
+  <div class:list={["dispatch-card", { "is-error": isError }]}>
+    <!-- Tactile Hero Stage -->
+    <div class:list={["dispatch-hero", { "is-error": isError }]}>
+      <div class:list={["hero-seal-stage", { "is-error": isError }]} aria-hidden="true">
+        {isError ? (
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        ) : (
+          <>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
+              <path d="m3.4 6.4 8.6 6.3 8.6-6.3" />
+            </svg>
+            <div class="wax-seal-badge" title="Terkirim resmi">★</div>
+            <div class="sparkle-orbit">✨</div>
+          </>
+        )}
+      </div>
+    </div>
+
+    <!-- Status Pill -->
+    <span class:list={["dispatch-pill", { error: isError }]}>
+      {copy.pillText}
+    </span>
+
+    <!-- Typography -->
+    <h1 class="dispatch-title">{copy.heading}</h1>
+    <p class="dispatch-lead">{copy.lead}</p>
+
+    {!isError ? (
+      <>
+        {/* Priority 1: Webmail Action Buttons */}
+        <div class="webmail-actions-group">
+          <div class="webmail-buttons">
+            <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" class="btn-webmail-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              <span>{copy.btnPrimarySuccess}</span>
+            </a>
+            <a href="https://mail.yahoo.com" target="_blank" rel="noopener noreferrer" class="btn-webmail-secondary">
+              <span>{copy.btnSecondarySuccess}</span>
+            </a>
+          </div>
+
+          {/* Recovery Links */}
+          <div class="recovery-links">
+            <a href={resendHref} class="resend-link">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+              <span>{copy.resendText}</span>
+            </a>
+            <span class="link-divider" aria-hidden="true">·</span>
+            <a href={resendHref} class="back-link">{copy.backText}</a>
+          </div>
+        </div>
+
+        {/* Priority 2: Whitelist & Anti-Spam Safety Net */}
+        <section class="whitelist-box" aria-label="Tips Whitelist Email">
+          <div class="whitelist-header-row">
+            <div class="whitelist-tag">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <span>{copy.whitelistTag}</span>
+            </div>
+          </div>
+          <p class="whitelist-desc">{copy.whitelistDesc}</p>
+          <div class="whitelist-grid">
+            <div class="whitelist-pill">
+              <span class="whitelist-email">hi@kelaswfa.my.id</span>
+              <span class="whitelist-role">{copy.contact1Role}</span>
+            </div>
+            <div class="whitelist-pill">
+              <span class="whitelist-email">kurir@kelaswfa.my.id</span>
+              <span class="whitelist-role">{copy.contact2Role}</span>
+            </div>
+          </div>
+          <div class="whitelist-footer-tip" set:html={copy.whitelistNote} />
+        </section>
+      </>
+    ) : (
+      /* Error State Actions */
+      <div class="error-actions-group">
+        {errorText && (
+          <div class="error-alert-banner" role="alert">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" style="flex-shrink:0; margin-top:1px;">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div>{errorText}</div>
+          </div>
+        )}
+
+        <div class="webmail-buttons">
+          <a href={resendHref} class="btn-webmail-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            <span>{copy.btnRetryError}</span>
+          </a>
+        </div>
+
+        <div class="recovery-links" style="margin-bottom: 0;">
+          <a href={resendHref} class="back-link">{copy.backText}</a>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Page Support Footer -->
+  <footer class="desk-page-footer">
+    <p set:html={copy.supportText} />
+  </footer>
+</main>
+
+<style>
+  /* Header Bar */
+  .desk-header {
+    height: 68px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-6);
+    background: rgba(255, 252, 245, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .desk-logo {
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--color-ink);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .desk-logo-badge {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+  }
+
+  .header-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-success);
+    background: var(--color-success-subtle);
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(35, 122, 85, 0.2);
+  }
+
+  .header-status-badge.error {
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    border-color: rgba(154, 101, 20, 0.2);
+  }
+
+  /* Main Container (1-Column Focused) */
+  .dispatch-main {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 44px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* The Main Card */
+  .dispatch-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: 40px 36px 36px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+  }
+
+  /* Top Accent Ribbon */
+  .dispatch-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-gold) 60%, #237a55 100%);
+  }
+
+  .dispatch-card.is-error::before {
+    background: linear-gradient(90deg, var(--color-warning) 0%, var(--color-gold) 100%);
+  }
+
+  /* Tactile Hero Stage */
+  .dispatch-hero {
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-seal-stage {
+    width: 76px;
+    height: 76px;
+    border-radius: 22px;
+    background: linear-gradient(145deg, #fffdf8 0%, var(--color-surface-subtle) 100%);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 16px rgba(21, 59, 53, 0.05);
+    color: var(--color-primary);
+  }
+
+  .hero-seal-stage.is-error {
+    background: #fff6e6;
+    border-color: #e8d4b0;
+    color: var(--color-warning);
+  }
+
+  .wax-seal-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-gold);
+    border: 2px solid #ffffff;
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 2px 6px rgba(217, 144, 32, 0.4);
+  }
+
+  .sparkle-orbit {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    font-size: 16px;
+    animation: floatSparkle 2.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes floatSparkle {
+    0% { transform: translateY(0px) rotate(0deg); }
+    100% { transform: translateY(-5px) rotate(12deg); }
+  }
+
+  .dispatch-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-primary-subtle);
+    border: 1px solid rgba(23, 107, 91, 0.25);
+    color: var(--color-primary);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 12px;
+  }
+
+  .dispatch-pill.error {
+    background: var(--color-warning-subtle);
+    border-color: rgba(154, 101, 20, 0.25);
+    color: var(--color-warning);
+  }
+
+  .dispatch-title {
+    font-size: clamp(24px, 2.6vw, 30px);
+    font-weight: 800;
+    color: var(--color-ink);
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
+  }
+
+  .dispatch-lead {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin: 0 0 22px;
+    max-width: 480px;
+  }
+
+  /* Webmail CTA Actions (Priority 1) */
+  .webmail-actions-group,
+  .error-actions-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .webmail-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+
+  .btn-webmail-primary {
+    background: var(--color-primary);
+    color: #ffffff;
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: var(--radius-control);
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 46px;
+    box-shadow: 0 4px 12px rgba(23, 107, 91, 0.22);
+  }
+
+  .btn-webmail-primary:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(23, 107, 91, 0.3);
+  }
+
+  .btn-webmail-secondary {
+    background: #ffffff;
+    color: var(--color-text);
+    text-decoration: none;
+    padding: 12px 18px;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 46px;
+  }
+
+  .btn-webmail-secondary:hover {
+    background: var(--color-surface-subtle);
+    border-color: #d6caba;
+  }
+
+  /* Recovery Links */
+  .recovery-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: 22px;
+  }
+
+  .recovery-links a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .recovery-links a:hover {
+    text-decoration: underline;
+  }
+
+  .resend-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .link-divider {
+    color: var(--color-border);
+    user-select: none;
+  }
+
+  /* Whitelist / Anti-Spam Safety Net Card (Priority 2) */
+  .whitelist-box {
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    width: 100%;
+    text-align: left;
+  }
+
+  .whitelist-header-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .whitelist-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .whitelist-desc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-text);
+    margin: 0 0 10px;
+  }
+
+  .whitelist-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .whitelist-pill {
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .whitelist-email {
+    font-family: monospace;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--color-primary);
+    user-select: all;
+  }
+
+  .whitelist-role {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  .whitelist-footer-tip {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+    border-top: 1px dashed var(--color-border);
+    padding-top: 8px;
+  }
+
+  .whitelist-footer-tip strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  /* Error Alert Callout */
+  .error-alert-banner {
+    background: var(--color-warning-subtle);
+    border: 1px solid rgba(154, 101, 20, 0.25);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    color: var(--color-warning);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+    width: 100%;
+    text-align: left;
+  }
+
+  /* Page Support Footer */
+  .desk-page-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .desk-page-footer a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  /* Responsive Adjustments (< 768px) */
+  @media (max-width: 767px) {
+    .desk-header {
+      height: 56px;
+      padding: 0 var(--space-4);
+    }
+    .desk-logo {
+      font-size: 16px;
+    }
+    .header-status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .dispatch-main {
+      padding: 24px 16px 40px;
+    }
+    .dispatch-card {
+      padding: 30px 20px 24px;
+      border-radius: 18px;
+    }
+    .dispatch-title {
+      font-size: 22px;
+    }
+    .dispatch-lead {
+      font-size: 14px;
+    }
+    .webmail-buttons {
+      flex-direction: column;
+    }
+    .btn-webmail-primary,
+    .btn-webmail-secondary {
+      width: 100%;
+    }
+    .whitelist-grid {
+      grid-template-columns: 1fr;
+    }
+    .desk-page-footer {
+      font-size: 12px;
+    }
+  }
+</style>

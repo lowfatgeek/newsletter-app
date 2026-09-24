@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Redesign Halaman Cek Email (The Dispatch Desk) — KelasWFA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Hallmark · macrostructure: Dispatch Desk · theme: Atelier (Warm Editorial) · genre: editorial
+     * pre-emit critique: P5 H5 E5 S5 R5 V5
+     * tokens: --color-canvas, --color-surface-raised, --color-ink, --color-primary, --color-gold
+     * mobile: verified 320px / 375px / 414px / 768px / desktop
+     */
+    :root {
+      --color-canvas: #FFFCF5;
+      --color-surface-subtle: #F7F1E6;
+      --color-surface-raised: #FFFFFF;
+      --color-ink: #153B35;
+      --color-text: #36514B;
+      --color-text-muted: #566662;
+      --color-border: #E7DED0;
+      --color-primary: #176B5B;
+      --color-primary-hover: #105447;
+      --color-primary-subtle: #E5F2EE;
+      --color-gold: #D99020;
+      --color-gold-subtle: #FFF2D6;
+      --color-warning: #9A6514;
+      --color-warning-subtle: #FFF4DC;
+      --color-success: #237A55;
+      --color-success-subtle: #E8F6EE;
+      --color-info: #24709A;
+      --color-info-subtle: #E6F3FA;
+
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --radius-control: 12px;
+      --radius-card: 22px;
+      --radius-pill: 999px;
+      --border-default: 1px solid var(--color-border);
+      --shadow-card: 0 1px 3px rgba(21, 59, 53, 0.04), 0 14px 38px rgba(21, 59, 53, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #E7E2D6;
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Studio Controller */
+    .studio-bar {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--color-border);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(21, 59, 53, 0.04);
+    }
+
+    .studio-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-pill {
+      background: var(--color-ink);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .hallmark-badge {
+      background: #E5F2EE;
+      color: #176B5B;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid rgba(23, 107, 91, 0.2);
+    }
+
+    .studio-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .scenario-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-surface-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: #FFFFFF;
+      color: var(--color-primary);
+      box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
+    }
+
+    .device-switcher {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-surface-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+    }
+
+    .device-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .device-btn.active {
+      background: #FFFFFF;
+      color: var(--color-ink);
+      box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
+    }
+
+    /* Workspace Canvas */
+    .preview-canvas {
+      flex: 1;
+      padding: 36px 16px 64px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
+    .device-frame {
+      width: 100%;
+      max-width: 920px;
+      background: var(--color-canvas);
+      border-radius: 24px;
+      box-shadow: 0 16px 48px rgba(21, 59, 53, 0.14);
+      border: 1px solid rgba(21, 59, 53, 0.08);
+      overflow: hidden;
+      transition: max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .device-frame.mobile {
+      max-width: 390px;
+      border-radius: 36px;
+      border: 8px solid #2C3531;
+    }
+
+    /* Browser Bar */
+    .browser-bar {
+      background: #F4EFE6;
+      border-bottom: 1px solid var(--color-border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #D9CFC1;
+    }
+
+    .browser-url {
+      flex: 1;
+      background: #FFFFFF;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-notch {
+      display: none;
+      background: #2C3531;
+      height: 24px;
+      width: 140px;
+      margin: 0 auto;
+      border-radius: 0 0 14px 14px;
+    }
+
+    .device-frame.mobile .mobile-notch {
+      display: block;
+    }
+
+    .device-frame.mobile .browser-bar {
+      display: none;
+    }
+
+    /* ========================================================
+       THE DISPATCH DESK (CEK EMAIL REDESIGN)
+       ======================================================== */
+    .dispatch-page {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-canvas);
+    }
+
+    /* Header Bar */
+    .desk-header {
+      height: 68px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(255, 252, 245, 0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .desk-logo {
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--color-ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .desk-logo-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      color: var(--color-text-muted);
+    }
+
+    .header-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-success);
+      background: var(--color-success-subtle);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(35, 122, 85, 0.2);
+    }
+
+    .header-status-badge.error {
+      color: var(--color-warning);
+      background: var(--color-warning-subtle);
+      border-color: rgba(154, 101, 20, 0.2);
+    }
+
+    /* Main Container (Option A: 1-Column Focused) */
+    .dispatch-main {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 44px 20px 60px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* The Main Card */
+    .dispatch-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      padding: 40px 36px 36px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* Top Accent Ribbon */
+    .dispatch-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-gold) 60%, #237A55 100%);
+    }
+
+    .dispatch-card.is-error::before {
+      background: linear-gradient(90deg, var(--color-warning) 0%, #D99020 100%);
+    }
+
+    /* Tactile Hero Stage */
+    .dispatch-hero {
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .hero-seal-stage {
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      background: linear-gradient(145deg, #FFFDF8 0%, var(--color-surface-subtle) 100%);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 4px 16px rgba(21, 59, 53, 0.05);
+      color: var(--color-primary);
+    }
+
+    .hero-seal-stage.is-error {
+      background: #FFF6E6;
+      border-color: #E8D4B0;
+      color: var(--color-warning);
+    }
+
+    .wax-seal-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--color-gold);
+      border: 2px solid #FFFFFF;
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 2px 6px rgba(217, 144, 32, 0.4);
+    }
+
+    .sparkle-orbit {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      font-size: 16px;
+      animation: floatSparkle 2.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatSparkle {
+      0% { transform: translateY(0px) rotate(0deg); }
+      100% { transform: translateY(-5px) rotate(12deg); }
+    }
+
+    .dispatch-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-primary-subtle);
+      border: 1px solid rgba(23, 107, 91, 0.25);
+      color: var(--color-primary);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 12px;
+    }
+
+    .dispatch-pill.error {
+      background: var(--color-warning-subtle);
+      border-color: rgba(154, 101, 20, 0.25);
+      color: var(--color-warning);
+    }
+
+    .dispatch-title {
+      font-size: clamp(24px, 2.6vw, 30px);
+      font-weight: 800;
+      color: var(--color-ink);
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+    }
+
+    .dispatch-lead {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--color-text-muted);
+      margin-bottom: 22px;
+      max-width: 480px;
+    }
+
+    /* Quick Webmail Action Row */
+    .webmail-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .btn-webmail-primary {
+      background: var(--color-primary);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 12px 22px;
+      border-radius: var(--radius-control);
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      min-height: 44px;
+      box-shadow: 0 4px 12px rgba(23, 107, 91, 0.2);
+    }
+
+    .btn-webmail-primary:hover {
+      background: var(--color-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(23, 107, 91, 0.28);
+    }
+
+    /* Webmail CTA Actions (Priority 1) */
+    .webmail-actions-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .webmail-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+
+    .btn-webmail-primary {
+      background: var(--color-primary);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: var(--radius-control);
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      min-height: 46px;
+      box-shadow: 0 4px 12px rgba(23, 107, 91, 0.22);
+    }
+
+    .btn-webmail-primary:hover {
+      background: var(--color-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(23, 107, 91, 0.3);
+    }
+
+    .btn-webmail-secondary {
+      background: #FFFFFF;
+      color: var(--color-text);
+      text-decoration: none;
+      padding: 12px 18px;
+      border-radius: var(--radius-control);
+      font-weight: 600;
+      font-size: 13.5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      min-height: 46px;
+    }
+
+    .btn-webmail-secondary:hover {
+      background: var(--color-surface-subtle);
+      border-color: #D6CABA;
+    }
+
+    /* Recovery Links */
+    .recovery-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-bottom: 22px;
+    }
+
+    .recovery-links a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .recovery-links a:hover {
+      text-decoration: underline;
+    }
+
+    .resend-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .link-divider {
+      color: var(--color-border);
+      user-select: none;
+    }
+
+    /* Whitelist / Anti-Spam Safety Net Card (Priority 2) */
+    .whitelist-box {
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      width: 100%;
+      text-align: left;
+    }
+
+    .whitelist-header-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .whitelist-tag {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .whitelist-desc {
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--color-text);
+      margin-bottom: 10px;
+    }
+
+    .whitelist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .whitelist-pill {
+      background: #FFFFFF;
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .whitelist-email {
+      font-family: monospace;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--color-primary);
+      user-select: all;
+    }
+
+    .whitelist-role {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .whitelist-footer-tip {
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: var(--color-text-muted);
+      border-top: 1px dashed var(--color-border);
+      padding-top: 8px;
+    }
+
+    .whitelist-footer-tip strong {
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+
+    /* Error Alert Callout */
+    .error-alert-banner {
+      background: var(--color-warning-subtle);
+      border: 1px solid rgba(154, 101, 20, 0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13.5px;
+      color: var(--color-warning);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+      width: 100%;
+      text-align: left;
+    }
+
+    /* Page Support Footer */
+    .desk-page-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+    }
+
+    .desk-page-footer a {
+      color: var(--color-primary);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    /* ========================================================
+       MOBILE VIEWPORT (< 768px): RESPONSIVE ADJUSTMENTS
+       ======================================================== */
+    @media (max-width: 767px) {
+      .desk-header {
+        height: 56px;
+        padding: 0 16px;
+      }
+      .desk-logo {
+        font-size: 16px;
+      }
+      .header-status-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+      .dispatch-main {
+        padding: 24px 16px 40px;
+      }
+      .dispatch-card {
+        padding: 30px 20px 24px;
+        border-radius: 18px;
+      }
+      .dispatch-title {
+        font-size: 22px;
+      }
+      .dispatch-lead {
+        font-size: 14px;
+      }
+      .webmail-buttons {
+        flex-direction: column;
+      }
+      .btn-webmail-primary, .btn-webmail-secondary {
+        width: 100%;
+      }
+      .whitelist-grid {
+        grid-template-columns: 1fr;
+      }
+      .desk-page-footer {
+        font-size: 12px;
+      }
+    }
+
+    /* Device frame simulation overrides */
+    .device-frame.mobile .desk-header {
+      height: 56px;
+      padding: 0 16px;
+    }
+    .device-frame.mobile .desk-logo {
+      font-size: 16px;
+    }
+    .device-frame.mobile .header-status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .device-frame.mobile .dispatch-main {
+      padding: 24px 16px 40px;
+    }
+    .device-frame.mobile .dispatch-card {
+      padding: 30px 20px 24px;
+      border-radius: 18px;
+    }
+    .device-frame.mobile .dispatch-title {
+      font-size: 22px;
+    }
+    .device-frame.mobile .dispatch-lead {
+      font-size: 14px;
+    }
+    .device-frame.mobile .webmail-buttons {
+      flex-direction: column;
+    }
+    .device-frame.mobile .btn-webmail-primary, 
+    .device-frame.mobile .btn-webmail-secondary {
+      width: 100%;
+    }
+    .device-frame.mobile .whitelist-grid {
+      grid-template-columns: 1fr;
+    }
+    .device-frame.mobile .desk-page-footer {
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Studio Control Bar -->
+  <div class="studio-bar">
+    <div class="studio-brand">
+      <span class="brand-pill">KelasWFA</span>
+      <span class="hallmark-badge">/hallmark</span>
+      <span class="studio-title">Cek Email Redesign Studio</span>
+    </div>
+
+    <!-- Scenario Selector -->
+    <div class="scenario-tabs">
+      <button class="tab-btn active" onclick="switchScenario('normal-success')">1. Sukses (Sesuai Screenshot User)</button>
+      <button class="tab-btn" onclick="switchScenario('english-locale')">2. English Version (EN)</button>
+      <button class="tab-btn" onclick="switchScenario('error-domain')">3. Error: Domain Belum Didukung</button>
+      <button class="tab-btn" onclick="switchScenario('error-too-fast')">4. Error: Terlalu Cepat (Bot)</button>
+    </div>
+
+    <!-- Device Switcher -->
+    <div class="device-switcher">
+      <button class="device-btn active" id="btn-desktop" onclick="setDevice('desktop')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Desktop (600px 1-kolom)
+      </button>
+      <button class="device-btn" id="btn-mobile" onclick="setDevice('mobile')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        Mobile Phone (390px)
+      </button>
+    </div>
+  </div>
+
+  <!-- Workspace Canvas -->
+  <div class="preview-canvas">
+    <div class="device-frame" id="device-frame">
+      
+      <!-- Desktop Browser Address Bar -->
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+        </div>
+        <div class="browser-url" id="browser-url-display">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          https://kado.kelaswfa.my.id/cek-email?s=percobaan-saja
+        </div>
+      </div>
+
+      <!-- Mobile Notch -->
+      <div class="mobile-notch"></div>
+
+      <!-- Page Content Area -->
+      <div class="dispatch-page" id="dispatch-page-content">
+        <!-- Rendered by JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const scenarios = {
+      'normal-success': {
+        url: 'https://kado.kelaswfa.my.id/cek-email?s=percobaan-saja',
+        lang: 'id',
+        isError: false,
+        pillText: '✉️ Tautan Terkirim',
+        headerBadge: 'Tautan Dikirim',
+        heading: 'Cek emailmu',
+        lead: 'Kami sudah mengirim tautan ke emailmu. Buka email dari KelasWFA, lalu klik tautannya.',
+        senderEmail: 'hi@kelaswfa.my.id',
+        btnPrimary: 'Buka Gmail Langsung ↗',
+        btnSecondary: 'Buka Yahoo Mail ↗',
+        resendSlug: 'percobaan-saja',
+        resendText: 'Belum menerima email? Kirim ulang',
+        backText: '← Kembali ke halaman hadiah',
+        supportText: 'Butuh bantuan atau mengalami kendala pengiriman? Hubungi kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'english-locale': {
+        url: 'https://kado.kelaswfa.my.id/en/cek-email?s=starter-kit',
+        lang: 'en',
+        isError: false,
+        pillText: '✉️ Link Dispatched',
+        headerBadge: 'Link Sent',
+        heading: 'Check your email',
+        lead: 'We sent a link to your email. Open the email from KelasWFA and click the link to unlock your gift.',
+        senderEmail: 'hi@kelaswfa.my.id',
+        btnPrimary: 'Open Gmail ↗',
+        btnSecondary: 'Open Outlook ↗',
+        resendSlug: 'starter-kit',
+        resendText: 'Didn’t receive it? Resend link',
+        backText: '← Back to gift page',
+        supportText: 'Need assistance or having delivery issues? Contact us at <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'error-domain': {
+        url: 'https://kado.kelaswfa.my.id/cek-email?s=percobaan-saja&e=domain-not-allowed',
+        lang: 'id',
+        isError: true,
+        pillText: '⚠️ Pengiriman Tertunda',
+        headerBadge: 'Periksa Alamat Email',
+        heading: 'Permintaan belum dapat diproses',
+        lead: 'Tautan akses belum dapat dikirimkan. Silakan periksa keterangan di bawah dan coba lagi.',
+        errorAlert: 'Domain email ini belum didukung. Coba gunakan email lain (seperti @gmail.com atau @yahoo.com).',
+        senderEmail: 'hi@kelaswfa.my.id',
+        btnPrimary: 'Coba Lagi dengan Email Lain ↺',
+        resendSlug: 'percobaan-saja',
+        backText: '← Kembali ke halaman hadiah',
+        supportText: 'Punya pertanyaan seputar domain email? Hubungi admin di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'error-too-fast': {
+        url: 'https://kado.kelaswfa.my.id/cek-email?s=percobaan-saja&e=too-fast',
+        lang: 'id',
+        isError: true,
+        pillText: '⏱ Verifikasi Reflektif',
+        headerBadge: 'Timer Belum Selesai',
+        heading: 'Mohon luangkan waktu sejenak',
+        lead: 'Tautan akses belum dapat dikirimkan. Silakan periksa keterangan di bawah dan coba lagi.',
+        errorAlert: 'Mohon tunggu timer doa/refleksi selesai ya (minimal 30 detik) sebelum mengirim formulir.',
+        senderEmail: 'hi@kelaswfa.my.id',
+        btnPrimary: 'Ulangi Klaim Hadiah ↺',
+        resendSlug: 'percobaan-saja',
+        backText: '← Kembali ke halaman hadiah',
+        supportText: 'Butuh bantuan teknis? Hubungi kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      }
+    };
+
+    function renderPage(key) {
+      const data = scenarios[key];
+      const isEn = data.lang === 'en';
+
+      document.getElementById('browser-url-display').innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        ${data.url}
+      `;
+
+      let heroHtml = '';
+      if (!data.isError) {
+        heroHtml = `
+          <div class="dispatch-hero">
+            <div class="hero-seal-stage">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect>
+                <path d="m3.4 6.4 8.6 6.3 8.6-6.3"></path>
+              </svg>
+              <div class="wax-seal-badge" title="Terkirim resmi">★</div>
+              <div class="sparkle-orbit">✨</div>
+            </div>
+          </div>
+        `;
+      } else {
+        heroHtml = `
+          <div class="dispatch-hero is-error">
+            <div class="hero-seal-stage is-error">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+          </div>
+        `;
+      }
+
+      let bodyContentHtml = '';
+      if (!data.isError) {
+        bodyContentHtml = `
+          <!-- Priority 1: Webmail Action Buttons -->
+          <div class="webmail-actions-group">
+            <div class="webmail-buttons">
+              <a href="https://mail.google.com" target="_blank" rel="noopener" class="btn-webmail-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span>${data.btnPrimary}</span>
+              </a>
+              ${data.btnSecondary ? `
+                <a href="https://mail.yahoo.com" target="_blank" rel="noopener" class="btn-webmail-secondary">
+                  <span>${data.btnSecondary}</span>
+                </a>
+              ` : ''}
+            </div>
+
+            <!-- Recovery Links -->
+            <div class="recovery-links">
+              <a href="/r/${data.resendSlug}" class="resend-link">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                <span>${data.resendText}</span>
+              </a>
+              <span class="link-divider">·</span>
+              <a href="/r/${data.resendSlug}" class="back-link">${data.backText}</a>
+            </div>
+          </div>
+
+          <!-- Priority 2: Whitelist & Anti-Spam Safety Net -->
+          <div class="whitelist-box">
+            <div class="whitelist-header-row">
+              <div class="whitelist-tag">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>${isEn ? 'Whitelist Advice' : 'Tips Bebas Nyasar'}</span>
+              </div>
+            </div>
+            <p class="whitelist-desc">
+              ${isEn 
+                ? 'To ensure our emails land directly in your Primary inbox, please add these official addresses to your contacts (whitelist):' 
+                : 'Agar email konfirmasi & materi mingguan tidak masuk Spam/Promosi, simpan kontak resmi KelasWFA ini:'}
+            </p>
+            <div class="whitelist-grid">
+              <div class="whitelist-pill">
+                <span class="whitelist-email">hi@kelaswfa.my.id</span>
+                <span class="whitelist-role">${isEn ? 'Gift Links & Confirmations' : 'Tautan Kado & Konfirmasi'}</span>
+              </div>
+              <div class="whitelist-pill">
+                <span class="whitelist-email">kurir@kelaswfa.my.id</span>
+                <span class="whitelist-role">${isEn ? 'Newsletter & Weekly Editions' : 'Newsletter & Materi Berkala'}</span>
+              </div>
+            </div>
+            <div class="whitelist-footer-tip">
+              ${isEn
+                ? '💡 If our email lands in Spam or Promotions, open it and click <strong>"Not Spam"</strong> or drag it to your <strong>Primary</strong> tab.'
+                : '💡 Jika masuk ke folder Spam/Promosi, buka pesannya lalu klik <strong>"Laporkan Bukan Spam"</strong> atau pindahkan ke tab <strong>Utama</strong>.'}
+            </div>
+          </div>
+        `;
+      } else {
+        bodyContentHtml = `
+          <!-- Error State Actions -->
+          <div class="error-alert-banner">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>${data.errorAlert}</div>
+          </div>
+
+          <div class="webmail-buttons">
+            <a href="/r/${data.resendSlug}" class="btn-webmail-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span>${data.btnPrimary}</span>
+            </a>
+          </div>
+
+          <div class="recovery-links" style="margin-bottom:0;">
+            <a href="/r/${data.resendSlug}" class="back-link">${data.backText}</a>
+          </div>
+        `;
+      }
+
+      const html = `
+        <!-- App Header Bar -->
+        <header class="desk-header">
+          <a href="/" class="desk-logo">
+            <span>KelasWFA</span>
+            <span class="desk-logo-badge">Kado Desk</span>
+          </a>
+          <div class="header-status-badge ${data.isError ? 'error' : ''}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              ${data.isError ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'}
+            </svg>
+            <span>${data.headerBadge}</span>
+          </div>
+        </header>
+
+        <!-- Main Content Area: Focused 1-Column Desk -->
+        <main class="dispatch-main">
+          
+          <div class="dispatch-card ${data.isError ? 'is-error' : ''}">
+            
+            <!-- Tactile Hero Stage -->
+            ${heroHtml}
+
+            <!-- Status Pill -->
+            <span class="dispatch-pill ${data.isError ? 'error' : ''}">
+              ${data.pillText}
+            </span>
+
+            <!-- Typography -->
+            <h1 class="dispatch-title">${data.heading}</h1>
+            <p class="dispatch-lead">${data.lead}</p>
+
+            <!-- Actions & Whitelist Flow -->
+            ${bodyContentHtml}
+
+          </div>
+
+          <!-- Page Support Footer -->
+          <footer class="desk-page-footer">
+            <p>${data.supportText}</p>
+          </footer>
+
+        </main>
+      `;
+
+      document.getElementById('dispatch-page-content').innerHTML = html;
+    }
+
+    function switchScenario(key) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderPage(key);
+    }
+
+    function setDevice(device) {
+      document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+      const frame = document.getElementById('device-frame');
+      if (device === 'mobile') {
+        document.getElementById('btn-mobile').classList.add('active');
+        frame.classList.add('mobile');
+      } else {
+        document.getElementById('btn-desktop').classList.add('active');
+        frame.classList.remove('mobile');
+      }
+    }
+
+    // Initialize with standard screenshot scenario
+    renderPage('normal-success');
+  </script>
+</body>
+</html>
