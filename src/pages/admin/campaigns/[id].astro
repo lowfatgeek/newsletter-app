@@ -3,6 +3,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { getCampaignById } from "../../../lib/admin/campaigns";
 import { listGroupedDoaTemplates } from "../../../lib/admin/doa";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { env } from "../../../lib/env";
 
 // Route on-demand — guard cookie + data per-request.
 export const prerender = false;
@@ -17,6 +18,10 @@ if (!data) return new Response(null, { status: 404 });
 const { campaign } = data;
 const idRow = data.locales.find((l) => l.locale === "id") ?? null;
 const enRow = data.locales.find((l) => l.locale === "en") ?? null;
+
+const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
+const publicUrl = `${siteUrl}/r/${campaign.slug}`;
+const isJustCreated = Astro.url.searchParams.get("created") === "1";
 
 const statusLabel: Record<string, string> = {
   draft: "Draft",
@@ -77,10 +82,90 @@ function excerpt(text: string, max = 80): string {
     </div>
     <div class="save-area">
       <span id="save-status" role="status" aria-live="polite"></span>
+      <button
+        type="button"
+        id="btn-copy-public-link"
+        class="btn-secondary btn-copy-link"
+        data-url={publicUrl}
+        title="Salin URL publik halaman reward"
+      >
+        <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+        </svg>
+        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true" style="display: none;">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span class="copy-btn-text">Salin Link</span>
+      </button>
       <button type="button" id="save-btn" class={campaign.status === "draft" ? "btn-secondary" : "btn-primary"}>Simpan</button>
       <a href={`/admin/preview/${campaign.id}`} class="btn-secondary">Preview</a>
     </div>
   </div>
+
+  {isJustCreated && (
+    <aside class="created-banner" id="created-banner" role="status" aria-label="Campaign baru dibuat">
+      <div class="created-banner-content">
+        <div class="created-banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="created-banner-text">
+          <strong>Campaign berhasil dibuat!</strong>
+          <span class="created-banner-url-desc">
+            Link publik Anda: <code id="banner-public-url">{publicUrl}</code>
+          </span>
+        </div>
+      </div>
+      <div class="created-banner-actions">
+        <button
+          type="button"
+          class="btn-secondary btn-small copy-trigger"
+          id="btn-banner-copy"
+          data-copy-target={publicUrl}
+          title="Salin link publik"
+        >
+          <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+          </svg>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true" style="display: none;">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span class="copy-text">Salin Link</span>
+        </button>
+        <a
+          id="banner-open-link"
+          href={`/r/${campaign.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-secondary btn-small"
+          title="Buka halaman publik di tab baru"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Buka
+        </a>
+        <button
+          type="button"
+          class="btn-banner-close"
+          id="btn-banner-close"
+          aria-label="Tutup pemberitahuan"
+          title="Tutup"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+  )}
 
   <p id="global-error" class="error" role="alert" hidden></p>
 
@@ -92,7 +177,53 @@ function excerpt(text: string, max = 80): string {
         <div class="field">
           <label for="f-slug">Slug <span class="wajib">Wajib</span></label>
           <input id="f-slug" type="text" value={campaign.slug} spellcheck="false" autocomplete="off" aria-describedby="slug-error slug-hint" />
-          <p id="slug-hint" class="hint">Alamat publik: /r/{campaign.slug}</p>
+          
+          <div class="public-url-bar" id="public-url-bar">
+            <span class="public-url-label">Alamat publik:</span>
+            <div class="public-url-input-wrap">
+              <input
+                id="f-public-url"
+                type="text"
+                readonly
+                value={publicUrl}
+                spellcheck="false"
+                tabindex="-1"
+                aria-label="Alamat URL publik"
+              />
+              <button
+                type="button"
+                id="btn-copy-slug-url"
+                class="btn-copy-inline"
+                data-copy-target={publicUrl}
+                title="Salin alamat URL publik"
+              >
+                <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true" style="display: none;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span class="copy-text">Salin</span>
+              </button>
+              <a
+                id="link-open-public"
+                href={`/r/${campaign.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-open-inline"
+                title="Buka halaman publik di tab baru"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <p id="slug-hint" class="hint" hidden>Alamat publik: /r/{campaign.slug}</p>
           <p id="slug-error" class="field-error" hidden></p>
         </div>
         <div class="field">
@@ -605,6 +736,170 @@ function excerpt(text: string, max = 80): string {
     border-color: rgba(181, 60, 74, 0.2);
   }
   .btn-small { min-height: 44px; padding: 8px 12px; }
+
+  /* Created notification banner */
+  .created-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    background: var(--color-success-subtle);
+    border: 1px solid rgba(35, 122, 85, 0.25);
+    border-radius: var(--radius-card);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+    animation: fadeInBanner 0.25s ease-out;
+  }
+  @keyframes fadeInBanner {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .created-banner-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: 1;
+    min-width: 260px;
+  }
+  .created-banner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-success);
+    background: #ffffff;
+    border-radius: var(--radius-pill);
+    padding: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    flex: none;
+  }
+  .created-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .created-banner-text strong {
+    color: var(--color-ink);
+    font-size: var(--text-body-sm);
+  }
+  .created-banner-url-desc {
+    color: var(--color-text);
+    font-size: var(--text-body-sm);
+    word-break: break-all;
+  }
+  .created-banner-url-desc code {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(35, 122, 85, 0.2);
+    border-radius: var(--radius-control);
+    padding: 2px 6px;
+    font-size: 13px;
+    font-family: monospace;
+    color: var(--color-ink);
+  }
+  .created-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .btn-banner-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-control);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 6px;
+    margin-left: var(--space-1);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .btn-banner-close:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--color-ink);
+  }
+
+  /* Public URL interactive bar */
+  .public-url-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .public-url-label {
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
+    font-weight: normal;
+  }
+  .public-url-input-wrap {
+    display: flex;
+    align-items: stretch;
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-control);
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .public-url-input-wrap:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+  }
+  .public-url-input-wrap input {
+    border: none !important;
+    background: transparent !important;
+    padding: 8px 12px;
+    min-height: 40px;
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--color-text);
+    flex: 1;
+    margin: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: text;
+  }
+  .btn-copy-inline, .btn-open-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    min-height: 40px;
+    background: var(--color-surface-raised);
+    border: none;
+    border-left: var(--border-default);
+    color: var(--color-ink);
+    font-family: inherit;
+    font-size: var(--text-body-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    flex: none;
+  }
+  .btn-copy-inline:hover, .btn-open-inline:hover {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+  }
+  .btn-copy-inline.copied {
+    background: var(--color-success-subtle);
+    color: var(--color-success);
+  }
+
+  /* Copy button in header & general copied state */
+  .btn-copy-link {
+    gap: 6px;
+  }
+  .btn-copy-link.copied {
+    background: var(--color-success-subtle);
+    border-color: rgba(35, 122, 85, 0.4);
+    color: var(--color-success);
+  }
+  .copy-trigger.copied {
+    background: var(--color-success-subtle);
+    border-color: rgba(35, 122, 85, 0.4);
+    color: var(--color-success);
+  }
 
   .card {
     background: var(--color-surface-raised);
@@ -1209,10 +1504,115 @@ function excerpt(text: string, max = 80): string {
       .slice(0, 120);
   }
 
+  async function copyText(text: string, triggerBtn?: HTMLElement | null): Promise<boolean> {
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        ta.style.top = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ok = document.execCommand("copy");
+        ta.remove();
+      }
+    } catch {
+      ok = false;
+    }
+
+    if (ok && triggerBtn) {
+      triggerBtn.classList.add("copied");
+      const textSpan = triggerBtn.querySelector(".copy-btn-text, .copy-text, .mini-copy-text");
+      const originalText = textSpan ? textSpan.textContent : null;
+      if (textSpan) textSpan.textContent = "Tersalin!";
+
+      const copyIcon = triggerBtn.querySelector<HTMLElement>(".copy-icon");
+      const checkIcon = triggerBtn.querySelector<HTMLElement>(".check-icon");
+      if (copyIcon && checkIcon) {
+        copyIcon.style.display = "none";
+        checkIcon.style.display = "inline-block";
+      }
+
+      setTimeout(() => {
+        triggerBtn.classList.remove("copied");
+        if (textSpan && originalText) textSpan.textContent = originalText;
+        if (copyIcon && checkIcon) {
+          copyIcon.style.display = "";
+          checkIcon.style.display = "none";
+        }
+      }, 2000);
+    }
+    return ok;
+  }
+
+  function updatePublicUrlDisplay(newSlug: string) {
+    const trimmed = newSlug.trim();
+    const origin = window.location.origin;
+    const fullUrl = `${origin}/r/${trimmed}`;
+    const relPath = `/r/${trimmed}`;
+
+    const slugHint = $<HTMLElement>("#slug-hint");
+    if (slugHint) slugHint.textContent = `Alamat publik: ${relPath}`;
+
+    const publicInput = $<HTMLInputElement>("#f-public-url");
+    if (publicInput) publicInput.value = fullUrl;
+
+    const copySlugBtn = $<HTMLElement>("#btn-copy-slug-url");
+    if (copySlugBtn) copySlugBtn.dataset.copyTarget = fullUrl;
+
+    const openLink = $<HTMLAnchorElement>("#link-open-public");
+    if (openLink) openLink.href = relPath;
+
+    const copyHeaderBtn = $<HTMLElement>("#btn-copy-public-link");
+    if (copyHeaderBtn) copyHeaderBtn.dataset.url = fullUrl;
+
+    const bannerUrl = $<HTMLElement>("#banner-public-url");
+    if (bannerUrl) bannerUrl.textContent = fullUrl;
+
+    const bannerOpen = $<HTMLAnchorElement>("#banner-open-link");
+    if (bannerOpen) bannerOpen.href = relPath;
+
+    const bannerCopy = $<HTMLElement>("#btn-banner-copy");
+    if (bannerCopy) bannerCopy.dataset.copyTarget = fullUrl;
+  }
+
+  $<HTMLButtonElement>("#btn-copy-public-link")?.addEventListener("click", function () {
+    const slug = slugInput?.value.trim() || savedSlug;
+    const url = `${window.location.origin}/r/${slug}`;
+    void copyText(url, this);
+  });
+
+  $<HTMLButtonElement>("#btn-copy-slug-url")?.addEventListener("click", function () {
+    const slug = slugInput?.value.trim() || savedSlug;
+    const url = this.dataset.copyTarget || `${window.location.origin}/r/${slug}`;
+    void copyText(url, this);
+  });
+
+  $<HTMLButtonElement>("#btn-banner-copy")?.addEventListener("click", function () {
+    const slug = slugInput?.value.trim() || savedSlug;
+    const url = this.dataset.copyTarget || `${window.location.origin}/r/${slug}`;
+    void copyText(url, this);
+  });
+
+  $<HTMLButtonElement>("#btn-banner-close")?.addEventListener("click", () => {
+    const banner = $<HTMLElement>("#created-banner");
+    if (banner) {
+      banner.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+      banner.style.opacity = "0";
+      banner.style.transform = "translateY(-4px)";
+      setTimeout(() => banner.remove(), 200);
+    }
+  });
+
   slugInput?.addEventListener("input", () => {
     isAutoSlug = false;
-    const slugHint = $<HTMLElement>("#slug-hint");
-    if (slugHint && slugInput) slugHint.textContent = `Alamat publik: /r/${slugInput.value.trim()}`;
+    if (slugInput) updatePublicUrlDisplay(slugInput.value);
   });
 
   titleId?.addEventListener("input", () => {
@@ -1220,8 +1620,7 @@ function excerpt(text: string, max = 80): string {
       const generated = slugify(titleId.value);
       if (generated) {
         slugInput.value = generated;
-        const slugHint = $<HTMLElement>("#slug-hint");
-        if (slugHint) slugHint.textContent = `Alamat publik: /r/${generated}`;
+        updatePublicUrlDisplay(generated);
       }
     }
   });
@@ -1287,6 +1686,7 @@ function excerpt(text: string, max = 80): string {
       const data = await res.json();
       if (data.ok) {
         savedSlug = slugInput?.value ?? savedSlug;
+        updatePublicUrlDisplay(savedSlug);
         if (saveStatus) saveStatus.textContent = `Tersimpan ${nowClock()}`;
         return true;
       }
@@ -1295,7 +1695,10 @@ function excerpt(text: string, max = 80): string {
           "Campaign ini sudah pernah dipublikasikan. Mengubah slug akan membuat alamat lama dialihkan otomatis ke alamat baru. Lanjutkan menyimpan slug baru?",
         );
         if (ok) { return await save(true); }
-        if (slugInput) slugInput.value = savedSlug;
+        if (slugInput) {
+          slugInput.value = savedSlug;
+          updatePublicUrlDisplay(savedSlug);
+        }
         if (saveStatus) saveStatus.textContent = "";
         return false;
       }

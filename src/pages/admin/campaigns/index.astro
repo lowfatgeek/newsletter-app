@@ -2,6 +2,7 @@
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { listCampaignRows } from "../../../lib/admin/campaigns";
 import { requireAdminOrRedirect } from "../../../lib/admin/guard";
+import { env } from "../../../lib/env";
 
 // Route on-demand — data tabel + guard cookie bersifat per-request.
 export const prerender = false;
@@ -11,6 +12,7 @@ if (!admin) return Astro.redirect("/admin/login");
 
 // Nama campaign = judul locale ID (fallback slug bila locale belum diisi).
 const rows = await listCampaignRows();
+const siteUrl = env("PUBLIC_SITE_URL", new URL(Astro.request.url).origin);
 
 const statusMeta: Record<string, { label: string; tone: "muted" | "success" | "warning" }> = {
   draft: { label: "Draft", tone: "muted" },
@@ -64,7 +66,24 @@ function fmtDate(d: Date | null): string {
               <tr>
                 <td>
                   <strong>{row.titleId || row.slug}</strong>
-                  <span class="slug">/{row.slug}</span>
+                  <div class="slug-row">
+                    <span class="slug">/{row.slug}</span>
+                    <button
+                      type="button"
+                      class="btn-copy-mini"
+                      data-copy-url={`${siteUrl}/r/${row.slug}`}
+                      title="Salin link publik"
+                    >
+                      <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true">
+                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                      </svg>
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true" style="display: none;">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      <span class="mini-copy-text">Salin</span>
+                    </button>
+                  </div>
                 </td>
                 <td>
                   <span class={`badge tone-${meta.tone}`}>
@@ -76,6 +95,7 @@ function fmtDate(d: Date | null): string {
                 <td class="actions">
                   <a href={`/admin/campaigns/${row.id}`}>Edit</a>
                   <a href={`/admin/preview/${row.id}`}>Preview</a>
+                  <a href={`/r/${row.slug}`} target="_blank" rel="noopener noreferrer" title="Buka halaman publik di tab baru">Buka</a>
                 </td>
               </tr>
             );
@@ -150,6 +170,39 @@ function fmtDate(d: Date | null): string {
   td strong { color: var(--color-ink); font-weight: var(--font-weight-semibold); display: block; }
   .slug { color: var(--color-text-muted); font-size: var(--text-body-sm); }
 
+  .slug-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: 2px;
+  }
+  .btn-copy-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-surface-subtle);
+    border: var(--border-default);
+    border-radius: var(--radius-pill);
+    padding: 2px 8px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    min-height: 22px;
+  }
+  .btn-copy-mini:hover {
+    background: var(--color-primary-subtle);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+  .btn-copy-mini.copied {
+    background: var(--color-success-subtle);
+    border-color: var(--color-success);
+    color: var(--color-success);
+  }
+
   .badge {
     display: inline-flex;
     align-items: center;
@@ -194,7 +247,7 @@ function fmtDate(d: Date | null): string {
         });
         const data = await res.json();
         if (data.ok && data.id) {
-          window.location.assign(`/admin/campaigns/${data.id}`);
+          window.location.assign(`/admin/campaigns/${data.id}?created=1`);
           return;
         }
         window.location.assign("/admin/campaigns/new");
@@ -204,6 +257,41 @@ function fmtDate(d: Date | null): string {
         btn.textContent = originalText;
         btn.style.pointerEvents = "";
         btn.style.opacity = "";
+      }
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".btn-copy-mini").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const url = btn.dataset.copyUrl;
+      if (!url) return;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        btn.classList.add("copied");
+        const textSpan = btn.querySelector(".mini-copy-text");
+        const copyIcon = btn.querySelector<HTMLElement>(".copy-icon");
+        const checkIcon = btn.querySelector<HTMLElement>(".check-icon");
+        if (textSpan) textSpan.textContent = "Tersalin!";
+        if (copyIcon && checkIcon) { copyIcon.style.display = "none"; checkIcon.style.display = "inline-block"; }
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          if (textSpan) textSpan.textContent = "Salin";
+          if (copyIcon && checkIcon) { copyIcon.style.display = ""; checkIcon.style.display = "none"; }
+        }, 1800);
+      } catch (err) {
+        console.error("Failed to copy:", err);
       }
     });
   });

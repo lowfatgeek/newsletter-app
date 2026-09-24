@@ -125,7 +125,7 @@ if (!admin) return Astro.redirect("/admin/login");
       });
       const data = await res.json();
       if (data.ok && data.id) {
-        window.location.assign(`/admin/campaigns/${data.id}`);
+        window.location.assign(`/admin/campaigns/${data.id}?created=1`);
         return;
       }
       error.textContent =
