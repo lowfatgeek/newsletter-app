@@ -20,17 +20,15 @@
       --color-primary-hover: #105447;
       --color-primary-subtle: #E5F2EE;
       --color-gold: #D99020;
-      --color-gold-subtle: #FFF2D6;
       --color-warning: #9A6514;
       --color-warning-subtle: #FFF4DC;
-      --color-sand: #F3EBDD;
 
       --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       --radius-control: 12px;
       --radius-card: 22px;
       --radius-pill: 999px;
       --border-default: 1px solid var(--color-border);
-      --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 12px 36px rgba(21, 59, 53, 0.07);
+      --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 14px 40px rgba(21, 59, 53, 0.08);
     }
 
     * {
@@ -49,9 +47,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ========================================================
-       TOP STUDIO CONTROLLER BAR
-       ======================================================== */
+    /* Top Studio Controller Bar */
     .studio-bar {
       background: #FFFFFF;
       border-bottom: 1px solid var(--color-border);
@@ -151,9 +147,7 @@
       box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
     }
 
-    /* ========================================================
-       PREVIEW CANVAS & SIMULATED FRAMES
-       ======================================================== */
+    /* Preview Canvas & Simulated Frames */
     .preview-canvas {
       flex: 1;
       padding: 36px 16px 64px;
@@ -165,7 +159,7 @@
 
     .device-frame {
       width: 100%;
-      max-width: 900px;
+      max-width: 960px;
       background: var(--color-canvas);
       border-radius: 24px;
       box-shadow: 0 16px 48px rgba(21, 59, 53, 0.14);
@@ -239,7 +233,7 @@
     }
 
     /* ========================================================
-       404 PAGE STYLING ("THE LOST COURIER DESK")
+       404 PAGE STYLING (DESKTOP 2-COLUMN SPLIT DESK)
        ======================================================== */
     .not-found-page {
       min-height: 100%;
@@ -297,25 +291,29 @@
     /* Main Container */
     .not-found-main {
       width: 100%;
-      max-width: 600px;
+      max-width: 880px;
       margin: 0 auto;
-      padding: 44px 20px 64px;
+      padding: 36px 24px 48px;
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
 
-    /* Card Box */
+    /* Card Box — Desktop 2-Column Grid Layout */
     .not-found-card {
       background: var(--color-surface-raised);
       border: var(--border-default);
       border-radius: var(--radius-card);
-      padding: 36px 32px 32px;
+      padding: 36px 40px;
       box-shadow: var(--shadow-card);
       position: relative;
       overflow: hidden;
-      text-align: center;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      align-items: center;
+      gap: 36px;
+      text-align: left;
     }
 
     /* Top Accent Ribbon */
@@ -332,21 +330,18 @@
     /* Illustration Stage */
     .illustration-stage {
       position: relative;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 20px;
     }
 
     .character-img {
-      width: 250px;
+      width: 270px;
       max-width: 100%;
       height: auto;
       display: block;
-      margin: 0 auto;
-      filter: drop-shadow(0 12px 20px rgba(21, 59, 53, 0.12));
+      filter: drop-shadow(0 14px 24px rgba(21, 59, 53, 0.12));
       animation: floatCourier 3.5s ease-in-out infinite alternate;
-      cursor: pointer;
       transition: transform 0.25s ease;
     }
 
@@ -355,19 +350,15 @@
     }
 
     @keyframes floatCourier {
-      0% {
-        transform: translateY(0px);
-      }
-      100% {
-        transform: translateY(-8px);
-      }
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-8px); }
     }
 
-    /* Floating Question Mark Badge */
+    /* Floating Question Mark Balloon */
     .question-balloon {
       position: absolute;
-      top: 4px;
-      right: 12px;
+      top: 10px;
+      right: 0px;
       background: #FFFFFF;
       border: 1.5px solid var(--color-border);
       border-radius: 50%;
@@ -386,55 +377,59 @@
       50% { transform: scale(1.12); }
     }
 
-    /* Status Pill */
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #FFF2E8;
-      border: 1px solid rgba(240, 106, 58, 0.25);
-      color: #D14D1A;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border-radius: var(--radius-pill);
-      margin-bottom: 12px;
+    /* Content Column */
+    .content-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
     }
 
-    .not-found-card h1 {
-      font-size: clamp(23px, 4.2vw, 28px);
+    /* Status Sub-heading Badge */
+    .not-found-sub {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #D14D1A;
+      background: #FFF2E8;
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      margin: 0 0 10px 0;
+      border: 1px solid rgba(240, 106, 58, 0.25);
+    }
+
+    .not-found-title {
+      font-size: clamp(23px, 2.5vw, 28px);
       font-weight: 800;
       color: var(--color-ink);
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-      margin-bottom: 12px;
+      line-height: 1.24;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+      text-align: left;
     }
 
     .not-found-lead {
-      font-size: 15px;
-      line-height: 1.65;
+      font-size: 14.5px;
+      line-height: 1.6;
       color: var(--color-text-muted);
-      margin-bottom: 22px;
-      max-width: 480px;
-      margin-left: auto;
-      margin-right: auto;
+      margin-bottom: 20px;
+      text-align: left;
+      max-width: 100%;
     }
 
-    /* Action Buttons Group */
+    /* Action Buttons */
     .action-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 24px;
+      margin-bottom: 18px;
+      width: auto;
     }
 
     .btn-primary-home {
       background: var(--color-primary);
       color: #FFFFFF;
       text-decoration: none;
-      padding: 14px 24px;
+      padding: 13px 26px;
       border-radius: var(--radius-control);
       font-weight: 700;
       font-size: 15px;
@@ -447,6 +442,7 @@
       transition: all 0.15s ease;
       min-height: 48px;
       box-shadow: 0 4px 14px rgba(23, 107, 91, 0.25);
+      width: auto;
     }
 
     .btn-primary-home:hover {
@@ -459,38 +455,41 @@
       transform: translateY(1px);
     }
 
-    /* Secondary Tip Card */
+    /* Helpful Hints Card */
     .hints-card {
       background: var(--color-surface-subtle);
       border: 1px solid var(--color-border);
-      border-radius: 16px;
-      padding: 18px 20px;
+      border-radius: 14px;
+      padding: 14px 16px;
       text-align: left;
+      width: 100%;
     }
 
     .hints-title {
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       color: var(--color-ink);
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 6px;
+      margin-bottom: 8px;
     }
 
     .hints-list {
       list-style: none;
       display: grid;
-      gap: 10px;
+      gap: 6px;
+      padding: 0;
+      margin: 0;
     }
 
     .hint-item {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      font-size: 13px;
+      gap: 8px;
+      font-size: 12.5px;
       color: var(--color-text);
-      line-height: 1.5;
+      line-height: 1.45;
     }
 
     .hint-dot {
@@ -511,7 +510,7 @@
 
     /* Support Footer */
     .not-found-footer {
-      margin-top: 24px;
+      margin-top: 20px;
       text-align: center;
       font-size: 13px;
       color: var(--color-text-muted);
@@ -525,9 +524,9 @@
     }
 
     /* ========================================================
-       MOBILE VIEWPORT (< 640px)
+       MOBILE VIEWPORT (< 768px): PRESERVED SINGLE-COLUMN STACK
        ======================================================== */
-    @media (max-width: 640px) {
+    @media (max-width: 767px) {
       .desk-header {
         height: 56px;
         padding: 0 16px;
@@ -541,10 +540,19 @@
       }
       .not-found-main {
         padding: 24px 16px 40px;
+        max-width: 600px;
       }
       .not-found-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
         padding: 24px 18px 24px;
         border-radius: 18px;
+        gap: 0;
+      }
+      .illustration-stage {
+        margin-bottom: 18px;
       }
       .character-img {
         width: 190px;
@@ -553,14 +561,35 @@
         width: 32px;
         height: 32px;
         font-size: 15px;
+        top: 4px;
         right: 4px;
       }
-      .not-found-card h1 {
+      .content-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+      }
+      .not-found-sub {
+        margin: 0 auto 10px;
+      }
+      .not-found-title {
         font-size: 21px;
+        text-align: center;
+        margin-bottom: 12px;
       }
       .not-found-lead {
         font-size: 14px;
+        text-align: center;
         margin-bottom: 18px;
+      }
+      .action-group {
+        width: 100%;
+        margin-bottom: 20px;
+      }
+      .btn-primary-home {
+        width: 100%;
       }
       .hints-card {
         padding: 16px 14px;
@@ -573,7 +602,7 @@
       }
     }
 
-    /* Device frame mobile simulation override */
+    /* Device frame mobile simulation override (for Studio switcher) */
     .device-frame.mobile .desk-header {
       height: 56px;
       padding: 0 16px;
@@ -587,10 +616,19 @@
     }
     .device-frame.mobile .not-found-main {
       padding: 24px 16px 40px;
+      max-width: 600px;
     }
     .device-frame.mobile .not-found-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
       padding: 24px 18px 24px;
       border-radius: 18px;
+      gap: 0;
+    }
+    .device-frame.mobile .illustration-stage {
+      margin-bottom: 18px;
     }
     .device-frame.mobile .character-img {
       width: 190px;
@@ -599,14 +637,35 @@
       width: 32px;
       height: 32px;
       font-size: 15px;
+      top: 4px;
       right: 4px;
     }
-    .device-frame.mobile .not-found-card h1 {
+    .device-frame.mobile .content-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+    }
+    .device-frame.mobile .not-found-sub {
+      margin: 0 auto 10px;
+    }
+    .device-frame.mobile .not-found-title {
       font-size: 21px;
+      text-align: center;
+      margin-bottom: 12px;
     }
     .device-frame.mobile .not-found-lead {
       font-size: 14px;
+      text-align: center;
       margin-bottom: 18px;
+    }
+    .device-frame.mobile .action-group {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .device-frame.mobile .btn-primary-home {
+      width: 100%;
     }
     .device-frame.mobile .hints-card {
       padding: 16px 14px;
@@ -639,11 +698,11 @@
     <div class="device-switcher">
       <button class="device-btn active" id="btn-desktop" onclick="setDevice('desktop')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        Desktop (600px card)
+        Desktop (880px 2-kolom)
       </button>
       <button class="device-btn" id="btn-mobile" onclick="setDevice('mobile')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
-        Mobile Phone (390px)
+        Mobile Phone (390px stack)
       </button>
     </div>
   </div>
@@ -756,7 +815,7 @@
           
           <div class="not-found-card">
             
-            <!-- Character Illustration Stage -->
+            <!-- Character Illustration Stage (Left Column on Desktop) -->
             <div class="illustration-stage">
               <img 
                 src="404-kurir-nyasar.png" 
@@ -767,42 +826,47 @@
               <div class="question-balloon" title="Hah, mana alamatnya?">🗺️</div>
             </div>
 
-            <!-- Status Pill Tag -->
-            <div>
-              <span class="status-pill">${data.badge}</span>
-            </div>
+            <!-- Content Column (Right Column on Desktop) -->
+            <div class="content-col">
+              <!-- Status Sub-heading Badge -->
+              <h2 class="not-found-sub">${isEn ? 'Page not found' : 'Halaman tidak ditemukan'}</h2>
 
-            <!-- Primary Heading -->
-            <h1>${data.heading}</h1>
+              <!-- Primary Heading -->
+              <h1 class="not-found-title">${data.heading}</h1>
 
-            <!-- Explanation Lead -->
-            <p class="not-found-lead">${data.lead}</p>
+              <!-- Explanation Lead -->
+              <p class="not-found-lead">${data.lead}</p>
 
-            <!-- Primary CTA Action -->
-            <div class="action-group">
-              <a href="/" class="btn-primary-home" onclick="simulateReturn(event)">
-                <span>${data.btnText}</span>
-              </a>
-            </div>
-
-            <!-- Helpful Hints Card -->
-            <div class="hints-card">
-              <div class="hints-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-                <span>${data.hintsTitle}</span>
+              <!-- Primary CTA Action -->
+              <div class="action-group">
+                <a href="/" class="btn-primary-home" onclick="simulateReturn(event)">
+                  <span>${data.btnText}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </a>
               </div>
-              <ul class="hints-list">
-                ${data.hints.map((h, i) => `
-                  <li class="hint-item">
-                    <span class="hint-dot">${i + 1}</span>
-                    <span>${h}</span>
-                  </li>
-                `).join('')}
-              </ul>
+
+              <!-- Helpful Hints Card -->
+              <div class="hints-card">
+                <div class="hints-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <span>${data.hintsTitle}</span>
+                </div>
+                <ul class="hints-list">
+                  ${data.hints.map((h, i) => `
+                    <li class="hint-item">
+                      <span class="hint-dot">${i + 1}</span>
+                      <span>${h}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
             </div>
 
           </div>
@@ -838,7 +902,7 @@
 
     function simulateReturn(e) {
       e.preventDefault();
-      alert('Simulasi: Mengarahkan pengguna kembali ke halaman utama / beranda kado.');
+      alert('Simulasi: Mengarahkan pengguna kembali ke halaman utama / beranda.');
     }
 
     // Initialize with Indonesian scenario

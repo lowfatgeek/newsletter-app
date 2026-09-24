@@ -75,7 +75,7 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
         --radius-card: 22px;
         --radius-pill: 999px;
         --border-default: 1px solid var(--color-border);
-        --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 12px 36px rgba(21, 59, 53, 0.07);
+        --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 14px 40px rgba(21, 59, 53, 0.08);
       }
 
       * {
@@ -144,25 +144,29 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
       /* Main Container */
       .not-found-main {
         width: 100%;
-        max-width: 600px;
+        max-width: 880px;
         margin: 0 auto;
-        padding: 44px 20px 64px;
+        padding: 36px 24px 48px;
         flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
       }
 
-      /* Card Box */
+      /* Card Box — Desktop 2-Column Grid Layout */
       .not-found-card {
         background: var(--color-surface-raised);
         border: var(--border-default);
         border-radius: var(--radius-card);
-        padding: 36px 32px 32px;
+        padding: 36px 40px;
         box-shadow: var(--shadow-card);
         position: relative;
         overflow: hidden;
-        text-align: center;
+        display: grid;
+        grid-template-columns: 290px 1fr;
+        align-items: center;
+        gap: 36px;
+        text-align: left;
       }
 
       /* Top Accent Ribbon */
@@ -179,19 +183,17 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
       /* Illustration Stage */
       .illustration-stage {
         position: relative;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 20px;
       }
 
       .character-img {
-        width: 250px;
+        width: 270px;
         max-width: 100%;
         height: auto;
         display: block;
-        margin: 0 auto;
-        filter: drop-shadow(0 12px 20px rgba(21, 59, 53, 0.12));
+        filter: drop-shadow(0 14px 24px rgba(21, 59, 53, 0.12));
         animation: floatCourier 3.5s ease-in-out infinite alternate;
         transition: transform 0.25s ease;
       }
@@ -208,8 +210,8 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
       /* Floating Question Mark Balloon */
       .question-balloon {
         position: absolute;
-        top: 4px;
-        right: 12px;
+        top: 10px;
+        right: 0px;
         background: #FFFFFF;
         border: 1.5px solid var(--color-border);
         border-radius: 50%;
@@ -228,53 +230,59 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
         50% { transform: scale(1.12); }
       }
 
+      /* Content Column */
+      .content-col {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+
       /* Status Sub-heading Badge */
       .not-found-sub {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: #D14D1A;
         background: #FFF2E8;
         display: inline-block;
-        padding: 5px 14px;
+        padding: 4px 12px;
         border-radius: var(--radius-pill);
-        margin: 0 auto 12px;
+        margin: 0 0 10px 0;
         border: 1px solid rgba(240, 106, 58, 0.25);
       }
 
       .not-found-title {
-        font-size: clamp(23px, 4.2vw, 28px);
+        font-size: clamp(23px, 2.5vw, 28px);
         font-weight: 800;
         color: var(--color-ink);
-        line-height: 1.25;
-        letter-spacing: -0.02em;
-        margin-bottom: 12px;
+        line-height: 1.24;
+        letter-spacing: -0.025em;
+        margin-bottom: 10px;
+        text-align: left;
       }
 
       .not-found-lead {
-        font-size: 15px;
-        line-height: 1.65;
+        font-size: 14.5px;
+        line-height: 1.6;
         color: var(--color-text-muted);
-        margin-bottom: 22px;
-        max-width: 480px;
-        margin-left: auto;
-        margin-right: auto;
+        margin-bottom: 20px;
+        text-align: left;
+        max-width: 100%;
       }
 
       /* Action Buttons */
       .action-group {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 24px;
+        margin-bottom: 18px;
+        width: auto;
       }
 
       .btn-primary-home {
         background: var(--color-primary);
         color: #FFFFFF;
         text-decoration: none;
-        padding: 14px 24px;
+        padding: 13px 26px;
         border-radius: var(--radius-control);
         font-weight: 700;
         font-size: 15px;
@@ -287,6 +295,7 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
         transition: all 0.15s ease;
         min-height: 48px;
         box-shadow: 0 4px 14px rgba(23, 107, 91, 0.25);
+        width: auto;
       }
 
       .btn-primary-home:hover {
@@ -303,25 +312,26 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
       .hints-card {
         background: var(--color-surface-subtle);
         border: 1px solid var(--color-border);
-        border-radius: 16px;
-        padding: 18px 20px;
+        border-radius: 14px;
+        padding: 14px 16px;
         text-align: left;
+        width: 100%;
       }
 
       .hints-title {
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 700;
         color: var(--color-ink);
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 8px;
       }
 
       .hints-list {
         list-style: none;
         display: grid;
-        gap: 10px;
+        gap: 6px;
         padding: 0;
         margin: 0;
       }
@@ -329,10 +339,10 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
       .hint-item {
         display: flex;
         align-items: flex-start;
-        gap: 10px;
-        font-size: 13px;
+        gap: 8px;
+        font-size: 12.5px;
         color: var(--color-text);
-        line-height: 1.5;
+        line-height: 1.45;
       }
 
       .hint-dot {
@@ -353,7 +363,7 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
 
       /* Support Footer */
       .not-found-footer {
-        margin-top: 24px;
+        margin-top: 20px;
         text-align: center;
         font-size: 13px;
         color: var(--color-text-muted);
@@ -366,8 +376,8 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
         text-decoration: underline;
       }
 
-      /* Mobile Viewport (< 640px) */
-      @media (max-width: 640px) {
+      /* Mobile Viewport (< 768px): Stays 100% Clean Single-Column Stack */
+      @media (max-width: 767px) {
         .desk-header {
           height: 56px;
           padding: 0 16px;
@@ -381,10 +391,19 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
         }
         .not-found-main {
           padding: 24px 16px 40px;
+          max-width: 600px;
         }
         .not-found-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
           padding: 24px 18px 24px;
           border-radius: 18px;
+          gap: 0;
+        }
+        .illustration-stage {
+          margin-bottom: 18px;
         }
         .character-img {
           width: 190px;
@@ -393,14 +412,35 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
           width: 32px;
           height: 32px;
           font-size: 15px;
+          top: 4px;
           right: 4px;
+        }
+        .content-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          width: 100%;
+        }
+        .not-found-sub {
+          margin: 0 auto 10px;
         }
         .not-found-title {
           font-size: 21px;
+          text-align: center;
+          margin-bottom: 12px;
         }
         .not-found-lead {
           font-size: 14px;
+          text-align: center;
           margin-bottom: 18px;
+        }
+        .action-group {
+          width: 100%;
+          margin-bottom: 20px;
+        }
+        .btn-primary-home {
+          width: 100%;
         }
         .hints-card {
           padding: 16px 14px;
@@ -438,55 +478,58 @@ export function notFoundHtml(locale: "id" | "en" = "id"): string {
             src="/images/404-kurir-nyasar.png" 
             alt="${isEn ? "Cute gift courier lost at the beach" : "Karakter Kado Kurir Nyasar ke Pantai"}" 
             class="character-img"
-            width="250"
-            height="250"
+            width="270"
+            height="270"
             loading="eager"
           />
           <div class="question-balloon" aria-hidden="true" title="${isEn ? "Where is the address?" : "Hah, mana alamatnya?"}">🗺️</div>
         </div>
 
-        <!-- Status Sub-heading Badge -->
-        <h2 class="not-found-sub">${copy.heading}</h2>
+        <!-- Content Column -->
+        <div class="content-col">
+          <!-- Status Sub-heading Badge -->
+          <h2 class="not-found-sub">${copy.heading}</h2>
 
-        <!-- Primary Headline -->
-        <h1 class="not-found-title">${copy.headline}</h1>
+          <!-- Primary Headline -->
+          <h1 class="not-found-title">${copy.headline}</h1>
 
-        <!-- Explanation Lead -->
-        <p class="not-found-lead">${copy.lead}</p>
+          <!-- Explanation Lead -->
+          <p class="not-found-lead">${copy.lead}</p>
 
-        <!-- Primary CTA Action -->
-        <div class="action-group">
-          <a href="/" class="btn-primary-home">
-            <span>${copy.cta}</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </a>
-        </div>
-
-        <!-- Helpful Hints Card -->
-        <div class="hints-card">
-          <div class="hints-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <span>${copy.hintsTitle}</span>
+          <!-- Primary CTA Action -->
+          <div class="action-group">
+            <a href="/" class="btn-primary-home">
+              <span>${copy.cta}</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
           </div>
-          <ul class="hints-list">
-            ${copy.hints
-              .map(
-                (h, i) => `
-              <li class="hint-item">
-                <span class="hint-dot" aria-hidden="true">${i + 1}</span>
-                <span>${h}</span>
-              </li>
-            `,
-              )
-              .join("")}
-          </ul>
+
+          <!-- Helpful Hints Card -->
+          <div class="hints-card">
+            <div class="hints-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <span>${copy.hintsTitle}</span>
+            </div>
+            <ul class="hints-list">
+              ${copy.hints
+                .map(
+                  (h, i) => `
+                <li class="hint-item">
+                  <span class="hint-dot" aria-hidden="true">${i + 1}</span>
+                  <span>${h}</span>
+                </li>
+              `,
+                )
+                .join("")}
+            </ul>
+          </div>
         </div>
       </section>
 
