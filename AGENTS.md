@@ -1,12 +1,20 @@
-## Active Next Task: Reward Page Redesign ("The Progressive Modal Desk")
+## Status Proyek & Arsitektur Aktif (September 2026)
 
-Task prioritas implementasi UI/UX adalah **Redesign Halaman Reward Publik (`/r/[slug]` dan `/en/r/[slug]`)**.
-- **Konsep Terpilih**: **"The Progressive Modal Desk"** (Showcase 1-Kolom Terfokus + Modal/Bottom-Sheet Ritual).
-- **Aturan Terkunci**:
-  1. Copywriting 100% TETAP (tidak boleh diubah).
-  2. Design tokens & filosofi `.agents/DESIGN.md` TETAP dipertahankan.
-  3. Timer 30 detik baru mulai berjalan saat modal dibuka (bukan saat halaman dibuka).
-  4. Logika bisnis anti-bot dan form klaim tetap 100%.
+Seluruh perombakan antarmuka publik telah **100% selesai diimplementasikan** mengikuti filosofi Hallmark "Desk Pattern Family":
+- **`/r/[slug]` & `/en/r/[slug]`**: "The Progressive Modal Desk" (Showcase 1-kolom terfokus + modal/bottom-sheet ritual claim dengan timer 30 detik on-demand).
+- **`/cek-email` & `/en/cek-email`**: "The Express Inbox Desk" (Panduan 1-kolom terfokus, tombol webmail cepat Gmail/Outlook, dan info whitelist kontak resmi).
+- **`/akses/[token]` & `/en/akses/[token]`**: "The Download Desk" (Pengambilan file reward resmi dengan token 7 hari dan signed URL 1 jam).
+- **`/konfirmasi/[token]` & `/en/konfirmasi/[token]`**: "The Reassurance Desk" (Konfirmasi double opt-in dengan transisi langsung ke akses reward).
+- **`/404`**: "The Lost Courier Desk" (Halaman error ramah pengguna berilustrasi kurir pos dengan navigasi kembali).
+
+### Arsitektur Pengirim Email (Dual-Sender)
+- **Transaksional** (OTP login admin, konfirmasi double opt-in, link akses kado): `KelasWFA <hi@kelaswfa.my.id>`
+- **Broadcast Newsletter** (Kampanye berkala ke subscriber): `KelasWFA <kurir@kelaswfa.my.id>`
+
+### Aturan & Quality Gate
+1. **Design Tokens & Copywriting**: Tetap patuhi `.agents/DESIGN.md` dan `src/styles/tokens.css`. Copywriting tidak boleh diubah sembarangan tanpa persetujuan.
+2. **Quality Gate CI**: Kode wajib lolos `npm run lint` (Biome), `npm run check` (Astro Check), `npm run test` (Vitest), dan `npm run build`. File preview statis di `preview/` diabaikan oleh Biome (`biome.json`).
+3. **Logika Bisnis & Anti-Bot**: Validasi server-side 30s token, rate limiting IP/email, dan honeypot wajib selalu aktif.
 
 ## Development
 

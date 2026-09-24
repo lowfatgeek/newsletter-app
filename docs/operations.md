@@ -17,7 +17,7 @@ Daftar isi:
 
 ## 1. Checklist launch
 
-- [ ] Domain pengirim (`kelaswfa.my.id`) terverifikasi di Emailit; SPF/DKIM/DMARC lolos (§2).
+- [ ] Domain pengirim (`kelaswfa.my.id`) terverifikasi di Emailit; kedua mailbox resmi (`hi@kelaswfa.my.id` transaksional & `kurir@kelaswfa.my.id` broadcast) lolos verifikasi SPF/DKIM/DMARC (§2).
 - [ ] `PUBLIC_SITE_URL`, `ADMIN_EMAIL`, `CRON_SECRET`, `EMAILIT_WEBHOOK_SECRET`, `TOKEN_SECRET`, `IP_HASH_SALT` terpasang di Vercel Production.
 - [ ] `DATABASE_URL` aplikasi memakai connection Neon **pooled**; migrasi dijalankan dengan connection **direct** (lihat catatan koneksi di bawah).
 - [ ] Migrasi terakhir sudah diterapkan ke database produksi (`npm run db:migrate` dengan direct URL).
@@ -48,6 +48,11 @@ Daftar isi:
 
 Kirim dari domain sendiri (bukan `gmail.com`). Verifikasi DNS domain pengirim
 di Emailit, lalu pastikan record berikut ada.
+
+Aplikasi memisahkan pengirim menjadi dua mailbox untuk menjaga reputasi pengiriman:
+- **Transaksional** (OTP login, konfirmasi opt-in, link akses kado): `KelasWFA <hi@kelaswfa.my.id>`
+- **Broadcast** (Newsletter / kampanye berkala): `KelasWFA <kurir@kelaswfa.my.id>`
+Pastikan kedua mailbox di atas terdaftar di domain `kelaswfa.my.id` dan dapat menerima email balasan (reply-to).
 
 ### SPF
 Satu record TXT di apex domain; Emailit menyertakan host yang harus

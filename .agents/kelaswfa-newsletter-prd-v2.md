@@ -24,8 +24,8 @@ Ini bukan SaaS. Aplikasi single-tenant dengan satu akun admin, dibangun untuk op
 | Area | Keputusan |
 |---|---|
 | Domain aplikasi | `kado.kelaswfa.my.id` |
-| Pengirim email | `KelasWFA <admin@kelaswfa.my.id>` |
-| Reply-to | `admin@kelaswfa.my.id`, mailbox harus dipantau |
+| Pengirim email | `KelasWFA <hi@kelaswfa.my.id>` (transaksional) & `KelasWFA <kurir@kelaswfa.my.id>` (broadcast) *(lihat Addendum §17)* |
+| Reply-to | `hi@kelaswfa.my.id` (transaksional) & `kurir@kelaswfa.my.id` (broadcast) *(lihat Addendum §17)* |
 | Login admin dan OTP | `kelaswfa@gmail.com` |
 | Identitas kontak | Satu email normalisasi = satu kontak global |
 | Claim kedua dan seterusnya | Tidak ada double opt-in ulang; kirim email akses reward baru |
@@ -621,3 +621,25 @@ Checkpoint akhir minggu 5: semua fungsi operasi admin dan broadcast MVP lengkap.
 - Mengganti domain menjadi `kelaswfa.my.id` dan domain app menjadi `kado.kelaswfa.my.id`.
 - Menambahkan unsubscribe, re-subscribe eksplisit, security admin email OTP, privacy controls, dan audit log.
 - Menjadikan timer sebagai pengalaman terukur yang divalidasi server, bukan klaim bahwa sistem dapat membuktikan visitor membaca doa.
+
+## 17. Addendum & Evolusi Teknis Pasca-PRD v2 (September 2026)
+
+### 17.1 Pemisahan Pengirim Email (Dual-Sender Isolation)
+Untuk melindungi reputasi pengiriman email (*sender deliverability*) dan memisahkan jalur komunikasi transaksional dengan buletin:
+- **Email Transaksional** (OTP login admin, konfirmasi double opt-in, link akses reward):
+  - Pengirim: `KelasWFA <hi@kelaswfa.my.id>`
+  - Reply-to: `hi@kelaswfa.my.id`
+- **Email Broadcast** (Kampanye newsletter berkala / pengumuman komunitas):
+  - Pengirim: `KelasWFA <kurir@kelaswfa.my.id>`
+  - Reply-to: `kurir@kelaswfa.my.id`
+Kedua alamat berada di bawah domain terautentikasi `kelaswfa.my.id` dengan konfigurasi SPF, DKIM, dan DMARC terpadu.
+
+### 17.2 Evolusi Desain Funnel Publik ("The Desk Pattern Family")
+- **Halaman Reward (`/r/[slug]`)**: Berevolusi dari form statis dalam tumpukan kartu menjadi **"The Progressive Modal Desk"**. Pengunjung melihat showcase 1-kolom (`max-width: 740px`) berisi detail nilai dan inventaris kado dengan tombol CTA *"Download Kado"*. Ketika CTA diklik, dialog ritual (Center Modal di Desktop, Bottom Sheet di Mobile) terbuka, dan timer 30 detik mulai berjalan on-demand.
+- **Halaman Verifikasi Email (`/cek-email`)**: Direvitalisasi menjadi **"The Express Inbox Desk"** (1-kolom, `max-width: 580px`) dengan card amplop beraura hangat, animasi pulse badge, tautan deep-link cepat ke Gmail dan Outlook, instruksi whitelist kontak resmi `hi@kelaswfa.my.id` & `kurir@kelaswfa.my.id`, serta bantuan spam terlipat.
+- **Halaman Akses & Konfirmasi (`/akses/[token]`, `/konfirmasi/[token]`, `/404`)**: Seluruhnya diselaraskan menggunakan Hallmark "Desk Pattern Family" (`DownloadDesk.astro`, `ReassuranceDesk.astro`, `LostCourierDesk.astro`).
+
+### 17.3 Pipeline Kualitas Kode & CI
+- Mengintegrasikan Biome untuk linting (`npm run lint`) dan auto-formatting (`npm run format`), serta Astro Type Check (`npm run check`).
+- GitHub Actions CI otomatis menjalankan migrasi database, linting, pengecekan tipe, dan unit test pada setiap push ke branch `main` dan pull request.
+

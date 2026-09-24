@@ -1,6 +1,6 @@
 # Plan 6 — Redesign Halaman Reward: "The Progressive Modal Desk"
 
-> **Status:** IN PROGRESS  
+> **Status:** COMPLETED  
 > **Tanggal Penyusunan:** 23 September 2026  
 > **Metodologi:** Progressive Disclosure / Micro-Commitment Desk  
 > **Target File:** `src/pages/r/[slug].astro`, `src/pages/en/r/[slug].astro`, `src/components/RewardClaimModal.astro`, `src/components/EmailForm.astro`.
@@ -34,3 +34,12 @@ Arsitektur ini memisahkan pengalaman pengguna menjadi 2 tahap:
    - Validasi `timer_token` anti-bot 30 detik di server, honeypot `website`, rate limit, email allowlist, dan route `/api/subscribe` tidak berubah.
 4. **Bilingual Parity:**
    - Rute ID (`/r/[slug]`) dan EN (`/en/r/[slug]`) simetris sempurna.
+
+---
+
+## 3. Status Implementasi & Verifikasi (September 2026)
+
+Rencana kerja ini telah **selesai 100% diimplementasikan dan diverifikasi**:
+- Komponen `src/components/RewardClaimModal.astro` telah dibangun dan diintegrasikan ke halaman ID (`src/pages/r/[slug].astro`) dan EN (`src/pages/en/r/[slug].astro`).
+- Logika timer 30 detik on-open, focus trap, drawer mobile, modal desktop, dan validasi server-side telah lolos build, unit test, dan verifikasi CI.
+- Status: **COMPLETED**.

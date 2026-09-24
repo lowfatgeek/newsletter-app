@@ -427,10 +427,16 @@ Wajib diimplementasikan:
   - **Tab nonaktif:** Teks Quiet Moss (`--color-text-muted`), bergaris bawah transparan, beralih ke Ink Forest (`--color-ink`) saat hover.
 - **Rasional & Hasil:** Tampilan seketika terasa lapang (*airy*), tenang, dan elegan (*quiet luxury*). Memberikan pengalaman membaca yang khidmat sesuai nilai *warm editorial utility*, tanpa tumpukan kotak/border yang sempit, dengan tetap 100% mematuhi spesifikasi aksesibilitas WAI-ARIA APG dan touch target 44px.
 
-### Addendum 2026-09: Roadmap Redesign Halaman Reward ("The Split Gift Desk")
-- **Task Terdaftar:** Rencana eksekusi redesign visual halaman reward publik (`/r/[slug]` dan `/en/r/[slug]`) tercatat di [`docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md`](../docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md).
-- **Arah Desain:** Menggunakan Macrostructure 15 Hallmark (*Split Studio / Workbench Asymmetric*) untuk menyajikan *The Showcase* (Cover & Daftar Hadiah) dan *The Unlock Ritual* (Doa & Form Klaim) dalam layout dua kolom asimetris di desktop (collapse 1 kolom di mobile), tanpa mengubah copywriting maupun tokens.
+### Addendum 2026-09: Evolusi dari "Split Gift Desk" ke "The Progressive Modal Desk"
+- **Konteks:** Rencana awal layout split 2-kolom asimetris ([`Plan 5`](../docs/superpowers/plans/2026-09-21-plan-5-reward-page-redesign.md)) dievaluasi ulang agar tidak membebani pengunjung seluler (terutama audiens video YouTube).
+- **Keputusan Terpilih & Terimplementasi:** Dialihkan ke [`Plan 6`](../docs/superpowers/plans/2026-09-23-plan-6-reward-page-modal.md) dengan konsep **"The Progressive Modal Desk"**:
+  1. **Showcase 1-Kolom Terfokus (`max-width: 740px`)**: Menampilkan overline kategori, judul, cover kado resolusi tinggi, deskripsi, dan daftar inventaris paket reward dengan tombol CTA utama *"Download Kado"*.
+  2. **Layer Ritual On-Demand (Center Modal / Bottom Sheet)**: Terbuka saat tombol CTA diklik. Timer 30 detik dihitung tepat sejak modal dibuka, memuat tab doa/harapan baik, status timer, dan form input email claim.
 
-
-
-
+### Addendum 2026-09: Standarisasi Suite Antarmuka Publik ("The Desk Pattern Family")
+Seluruh permukaan publik telah diselaraskan dengan filosofi Hallmark *Warm Editorial Utility*:
+1. **The Progressive Modal Desk** (`/r/[slug]`, `/en/r/[slug]`): Single-column 740px gift showcase + progressive modal ritual dengan timer 30 detik on-demand.
+2. **The Express Inbox Desk** (`/cek-email`, `/en/cek-email`): Container 1-kolom (`max-width: 580px`) beraksen border emas atas, badge status berdenyut (*pulse badge*), tombol deep-link cepat ke Gmail dan Outlook Webmail, instruksi whitelist alamat pengirim resmi (`hi@kelaswfa.my.id` & `kurir@kelaswfa.my.id`), serta troubleshooting panduan folder spam yang dapat dilipat (*accordion*).
+3. **The Download Desk** (`/akses/[token]`, `/en/akses/[token]`): Halaman verifikasi klaim hadiah dengan tautan unduhan bertanda tangan sementara (1 jam), indikator masa berlaku token akses 7 hari, dan informasi metadata berkas.
+4. **The Reassurance Desk** (`/konfirmasi/[token]`, `/en/konfirmasi/[token]`): Halaman penyambutan double opt-in yang memberikan rasa aman serta langsung menyerahkan tombol akses unduhan kado.
+5. **The Lost Courier Desk** (`/404`): Halaman error 404 ramah pengguna berilustrasi kurir pos dengan navigasi kembali ke katalog kado.

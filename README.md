@@ -49,6 +49,9 @@ email/asset tidak keluar ke provider saat dev.
 | `npm run dev` | Dev server Astro (port 4321) |
 | `npm run build` | Build produksi (adapter Node standalone; otomatis `@astrojs/vercel` di Vercel) |
 | `npm run preview` | Preview hasil build |
+| `npm run check` | Type check proyek via Astro Check (`astro check`) |
+| `npm run lint` | Linting & verifikasi kode via Biome (`biome check .`) |
+| `npm run format` | Auto-format kode via Biome (`biome check --write .`) |
 | `npm run db:generate` | Generate migrasi Drizzle dari `src/lib/schema.ts` |
 | `npm run db:migrate` | Terapkan migrasi |
 | `npm run seed` | Seed data dev + bersihkan sisa baris e2e |
@@ -64,9 +67,10 @@ Test memakai database yang sama dengan `DATABASE_URL`; `test/helpers.ts`
 ## Struktur singkat
 
 ```
-src/lib/            domain logic (subscribe, outbox, broadcast, admin, storage)
-src/pages/          route publik + API admin/cron/webhook
-src/components/     komponen Astro publik
+src/lib/            domain logic (subscribe, outbox, broadcast, admin, storage, templates)
+src/pages/          route publik (funnel kado, cek-email, akses, konfirmasi) + admin/cron/webhook
+src/components/     komponen Astro publik (RewardClaimModal, CheckEmailNotice, DownloadDesk, dsb.)
+preview/            mockup/preview HTML statis Hallmark (diabaikan dari linter Biome)
 scripts/            seed, migrate, bootstrap admin (tsx)
 test/               Vitest (*.test.ts) + Playwright (*.spec.ts)
 drizzle/            SQL migrasi
@@ -117,3 +121,22 @@ konfigurasi tambahan.
    `DATABASE_URL=<direct-url> npm run db:migrate`.
 6. Sebelum broadcast produksi pertama, jalankan checklist
    [`docs/operations.md`](docs/operations.md) (SPF/DKIM/DMARC, backup, alert).
+
+---
+
+## Addendum & Status Terkini (September 2026)
+
+- **Desain Permukaan Publik Lengkap ("The Desk Pattern Family")**:
+  Seluruh antarmuka publik (`/r/[slug]`, `/cek-email`, `/konfirmasi/[token]`, `/akses/[token]`, `/404`) telah direvitalisasi menggunakan pola *Warm Editorial Utility* Hallmark:
+  - `/r/[slug]` & `/en/r/[slug]`: **The Progressive Modal Desk** (1-kolom showcase 740px + modal/drawer ritual dengan timer 30 detik on-demand).
+  - `/cek-email` & `/en/cek-email`: **The Express Inbox Desk** (1-kolom fokus 580px dengan tombol cepat webmail Gmail/Outlook & info whitelist kontak).
+  - `/akses/[token]` & `/en/akses/[token]`: **The Download Desk** (link download bertanda tangan 1 jam + info masa kedaluwarsa 7 hari).
+  - `/konfirmasi/[token]` & `/en/konfirmasi/[token]`: **The Reassurance Desk** (konfirmasi opt-in newsletter & serah terima akses kado).
+  - `/404`: **The Lost Courier Desk** (ilustrasi kurir pos & navigasi pemulihan).
+- **Arsitektur Pengirim Email Terpisah (Dual-Sender)**:
+  - **Transaksional** (OTP admin, konfirmasi opt-in, akses reward): `KelasWFA <hi@kelaswfa.my.id>`.
+  - **Broadcast / Newsletter**: `KelasWFA <kurir@kelaswfa.my.id>`.
+- **Integrasi CI & Biome Quality Gate**:
+  - CI GitHub Actions (`.github/workflows/ci.yml`) secara otomatis memvalidasi migrasi database, Biome lint (`npm run lint`), Astro check (`npm run check`), dan unit test Vitest (`npm test`).
+  - Berkas preview/mockup statis HTML di `preview/` dikecualikan dari format/lint Biome (`biome.json`).
+
