@@ -1,0 +1,461 @@
+---
+import type { Locale } from "../lib/i18n";
+
+interface Props {
+  locale?: Locale;
+  homeUrl?: string;
+}
+
+const { locale = "id", homeUrl = "/" } = Astro.props;
+const isEn = locale === "en";
+
+const copy = {
+  headerBadge: isEn ? "Link Status" : "Status Tautan",
+  badge: isEn ? "⏱ Time Limit Exceeded" : "⏱ Batas Waktu Terlewati",
+  heading: isEn ? "This link has expired" : "Tautan sudah kedaluwarsa",
+  safeChip: isEn
+    ? "Your digital gift is safe and ready to be re-sent."
+    : "Kado digitalmu tetap aman dan siap dikirim ulang.",
+  btnText: isEn ? "Back to Gift Page" : "Kembali ke Halaman Hadiah",
+  stepsTitle: isEn ? "Quick Steps to Get a Fresh Link:" : "Cara Cepat Memperoleh Tautan Baru:",
+  steps: isEn
+    ? [
+        {
+          label: "Return to Landing Page",
+          text: "Click the green button above to open the gift page.",
+        },
+        {
+          label: "Enter Same Email",
+          text: "Submit the email address you used previously.",
+        },
+        {
+          label: "Check New Email",
+          text: "We will immediately send you a brand new access link.",
+        },
+      ]
+    : [
+        {
+          label: "Buka Kembali",
+          text: "Klik tombol hijau di atas untuk menuju halaman kado.",
+        },
+        {
+          label: "Isi Email",
+          text: "Masukkan alamat email yang sama seperti klaim pertamamu.",
+        },
+        {
+          label: "Buka Email Baru",
+          text: "Kami akan segera mengirimkan tautan akses segar langsung ke inbox kamu.",
+        },
+      ],
+  supportPrompt: isEn
+    ? "Need further help? Reach out to our support team at "
+    : "Mengalami kendala atau butuh bantuan? Hubungi tim kami di ",
+};
+---
+
+<!-- App Header Bar -->
+<header class="desk-header">
+  <a href="/" class="desk-logo">
+    <span>KelasWFA</span>
+    <span class="desk-logo-badge">Kado Desk</span>
+  </a>
+  <div class="header-status-badge">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+    <span>{copy.headerBadge}</span>
+  </div>
+</header>
+
+<!-- Main Content Area -->
+<main class="expired-main">
+  <div class="reassurance-card">
+    <!-- Illustrated Status Clock Icon -->
+    <div class="status-icon-circle" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+    </div>
+
+    <!-- Status Pill Tag -->
+    <div>
+      <span class="status-pill">{copy.badge}</span>
+    </div>
+
+    <!-- Primary Heading -->
+    <h1>{copy.heading}</h1>
+
+    <!-- Explanation Lead (exact original copy preserved) -->
+    <p class="reassurance-lead">
+      {isEn ? (
+        <>Confirmation links are valid for <strong>7 days</strong>. Please claim your gift again from the landing page using the same email — we will send you a fresh link.</>
+      ) : (
+        <>Tautan konfirmasi berlaku <strong>7 hari</strong>. Silakan klaim ulang hadiah dari halaman awal dengan email yang sama — kami akan mengirim tautan baru.</>
+      )}
+    </p>
+
+    <!-- Reassurance Chip -->
+    <div>
+      <div class="safe-reassurance-chip">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>{copy.safeChip}</span>
+      </div>
+    </div>
+
+    <!-- Primary Action CTA -->
+    <div>
+      <a href={homeUrl} class="btn-claim-again">
+        <span>{copy.btnText}</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Quick Recovery Steps -->
+    <div class="steps-card">
+      <div class="steps-card-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>💡 {copy.stepsTitle}</span>
+      </div>
+      <div class="steps-list">
+        {copy.steps.map((st, i) => (
+          <div class="step-item">
+            <span class="step-badge" aria-hidden="true">{i + 1}</span>
+            <span><strong>{st.label}:</strong> {st.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- Support Footer -->
+  <div class="desk-support-footer">
+    <p>
+      {copy.supportPrompt}
+      <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>
+    </p>
+  </div>
+</main>
+
+<style>
+  /* Header Bar */
+  .desk-header {
+    height: 68px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-6);
+    background: rgba(255, 252, 245, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .desk-logo {
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--color-ink);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .desk-logo-badge {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+  }
+
+  .header-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(154, 101, 20, 0.2);
+  }
+
+  /* Main Container */
+  .expired-main {
+    width: 100%;
+    max-width: 580px;
+    margin: 0 auto;
+    padding: 56px 20px 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  /* The Hero Reassurance Card */
+  .reassurance-card {
+    background: var(--color-surface-raised);
+    border: var(--border-default);
+    border-radius: var(--radius-card);
+    padding: 36px 32px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  /* Top Accent Ribbon */
+  .reassurance-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-warning) 0%, var(--color-gold) 60%, var(--color-primary) 100%);
+  }
+
+  /* Icon Badge */
+  .status-icon-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--color-warning-subtle);
+    border: 1.5px solid rgba(154, 101, 20, 0.2);
+    color: var(--color-warning);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .status-icon-circle::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px dashed rgba(154, 101, 20, 0.25);
+  }
+
+  /* Pill Tag */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-warning-subtle);
+    border: 1px solid rgba(154, 101, 20, 0.2);
+    color: var(--color-warning);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 14px;
+  }
+
+  .reassurance-card h1 {
+    font-size: clamp(24px, 4vw, 28px);
+    font-weight: 800;
+    color: var(--color-ink);
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+
+  .reassurance-lead {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    margin-bottom: 24px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .reassurance-lead strong {
+    color: var(--color-ink);
+  }
+
+  /* Soft Info Callout */
+  .safe-reassurance-chip {
+    background: var(--color-success-subtle);
+    border: 1px solid rgba(35, 122, 85, 0.2);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-success);
+    font-weight: 600;
+    margin-bottom: 26px;
+    text-align: left;
+  }
+
+  /* Primary CTA Button */
+  .btn-claim-again {
+    background: var(--color-primary);
+    color: #FFFFFF;
+    text-decoration: none;
+    padding: 14px 28px;
+    border-radius: var(--radius-control);
+    font-weight: 700;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 48px;
+    box-shadow: 0 4px 14px rgba(23, 107, 91, 0.25);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .btn-claim-again:hover {
+    background: var(--color-primary-hover);
+    box-shadow: 0 6px 18px rgba(23, 107, 91, 0.32);
+    transform: translateY(-1px);
+  }
+
+  .btn-claim-again:active {
+    transform: translateY(1px);
+  }
+
+  /* Quick Recovery Steps Box */
+  .steps-card {
+    margin-top: 24px;
+    background: var(--color-surface-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 20px 20px;
+    text-align: left;
+  }
+
+  .steps-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .steps-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--color-text);
+    line-height: 1.5;
+  }
+
+  .step-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Support Footer */
+  .desk-support-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .desk-support-footer a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  /* ========================================================
+     MOBILE VIEWPORT (< 640px)
+     ======================================================== */
+  @media (max-width: 640px) {
+    .desk-header {
+      height: 56px;
+      padding: 0 16px;
+    }
+    .desk-logo {
+      font-size: 16px;
+    }
+    .header-status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .expired-main {
+      padding: 24px 16px 40px;
+    }
+    .reassurance-card {
+      padding: 26px 18px;
+      border-radius: 18px;
+    }
+    .status-icon-circle {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 16px;
+    }
+    .status-icon-circle svg {
+      width: 26px;
+      height: 26px;
+    }
+    .reassurance-card h1 {
+      font-size: 22px;
+    }
+    .reassurance-lead {
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .safe-reassurance-chip {
+      font-size: 12px;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+    }
+    .steps-card {
+      padding: 16px 14px;
+    }
+    .step-item {
+      font-size: 12px;
+    }
+    .desk-support-footer {
+      font-size: 12px;
+    }
+  }
+</style>

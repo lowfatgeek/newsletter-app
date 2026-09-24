@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Redesign Halaman Tautan Kedaluwarsa (Expired Link) — KelasWFA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-canvas: #FFFCF5;
+      --color-surface-subtle: #F7F1E6;
+      --color-surface-raised: #FFFFFF;
+      --color-ink: #153B35;
+      --color-text: #36514B;
+      --color-text-muted: #566662;
+      --color-border: #E7DED0;
+      --color-primary: #176B5B;
+      --color-primary-hover: #105447;
+      --color-primary-subtle: #E5F2EE;
+      --color-gold: #D99020;
+      --color-gold-subtle: #FFF2D6;
+      --color-warning: #9A6514;
+      --color-warning-subtle: #FFF4DC;
+      --color-success: #237A55;
+      --color-success-subtle: #E8F6EE;
+
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --radius-control: 12px;
+      --radius-card: 20px;
+      --radius-pill: 999px;
+      --border-default: 1px solid var(--color-border);
+      --shadow-card: 0 1px 2px rgba(21, 59, 53, 0.04), 0 12px 32px rgba(21, 59, 53, 0.06);
+      --shadow-hover: 0 8px 28px rgba(21, 59, 53, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #E7E2D6;
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ========================================================
+       TOP STUDIO CONTROLLER
+       ======================================================== */
+    .studio-bar {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--color-border);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(21, 59, 53, 0.04);
+    }
+
+    .studio-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-pill {
+      background: var(--color-ink);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .studio-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .scenario-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-surface-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: #FFFFFF;
+      color: var(--color-primary);
+      box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
+    }
+
+    .device-switcher {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-surface-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
+    }
+
+    .device-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .device-btn.active {
+      background: #FFFFFF;
+      color: var(--color-ink);
+      box-shadow: 0 1px 3px rgba(21, 59, 53, 0.08);
+    }
+
+    /* ========================================================
+       CANVAS & DEVICE FRAME
+       ======================================================== */
+    .preview-canvas {
+      flex: 1;
+      padding: 36px 16px 64px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
+    .device-frame {
+      width: 100%;
+      max-width: 900px;
+      background: var(--color-canvas);
+      border-radius: 24px;
+      box-shadow: 0 16px 48px rgba(21, 59, 53, 0.14);
+      border: 1px solid rgba(21, 59, 53, 0.08);
+      overflow: hidden;
+      transition: max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .device-frame.mobile {
+      max-width: 390px;
+      border-radius: 36px;
+      border: 8px solid #2C3531;
+    }
+
+    /* Browser Bar */
+    .browser-bar {
+      background: #F4EFE6;
+      border-bottom: 1px solid var(--color-border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #D9CFC1;
+    }
+
+    .browser-url {
+      flex: 1;
+      background: #FFFFFF;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-notch {
+      display: none;
+      background: #2C3531;
+      height: 24px;
+      width: 140px;
+      margin: 0 auto;
+      border-radius: 0 0 14px 14px;
+    }
+
+    .device-frame.mobile .mobile-notch {
+      display: block;
+    }
+
+    .device-frame.mobile .browser-bar {
+      display: none;
+    }
+
+    /* ========================================================
+       EXPIRED PAGE STYLING (THE REASSURANCE DESK)
+       ======================================================== */
+    .expired-page {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-canvas);
+    }
+
+    /* Header Bar */
+    .desk-header {
+      height: 68px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(255, 252, 245, 0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .desk-logo {
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--color-ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .desk-logo-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      color: var(--color-text-muted);
+    }
+
+    .header-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-warning);
+      background: var(--color-warning-subtle);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(154, 101, 20, 0.2);
+    }
+
+    /* Main Container */
+    .expired-main {
+      width: 100%;
+      max-width: 580px;
+      margin: 0 auto;
+      padding: 56px 20px 72px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* The Hero Reassurance Card */
+    .reassurance-card {
+      background: var(--color-surface-raised);
+      border: var(--border-default);
+      border-radius: var(--radius-card);
+      padding: 36px 32px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Top Accent Ribbon */
+    .reassurance-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-warning) 0%, var(--color-gold) 60%, var(--color-primary) 100%);
+    }
+
+    /* Icon Badge */
+    .status-icon-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--color-warning-subtle);
+      border: 1.5px solid rgba(154, 101, 20, 0.2);
+      color: var(--color-warning);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .status-icon-circle::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1px dashed rgba(154, 101, 20, 0.25);
+    }
+
+    /* Pill Tag */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-warning-subtle);
+      border: 1px solid rgba(154, 101, 20, 0.2);
+      color: var(--color-warning);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 14px;
+    }
+
+    .reassurance-card h1 {
+      font-size: clamp(24px, 4vw, 28px);
+      font-weight: 800;
+      color: var(--color-ink);
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    .reassurance-lead {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--color-text-muted);
+      margin-bottom: 24px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .reassurance-lead strong {
+      color: var(--color-ink);
+    }
+
+    /* Soft Info Callout */
+    .safe-reassurance-chip {
+      background: var(--color-success-subtle);
+      border: 1px solid rgba(35, 122, 85, 0.2);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--color-success);
+      font-weight: 600;
+      margin-bottom: 26px;
+      text-align: left;
+    }
+
+    /* Primary CTA Button */
+    .btn-claim-again {
+      background: var(--color-primary);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: var(--radius-control);
+      font-weight: 700;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      min-height: 48px;
+      box-shadow: 0 4px 14px rgba(23, 107, 91, 0.25);
+      width: 100%;
+    }
+
+    .btn-claim-again:hover {
+      background: var(--color-primary-hover);
+      box-shadow: 0 6px 18px rgba(23, 107, 91, 0.32);
+      transform: translateY(-1px);
+    }
+
+    .btn-claim-again:active {
+      transform: translateY(1px);
+    }
+
+    /* Quick Recovery Steps Box */
+    .steps-card {
+      margin-top: 24px;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 20px 20px;
+      text-align: left;
+    }
+
+    .steps-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .steps-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+
+    .step-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 1px solid var(--color-border);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Support Footer */
+    .desk-support-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+    }
+
+    .desk-support-footer a {
+      color: var(--color-primary);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    /* Comparison Preview Bar */
+    .comparison-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* ========================================================
+       MOBILE VIEWPORT (< 640px)
+       ======================================================== */
+    @media (max-width: 640px) {
+      .desk-header {
+        height: 56px;
+        padding: 0 16px;
+      }
+      .desk-logo {
+        font-size: 16px;
+      }
+      .header-status-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+      .expired-main {
+        padding: 24px 16px 40px;
+      }
+      .reassurance-card {
+        padding: 26px 18px;
+        border-radius: 18px;
+      }
+      .status-icon-circle {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 16px;
+      }
+      .status-icon-circle svg {
+        width: 26px;
+        height: 26px;
+      }
+      .reassurance-card h1 {
+        font-size: 22px;
+      }
+      .reassurance-lead {
+        font-size: 14px;
+        margin-bottom: 18px;
+      }
+      .safe-reassurance-chip {
+        font-size: 12px;
+        padding: 8px 12px;
+        margin-bottom: 20px;
+      }
+      .steps-card {
+        padding: 16px 14px;
+      }
+      .step-item {
+        font-size: 12px;
+      }
+      .desk-support-footer {
+        font-size: 12px;
+      }
+    }
+
+    /* Device frame mobile simulation override */
+    .device-frame.mobile .desk-header {
+      height: 56px;
+      padding: 0 16px;
+    }
+    .device-frame.mobile .desk-logo {
+      font-size: 16px;
+    }
+    .device-frame.mobile .header-status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .device-frame.mobile .expired-main {
+      padding: 24px 16px 40px;
+    }
+    .device-frame.mobile .reassurance-card {
+      padding: 26px 18px;
+      border-radius: 18px;
+    }
+    .device-frame.mobile .status-icon-circle {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 16px;
+    }
+    .device-frame.mobile .status-icon-circle svg {
+      width: 26px;
+      height: 26px;
+    }
+    .device-frame.mobile .reassurance-card h1 {
+      font-size: 22px;
+    }
+    .device-frame.mobile .reassurance-lead {
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .device-frame.mobile .safe-reassurance-chip {
+      font-size: 12px;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+    }
+    .device-frame.mobile .steps-card {
+      padding: 16px 14px;
+    }
+    .device-frame.mobile .step-item {
+      font-size: 12px;
+    }
+    .device-frame.mobile .desk-support-footer {
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Studio Control Bar -->
+  <div class="studio-bar">
+    <div class="studio-brand">
+      <span class="brand-pill">KelasWFA</span>
+      <span class="studio-title">Expired Page Redesign Studio</span>
+    </div>
+
+    <!-- Scenario Selector -->
+    <div class="scenario-tabs">
+      <button class="tab-btn active" onclick="switchScenario('konfirmasi-7d')">1. Tautan Konfirmasi (Kasus User: 7 Hari)</button>
+      <button class="tab-btn" onclick="switchScenario('unduhan-1h')">2. Tautan Sesi Unduhan (1 Jam)</button>
+      <button class="tab-btn" onclick="switchScenario('english-locale')">3. English Version (EN)</button>
+      <button class="tab-btn" onclick="switchScenario('invalid-token')">4. Tautan Tidak Valid / Rusak</button>
+    </div>
+
+    <!-- Device Switcher -->
+    <div class="device-switcher">
+      <button class="device-btn active" id="btn-desktop" onclick="setDevice('desktop')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Desktop (580px card)
+      </button>
+      <button class="device-btn" id="btn-mobile" onclick="setDevice('mobile')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        Mobile Phone (390px)
+      </button>
+    </div>
+  </div>
+
+  <!-- Workspace Canvas -->
+  <div class="preview-canvas">
+    <div class="device-frame" id="device-frame">
+      
+      <!-- Desktop Browser Address Bar -->
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+        </div>
+        <div class="browser-url" id="browser-url-display">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          https://kado.kelaswfa.my.id/konfirmasi/x3n6KklnVxtp895ewFu5fkNyGKGaNoPhbhKZ28s_glU
+        </div>
+      </div>
+
+      <!-- Mobile Notch -->
+      <div class="mobile-notch"></div>
+
+      <!-- Expired Page Content Area -->
+      <div class="expired-page" id="expired-page-content">
+        <!-- Rendered by JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const scenarios = {
+      'konfirmasi-7d': {
+        url: 'https://kado.kelaswfa.my.id/konfirmasi/x3n6KklnVxtp895ewFu5fkNyGKGaNoPhbhKZ28s_glU',
+        lang: 'id',
+        badge: '⏱ Batas Waktu Terlewati',
+        headerBadge: 'Status Tautan',
+        heading: 'Tautan sudah kedaluwarsa',
+        lead: 'Tautan konfirmasi berlaku <strong>7 hari</strong>. Silakan klaim ulang hadiah dari halaman awal dengan email yang sama — kami akan mengirim tautan baru.',
+        safeChip: '✓ Kado digitalmu tetap aman dan siap dikirim ulang.',
+        btnText: 'Kembali ke Halaman Hadiah',
+        stepsTitle: '💡 Cara Cepat Memperoleh Tautan Baru:',
+        steps: [
+          '<strong>Buka Kembali:</strong> Klik tombol hijau di atas untuk menuju halaman kado.',
+          '<strong>Isi Email:</strong> Masukkan alamat email yang sama seperti klaim pertamamu.',
+          '<strong>Buka Email Baru:</strong> Kami akan segera mengirimkan tautan akses segar langsung ke inbox kamu.'
+        ],
+        supportText: 'Mengalami kendala atau butuh bantuan? Hubungi tim kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'unduhan-1h': {
+        url: 'https://kado.kelaswfa.my.id/akses/HJ9KL-urD6dQ-EeLBPrvZR9ieVeOhRTyw9jVWWPjmTg',
+        lang: 'id',
+        badge: '⏱ Sesi Unduhan Berakhir',
+        headerBadge: 'Sesi Kedaluwarsa',
+        heading: 'Sesi unduhan telah berakhir',
+        lead: 'Demi perlindungan keamanan berkas, link unduhan langsung hanya aktif selama <strong>1 jam</strong>. Kamu bisa membuat sesi baru kapan saja.',
+        safeChip: '✓ File berkasmu tidak hilang dan bisa diakses kembali.',
+        btnText: 'Buka Email untuk Akses Baru',
+        stepsTitle: '💡 Langkah Membuka Akses Unduhan:',
+        steps: [
+          '<strong>Periksa Email:</strong> Buka pesan email terakhir yang kamu terima dari KelasWFA.',
+          '<strong>Klik Tautan Akses:</strong> Klik tombol atau tautan di dalam email untuk otomatis membuat sesi unduhan baru.',
+          '<strong>Unduh Berkas:</strong> Simpan file digital langsung ke HP atau laptopmu.'
+        ],
+        supportText: 'Tidak menemukan emailnya? Kontak kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'english-locale': {
+        url: 'https://kado.kelaswfa.my.id/en/konfirmasi/x3n6KklnVxtp895ewFu5fkNyGKGaNoPhbhKZ28s_glU',
+        lang: 'en',
+        badge: '⏱ Time Limit Exceeded',
+        headerBadge: 'Link Status',
+        heading: 'This link has expired',
+        lead: 'Confirmation links are valid for <strong>7 days</strong>. Please claim your gift again from the landing page using the same email — we will send you a fresh link.',
+        safeChip: '✓ Your digital gift is safe and ready to be re-sent.',
+        btnText: 'Back to Gift Page',
+        stepsTitle: '💡 Quick Steps to Get a Fresh Link:',
+        steps: [
+          '<strong>Return to Landing Page:</strong> Click the green button above to open the gift page.',
+          '<strong>Enter Same Email:</strong> Submit the email address you used previously.',
+          '<strong>Check New Email:</strong> We will immediately send you a brand new access link.'
+        ],
+        supportText: 'Need further help? Reach out to our support team at <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      },
+      'invalid-token': {
+        url: 'https://kado.kelaswfa.my.id/konfirmasi/invalid-token-xyz',
+        lang: 'id',
+        badge: '⚠️ Tautan Tidak Valid',
+        headerBadge: 'Tautan Bermasalah',
+        heading: 'Tautan tidak dapat ditemukan',
+        lead: 'Tautan yang kamu buka tidak valid atau mungkin terpotong saat disalin dari aplikasi email.',
+        safeChip: '✓ Masukkan emailmu kembali di halaman hadiah untuk link utuh yang baru.',
+        btnText: 'Ke Halaman Hadiah Utama',
+        stepsTitle: '💡 Cara Mengatasi:',
+        steps: [
+          'Pastikan kamu mengeklik tautan langsung dari email tanpa ada karakter yang tertinggal.',
+          'Atau klik tombol hijau di atas untuk melakukan klaim ulang secara instan.'
+        ],
+        supportText: 'Pertanyaan teknis? Hubungi kami di <a href="mailto:hi@kelaswfa.my.id">hi@kelaswfa.my.id</a>'
+      }
+    };
+
+    function renderPage(key) {
+      const data = scenarios[key];
+      const isEn = data.lang === 'en';
+
+      document.getElementById('browser-url-display').innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        ${data.url}
+      `;
+
+      const html = `
+        <!-- App Header Bar -->
+        <header class="desk-header">
+          <a href="/" class="desk-logo">
+            <span>KelasWFA</span>
+            <span class="desk-logo-badge">Kado Desk</span>
+          </a>
+          <div class="header-status-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>${data.headerBadge}</span>
+          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="expired-main">
+          
+          <div class="reassurance-card">
+            
+            <!-- Illustrated Status Clock Icon -->
+            <div class="status-icon-circle">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+
+            <!-- Status Pill Tag -->
+            <div>
+              <span class="status-pill">${data.badge}</span>
+            </div>
+
+            <!-- Primary Heading -->
+            <h1>${data.heading}</h1>
+
+            <!-- Explanation Lead -->
+            <p class="reassurance-lead">${data.lead}</p>
+
+            <!-- Reassurance Chip -->
+            <div>
+              <div class="safe-reassurance-chip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>${data.safeChip}</span>
+              </div>
+            </div>
+
+            <!-- Primary Action CTA -->
+            <div>
+              <a href="/" class="btn-claim-again" onclick="handleClickCta(event)">
+                <span>${data.btnText}</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </a>
+            </div>
+
+            <!-- Quick Recovery Steps -->
+            <div class="steps-card">
+              <div class="steps-card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span>${data.stepsTitle}</span>
+              </div>
+              <div class="steps-list">
+                ${data.steps.map((st, i) => `
+                  <div class="step-item">
+                    <span class="step-badge">${i + 1}</span>
+                    <span>${st}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Support Footer -->
+          <div class="desk-support-footer">
+            <p>${data.supportText}</p>
+          </div>
+
+        </main>
+      `;
+
+      document.getElementById('expired-page-content').innerHTML = html;
+    }
+
+    function switchScenario(key) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderPage(key);
+    }
+
+    function setDevice(device) {
+      document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+      const frame = document.getElementById('device-frame');
+      if (device === 'mobile') {
+        document.getElementById('btn-mobile').classList.add('active');
+        frame.classList.add('mobile');
+      } else {
+        document.getElementById('btn-desktop').classList.add('active');
+        frame.classList.remove('mobile');
+      }
+    }
+
+    function handleClickCta(e) {
+      e.preventDefault();
+      alert('Simulasi: Mengarahkan pengguna kembali ke halaman utama / landing page hadiah.');
+    }
+
+    // Initialize with screenshot scenario
+    renderPage('konfirmasi-7d');
+  </script>
+</body>
+</html>
