@@ -33,5 +33,20 @@ export default defineConfig({
     define: {
       "import.meta.env.TEST_TIMER_MS": JSON.stringify(testTimerMs),
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // Pisahkan modul src/lib/notfound ke chunk tersendiri agar Rollup
+            // tidak menggabungkannya dengan komponen reward (RewardClaimModal,
+            // LocaleSwitch, EmailForm) di halaman SSR r/[slug], yang sebelumnya
+            // menyebabkan artefak penamaan CSS chunk menjadi `notfound.*.css`.
+            if (id.includes("lib/notfound") || id.includes("lib\\notfound")) {
+              return "notfound-page";
+            }
+          },
+        },
+      },
+    },
   },
 });
