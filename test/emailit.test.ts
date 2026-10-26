@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sendViaEmailit } from "../src/lib/emailit";
 import { EMAIL_REPLY_TO } from "../src/lib/templates";
 import { setEnv } from "./helpers";
@@ -71,5 +71,24 @@ describe("sendViaEmailit", () => {
     await expect(
       sendViaEmailit({ from: "a@b.c", to: "budi@gmail.com", subject: "s", html: "<p>x</p>", text: "x" }, fetchMock),
     ).rejects.toThrow(/Emailit 500/);
+  });
+
+  it("paces default transport to EMAILIT_MAX_PER_SECOND", async () => {
+    setEnv({ EMAILIT_MAX_PER_SECOND: "2" });
+    const startedAt: number[] = [];
+    const fetchStub = vi.fn(async () => {
+      startedAt.push(Date.now());
+      return new Response(JSON.stringify({ id: `paced-${startedAt.length}` }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchStub);
+    try {
+      const payload = { from: "a@b.c", to: "budi@gmail.com", subject: "s", html: "<p>x</p>", text: "x" };
+      await sendViaEmailit(payload);
+      await sendViaEmailit(payload);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(startedAt).toHaveLength(2);
+    expect(startedAt[1] - startedAt[0]).toBeGreaterThanOrEqual(400);
   });
 });
