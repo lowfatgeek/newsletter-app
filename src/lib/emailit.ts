@@ -12,7 +12,8 @@ export type ProviderMessage = {
 };
 
 export async function sendViaEmailit(msg: ProviderMessage, fetchImpl: typeof fetch = fetch): Promise<string | null> {
-  const res = await fetchImpl("https://api.emailit.com/v1/emails", {
+  // Emailit mematikan /v1 (edge membalas 502 kosong); /v2 memakai skema body yang sama.
+  const res = await fetchImpl("https://api.emailit.com/v2/emails", {
     method: "POST",
     // Timeout eksplisit (task 2.1): tanpa ini koneksi pihak ketiga yang
     // menggantung menahan satu slot worker tanpa batas.

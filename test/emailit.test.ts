@@ -9,7 +9,9 @@ describe("sendViaEmailit", () => {
   it("sends payload with reply_to from EMAIL_REPLY_TO", async () => {
     let captured: Record<string, unknown> | undefined;
     let authHeader: string | undefined;
-    const fetchMock = (async (_url: unknown, init?: RequestInit) => {
+    let calledUrl: unknown;
+    const fetchMock = (async (url: unknown, init?: RequestInit) => {
+      calledUrl = url;
       authHeader = (init?.headers as Record<string, string>)?.Authorization;
       captured = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return new Response(JSON.stringify({ id: "emailit-1" }), { status: 200 });
@@ -28,6 +30,7 @@ describe("sendViaEmailit", () => {
     );
 
     expect(id).toBe("emailit-1");
+    expect(calledUrl).toBe("https://api.emailit.com/v2/emails");
     expect(authHeader).toBe("Bearer k");
     expect(captured).toMatchObject({
       from: "KelasWFA <hi@kelaswfa.my.id>",

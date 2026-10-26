@@ -47,7 +47,7 @@ describe("outbox", () => {
     expect(r).toEqual({ sent: 1, failed: 0 });
     const [row] = await db.select().from(emailOutbox).where(eq(emailOutbox.idempotencyKey, "k2"));
     expect(row.status).toBe("sent");
-    expect(f.mock.calls[0][0]).toBe("https://api.emailit.com/v1/emails");
+    expect(f.mock.calls[0][0]).toBe("https://api.emailit.com/v2/emails");
   });
 
   it("failed send retries with backoff, then fails permanently", async () => {
