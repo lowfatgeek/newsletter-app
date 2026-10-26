@@ -393,6 +393,8 @@ Lanjutan wajib ada di `docs/operations.md` §1 — ringkasnya:
 | Gejala | Kemungkinan penyebab | Perbaikan |
 |---|---|---|
 | Build gagal: `429 Too Many Requests` dari `registry-1.docker.io` | Docker Hub rate/abuse limit untuk IP VPS (bukan bug kode) | `Dockerfile` sudah memakai mirror `public.ecr.aws/docker/library/node:22-slim`; kalau masih memakai `node:22-slim` langsung, pasang kredensial Docker Hub di Easypanel atau tunggu jendela limit 6 jam |
+| `Emailit 429: Maximum 2 messages per second` | Backlog `email_outbox` dikirim beruntun melebihi batas provider | Worker memakai pacing `EMAILIT_MAX_PER_SECOND` (default 2). Jangan naikkan di atas 2 kecuali limit akun dinaikkan. Baris `failed` 5/5 tidak di-retry; login/submit ulang untuk membuat antrean baru |
+| `TypeError: immutable` di `applySecurityHeaders` | Route mengembalikan `Response` dengan header immutable (`Response.redirect()`/`fetch()`) | Sejak commit `5f3f4eb` middleware meng-clone header. Kalau muncul lagi, periksa route yang mengembalikan response immutable |
 | **No running containers found** di Console, indikator kuning, Memory `0.0 B` | Deployment tidak pernah sehat lalu container di-stop; atau proses keluar sendiri | Buka tab **Deployments** → lihat deployment terakhir: commit yang di-build, status, dan log lengkap. Pastikan commit terbaru benar-benar ter-deploy (cek hash-nya), lalu **Stop → Deploy** ulang |
 | Status service **kuning** & log `Server listening` berulang tiap 1–2 menit | Health check image menembak port yang salah (mis. `4321` padahal runtime `PORT=80`) → container selalu `unhealthy` dan di-restart | Image terbaru sudah memakai `/api/live` + `$PORT`; pastikan deploy memakai commit terbaru, lalu samakan port seperti catatan port di B4 |
 | Sudah tambah env `PORT=4321` tapi log tetap `:80` | Nilai port di panel (tab Ports) menang atas env manual | Ubah **port di tab Ports** ke `4321`, bukan hanya menambah env; lihat baris `[preflight] ... PORT=` untuk memastikan |
@@ -415,3 +417,5 @@ mirror ECR Public untuk menghindari rate limit Docker Hub) sudah
 di-smoke-test: build sukses, `GET /api/health` 200 dengan DB Postgres 16.
 Cron Vercel didefinisikan di `vercel.json`; di Easypanel digantikan Cron Job
 panel (B6) karena `vercel.json` hanya dibaca oleh Vercel.*
+
+Riwayat insiden & postmortem: [docs/incidents/](incidents/).
