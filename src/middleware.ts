@@ -76,24 +76,30 @@ export function applySecurityHeaders(headers: Headers, production: boolean): voi
 }
 
 export const onRequest: MiddlewareHandler = async (_context, next) => {
-  let response = await next();
-  applySecurityHeaders(response.headers, import.meta.env.PROD);
+  const response = await next();
+  // Header dari fetch()/Response.redirect() bersifat immutable — clone dulu
+  // supaya applySecurityHeaders bisa menulis tanpa TypeError.
+  const headers = new Headers(response.headers);
+  applySecurityHeaders(headers, import.meta.env.PROD);
   // Buffer hanya untuk HTML (halaman Astro men-inline script komponen saat
   // build; header CSP harus memuat hash-nya agar tidak diblokir script-src).
-  const isHtml = response.headers.get("content-type")?.includes("text/html");
+  const isHtml = headers.get("content-type")?.includes("text/html");
   if (isHtml && response.ok && !response.bodyUsed) {
     const body = await response.arrayBuffer();
     const html = new TextDecoder().decode(body);
-    const headers = new Headers(response.headers);
     const csp = headers.get("Content-Security-Policy");
     if (csp?.includes("script-src")) {
       headers.set("Content-Security-Policy", cspWithInlineScriptHashes(csp, html));
     }
-    response = new Response(body, {
+    return new Response(body, {
       status: response.status,
       statusText: response.statusText,
       headers,
     });
   }
-  return response;
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 };

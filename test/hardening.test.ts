@@ -67,6 +67,25 @@ describe("hardening: security headers middleware", () => {
     applySecurityHeaders(prod, true);
     expect(prod.get("Strict-Transport-Security")).toBe("max-age=31536000; includeSubDomains");
   });
+
+  it("handles immutable headers from Response.redirect()", async () => {
+    const redirect = Response.redirect("https://r2.example/signed", 302);
+    const out = (await onRequest({} as never, (async () => redirect) as never)) as Response;
+    expect(out.status).toBe(302);
+    expect(out.headers.get("Location")).toBe("https://r2.example/signed");
+    expect(out.headers.get("Content-Security-Policy")).toBe(SECURITY_CSP);
+  });
+
+  it("preserves multiple Set-Cookie headers when rebuilding the response", async () => {
+    const res = new Response("ok", {
+      headers: [
+        ["set-cookie", "a=1; Path=/"],
+        ["set-cookie", "b=2; Path=/"],
+      ],
+    });
+    const out = (await onRequest({} as never, (async () => res) as never)) as Response;
+    expect(out.headers.getSetCookie()).toEqual(["a=1; Path=/", "b=2; Path=/"]);
+  });
 });
 
 describe("hardening: CSP inline-script hashing (astro build meng-inline <script>)", () => {
