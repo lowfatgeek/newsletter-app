@@ -13,6 +13,17 @@ import {
 
 const MAX_ATTEMPTS = 5;
 
+/**
+ * Drain outbox tanpa menahan response pemanggil. Kegagalan di level proses
+ * (bukan per-email) dicatat ke log container — sebelumnya ditelan diam-diam
+ * sehingga email yang tidak terkirim tidak meninggalkan jejak apa pun.
+ */
+export function fastDrainOutbox(): void {
+  void processOutbox().catch((err) => {
+    console.error("[mailworker] fast drain gagal:", err);
+  });
+}
+
 export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promise<{ sent: number; failed: number }> {
   // 1. Pemulihan baris "processing" yang macet/stale (mis. server mati saat pengiriman)
   // Kembalikan ke 'pending' jika sudah menggantung > 5 menit
@@ -70,6 +81,7 @@ export async function processOutbox(opts?: { fetchImpl?: typeof fetch }): Promis
       sent++;
     } catch (err) {
       const attempts = row.attempts + 1;
+      console.error(`[mailworker] gagal kirim ${row.emailType} (attempt ${attempts}/${MAX_ATTEMPTS}):`, err);
       if (attempts >= MAX_ATTEMPTS) {
         await db
           .update(emailOutbox)

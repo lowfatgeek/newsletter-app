@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import { hashToken } from "../crypto";
 import { db } from "../db";
+import { fastDrainOutbox } from "../mailworker";
 import { enqueueTransactionalEmail } from "../outbox";
 import { adminOtpChallenges } from "../schema";
 import { otpEmail } from "../templates";
@@ -30,7 +31,7 @@ export async function issueOtpChallenge(adminUserId: string, email: string): Pro
     .where(and(eq(adminOtpChallenges.adminUserId, adminUserId), lt(adminOtpChallenges.expiresAt, new Date())));
   // Best-effort fast drain (task 1.7): jangan tunggu tick cron berikutnya untuk
   // email OTP login admin.
-  void import("../mailworker").then((w) => w.processOutbox()).catch(() => {});
+  fastDrainOutbox();
   return row.id;
 }
 

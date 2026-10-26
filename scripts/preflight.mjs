@@ -42,3 +42,17 @@ if (!url) {
     console.log(`[preflight] DB GAGAL → ${target} : ${error?.message ?? error}`);
   }
 }
+
+// Status konfigurasi email dicetak agar penyebab "email tidak terkirim" terlihat
+// langsung di log container, tanpa perlu query outbox atau buka Console.
+if (process.env.MOCK_EMAILIT === "true") {
+  console.log("[preflight] EMAIL MOCK_EMAILIT=true → email TIDAK dikirim (outbox hanya ditandai sent)");
+} else if (!process.env.EMAILIT_API_KEY) {
+  console.log("[preflight] EMAIL EMAILIT_API_KEY belum di-set → pengiriman email akan gagal");
+} else {
+  console.log("[preflight] EMAIL provider Emailit terkonfigurasi (MOCK_EMAILIT=false)");
+}
+
+if (!process.env.CRON_SECRET) {
+  console.log("[preflight] CRON CRON_SECRET belum di-set → /api/cron/* akan error 500");
+}

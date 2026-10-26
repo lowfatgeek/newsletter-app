@@ -4,8 +4,10 @@
 # Service ini stateless: semua state ada di Postgres + R2. Jangan simpan
 # volume untuk app; cukup environment variable (lihat .env.example).
 
+# Base image diambil dari mirror ECR Public, bukan Docker Hub langsung: build
+# dari IP VPS bersama sering kena 429 (rate/abuse limit) saat resolve tag ini.
 # ---------- Stage 1: build ----------
-FROM node:22-slim AS build
+FROM public.ecr.aws/docker/library/node:22-slim AS build
 WORKDIR /app
 
 # Install dulu hanya manifest supaya layer dependency ter-cache selama
@@ -23,7 +25,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # ---------- Stage 2: runtime ----------
-FROM node:22-slim AS runtime
+FROM public.ecr.aws/docker/library/node:22-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 

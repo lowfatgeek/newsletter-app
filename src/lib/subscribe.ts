@@ -4,6 +4,7 @@ import { isDomainAllowed } from "./allowlist";
 import { db } from "./db";
 import { emailDomain, normalizeEmail } from "./email";
 import { env } from "./env";
+import { fastDrainOutbox } from "./mailworker";
 import { enqueueTransactionalEmail } from "./outbox";
 import { consumeRateLimit, hashIp } from "./ratelimit";
 import {
@@ -113,7 +114,7 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
       .update(rewardClaims)
       .set({ lastAccessSentAt: new Date(), status: "access_sent" })
       .where(eq(rewardClaims.id, claimId));
-    void import("./mailworker").then((w) => w.processOutbox()).catch(() => {}); // best-effort fast drain
+    fastDrainOutbox(); // best-effort fast drain
     return { ok: true, alreadyConfirmed: true };
   }
 
@@ -127,6 +128,6 @@ export async function processSubscribe(input: SubscribeInput): Promise<Subscribe
     idempotencyKey: `confirm-${claimId}-${raw.slice(0, 12)}`,
   });
   await db.update(rewardClaims).set({ lastAccessSentAt: new Date() }).where(eq(rewardClaims.id, claimId));
-  void import("./mailworker").then((w) => w.processOutbox()).catch(() => {}); // best-effort fast drain
+  fastDrainOutbox(); // best-effort fast drain
   return { ok: true, alreadyConfirmed: false };
 }
